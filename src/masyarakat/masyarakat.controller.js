@@ -5,11 +5,11 @@ const masyarakat = require('./masyarakat.model')
 router.post('/create_masyarakat', async (req, res) => {
     try {
         const newMasyarakat = new masyarakat(req.body)
-        const {nik_masyarakat} = newMasyarakat
+        const { nik_masyarakat } = newMasyarakat
 
-        const nikExist = await masyarakat.findOne({nik_masyarakat})
-        if (nikExist){
-            return res.status(400).json({message: "Sudah terdaftar."})
+        const nikExist = await masyarakat.findOne({ nik_masyarakat })
+        if (nikExist) {
+            return res.status(400).json({ message: "Sudah terdaftar." })
         }
         newMasyarakat.save()
             .then((result) => {
@@ -19,6 +19,18 @@ router.post('/create_masyarakat', async (req, res) => {
                 console.log("Gagal menyimpan data:", err);
                 res.status(500).json(err);
             });
+    } catch (e) {
+        res.status(400).json(e.message)
+    }
+})
+
+router.get('/read_masyarakat', async (req, res, next) => {
+    try {
+        const readMasyarakat = await masyarakat.find()
+        if (readMasyarakat.length === 0) {
+            return res.status(404).json({ message: "Data tidak ditemukan" })
+        }
+        res.status(200).json(readMasyarakat)
     } catch (e) {
         res.status(400).json(e.message)
     }
