@@ -13,7 +13,7 @@ const MONGO_URL = process.env.MONGO_URL
 mongoose.connect(MONGO_URL).then(()=>{
     console.log('databes konek')
     app.listen(PORT, ()=>{
-        console.log(PORT, ()=>{console.log('server port = ' + PORT)})
+        console.log('server port = ' + PORT)
     })
 }).catch((error)=>console.log(error))
 

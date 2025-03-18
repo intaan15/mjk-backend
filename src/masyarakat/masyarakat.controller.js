@@ -2,7 +2,7 @@ const express = require('express')
 const router = express.Router()
 const masyarakat = require('./masyarakat.model')
 
-router.post('/create_mas', async (req, res) => {
+router.post('/create_masyarakat', async (req, res) => {
     try {
         const newMasyarakat = new masyarakat(req.body)
         const {nik_masyarakat} = newMasyarakat
@@ -11,8 +11,14 @@ router.post('/create_mas', async (req, res) => {
         if (nikExist){
             return res.status(400).json({message: "Sudah terdaftar."})
         }
-
-        res.status(200).json({message: "DONE GAK BANG DONE"})
+        newMasyarakat.save()
+            .then((result) => {
+                res.status(200).json(result);
+            })
+            .catch((err) => {
+                console.log("Gagal menyimpan data:", err);
+                res.status(500).json(err);
+            });
     } catch (e) {
         res.status(400).json(e.message)
     }
