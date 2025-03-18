@@ -12,8 +12,7 @@ router.post('/create_mas', async (req, res) => {
             return res.status(400).json({message: "Sudah terdaftar."})
         }
 
-        const savedMasyarakat = await newMasyarakat.save()
-        res.status(200).json(savedMasyarakat)
+        res.status(200).json({message: "DONE GAK BANG DONE"})
     } catch (e) {
         res.status(400).json(e.message)
     }

@@ -60,4 +60,4 @@ const masyarakatSchema = new mongoose.Schema({
     },
 });
 
-module.exports = mongoose.model("Masyarakat", masyarakatSchema);
+module.exports = mongoose.model("Masyarakat", masyarakatSchema, "masyarakat");
