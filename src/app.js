@@ -23,7 +23,7 @@ app.use(cors())
 
 const masyarakatController = require('./masyarakat/masyarakat.controller')
 
-app.use('/api', masyarakatController)
+app.use('/api/masyarakat', masyarakatController)
 
 // app.get('/api', (req,res)=>{console.log(req,res)})
 // app.get('/api', (req,res)=>{res.json({message: "ytim"})})

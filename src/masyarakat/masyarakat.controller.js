@@ -2,7 +2,7 @@ const express = require('express')
 const router = express.Router()
 const masyarakat = require('./masyarakat.model')
 
-router.post('/create_masyarakat', async (req, res) => {
+router.post('/create', async (req, res) => {
     try {
         const newMasyarakat = new masyarakat(req.body)
         const { nik_masyarakat } = newMasyarakat
@@ -16,7 +16,6 @@ router.post('/create_masyarakat', async (req, res) => {
                 res.status(200).json(result);
             })
             .catch((err) => {
-                console.log("Gagal menyimpan data:", err);
                 res.status(500).json(err);
             });
     } catch (e) {
@@ -24,7 +23,7 @@ router.post('/create_masyarakat', async (req, res) => {
     }
 })
 
-router.get('/read_masyarakat', async (req, res, next) => {
+router.get('/getall', async (req, res, next) => {
     try {
         const readMasyarakat = await masyarakat.find()
         if (readMasyarakat.length === 0) {
