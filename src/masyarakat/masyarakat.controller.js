@@ -23,13 +23,27 @@ router.post('/create', async (req, res) => {
     }
 })
 
-router.get('/getall', async (req, res, next) => {
+router.get('/getall', async (req, res) => {
     try {
         const readMasyarakat = await masyarakat.find()
         if (readMasyarakat.length === 0) {
             return res.status(404).json({ message: "Data tidak ditemukan" })
         }
         res.status(200).json(readMasyarakat)
+    } catch (e) {
+        res.status(400).json(e.message)
+    }
+})
+
+router.patch('/update/:id', async (req, res) => {
+    try {
+        const id = req.params.id
+        const userExist = await masyarakat.findOne({ _id: id })
+        if (!userExist) {
+            return res.status(400).json({ message: "Data tidak ditemukan" })
+        }
+        const updateUser = await masyarakat.findByIdAndUpdate(id, req.body, {new:true})
+        res.status(200).json(updateUser)
     } catch (e) {
         res.status(400).json(e.message)
     }
