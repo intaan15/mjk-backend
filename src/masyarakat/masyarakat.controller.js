@@ -42,9 +42,24 @@ router.patch('/update/:id', async (req, res) => {
         if (!userExist) {
             return res.status(400).json({ message: "Data tidak ditemukan" })
         }
-        const updateUser = await masyarakat.findByIdAndUpdate(id, req.body, {new:true})
+        const updateUser = await masyarakat.findByIdAndUpdate(id, req.body, { new: true })
         res.status(200).json(updateUser)
     } catch (e) {
+        res.status(400).json(e.message)
+    }
+})
+
+router.delete('/delete/:id', async (req, res) => {
+    try {
+        const id = req.params.id
+        const userExist = await masyarakat.findOne({ _id: id })
+        if (!userExist) {
+            return res.status(400).json({ message: "Data tidak ditemukan" })
+        }
+        await masyarakat.findByIdAndDelete(id)
+        res.status(200).json({ message: "Data berhasil dihapus" })
+    } catch (e) {
+        console.log(e)
         res.status(400).json(e.message)
     }
 })
