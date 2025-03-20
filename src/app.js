@@ -25,6 +25,8 @@ app.use(cors())
 
 const masyarakatController = require('./masyarakat/masyarakat.controller')
 const authController = require('./auth/auth.controller')
+const dokterController = require('./dokter/dokter.controller')
 
 app.use('/api/masyarakat', masyarakatController)
 app.use('/api/auth', authController)
+app.use('/api/dokter', dokterController)
