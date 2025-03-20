@@ -21,10 +21,10 @@ router.post("/register_masyarakat", async (req, res) => {
             foto_profil_masyarakat
         } = req.body;
 
-        const usernameExist = await masyarakat.findOne({ username_masyarakat });
+        const usernameExist = await masyarakat.exists({ username_masyarakat });
         if (usernameExist) return res.status(400).json({ message: "Username sudah digunakan" });
 
-        const nikExist = await masyarakat.findOne({ nik_masyarakat });
+        const nikExist = await masyarakat.exists({ nik_masyarakat });
         if (nikExist) return res.status(400).json({ message: "NIK sudah terdaftar" });
 
         const salt = await bcrypt.genSalt(10);
@@ -42,8 +42,7 @@ router.post("/register_masyarakat", async (req, res) => {
             tgl_lahir_masyarakat,
             foto_ktp_masyarakat,
             selfie_ktp_masyarakat,
-            foto_profil_masyarakat,
-            verifikasi_akun_masyarakat: "Pending"
+            foto_profil_masyarakat
         });
 
         await newUser.save();

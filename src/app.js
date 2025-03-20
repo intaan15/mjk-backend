@@ -6,7 +6,6 @@ const bcrypt = require('bcryptjs')
 const cors = require('cors')
 const dotenv = require('dotenv')
 const bodyparser = require('body-parser')
-app.use(bodyparser.json())
 dotenv.config()
 const PORT = process.env.PORT || 5000
 const MONGO_URL = process.env.MONGO_URL
@@ -19,7 +18,9 @@ mongoose.connect(MONGO_URL).then(()=>{
 }).catch((error)=>console.log(error))
 
 app.use(express.urlencoded({extended : true}))
+app.use(bodyparser.urlencoded({extended : true}))
 app.use(express.json())
+app.use(bodyparser.json())
 app.use(cors())
 
 const masyarakatController = require('./masyarakat/masyarakat.controller')
