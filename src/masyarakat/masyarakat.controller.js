@@ -1,67 +1,85 @@
-const express = require('express')
-const router = express.Router()
-const masyarakat = require('./masyarakat.model')
+const express = require("express");
+const bcrypt = require("bcrypt");
+const router = express.Router();
+const masyarakat = require("./masyarakat.model");
 
-router.post('/create', async (req, res) => {
+router.post("/create", async (req, res) => {
     try {
-        const newMasyarakat = new masyarakat(req.body)
-        const { nik_masyarakat } = newMasyarakat
+        const { nik_masyarakat, password_masyarakat } = req.body;
 
-        const nikExist = await masyarakat.findOne({ nik_masyarakat })
-        if (nikExist) {
-            return res.status(400).json({ message: "Sudah terdaftar." })
-        }
-        newMasyarakat.save()
-            .then((result) => {
-                res.status(200).json(result);
-            })
-            .catch((err) => {
-                res.status(500).json(err);
-            });
+        const usernameExist = await masyarakat.exists({ username_masyarakat });
+        if (usernameExist) return res.status(400).json({ message: "Username sudah digunakan" });
+        
+        const nikExist = await masyarakat.exists({ nik_masyarakat });
+        if (nikExist) return res.status(400).json({ message: "Sudah terdaftar." });
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password_masyarakat, salt);
+        req.body.password_masyarakat = hashedPassword;
+
+        const newMasyarakat = new masyarakat(req.body);
+        const result = await newMasyarakat.save();
+        res.status(201).json(result);
     } catch (e) {
-        res.status(400).json(e.message)
+        res.status(500).json({ message: e.message });
     }
-})
+});
 
-router.get('/getall', async (req, res) => {
+router.get("/getall", async (req, res) => {
     try {
-        const readMasyarakat = await masyarakat.find()
+        const readMasyarakat = await masyarakat.find().select("-password_masyarakat"); // 🔹 Jangan tampilkan password
         if (readMasyarakat.length === 0) {
-            return res.status(404).json({ message: "Data tidak ditemukan" })
+            return res.status(404).json({ message: "Data tidak ditemukan" });
         }
-        res.status(200).json(readMasyarakat)
+        res.status(200).json(readMasyarakat);
     } catch (e) {
-        res.status(400).json(e.message)
+        res.status(500).json({ message: e.message });
     }
-})
+});
 
-router.patch('/update/:id', async (req, res) => {
+router.patch("/update/:id", async (req, res) => {
     try {
-        const id = req.params.id
-        const userExist = await masyarakat.findOne({ _id: id })
-        if (!userExist) {
-            return res.status(400).json({ message: "Data tidak ditemukan" })
-        }
-        const updateUser = await masyarakat.findByIdAndUpdate(id, req.body, { new: true })
-        res.status(200).json(updateUser)
-    } catch (e) {
-        res.status(400).json(e.message)
-    }
-})
+        const { id } = req.params;
+        const { nik_masyarakat, password_masyarakat } = req.body;
 
-router.delete('/delete/:id', async (req, res) => {
-    try {
-        const id = req.params.id
-        const userExist = await masyarakat.findOne({ _id: id })
+        const userExist = await masyarakat.exists({ _id: id });
         if (!userExist) {
-            return res.status(400).json({ message: "Data tidak ditemukan" })
+            return res.status(404).json({ message: "Data tidak ditemukan" });
         }
-        await masyarakat.findByIdAndDelete(id)
-        res.status(200).json({ message: "Data berhasil dihapus" })
+
+        if (nik_masyarakat) {
+            const nikExist = await masyarakat.exists({ nik_masyarakat, _id: { $ne: id } });
+            if (nikExist) {
+                return res.status(400).json({ message: "NIK sudah terdaftar oleh pengguna lain." });
+            }
+        }
+
+        if (password_masyarakat) {
+            const salt = await bcrypt.genSalt(10);
+            req.body.password_masyarakat = await bcrypt.hash(password_masyarakat, salt);
+        }
+
+        const updatedUser = await masyarakat.findByIdAndUpdate(id, req.body, { new: true }).select("-password_masyarakat");
+        res.status(200).json(updatedUser);
     } catch (e) {
-        console.log(e)
-        res.status(400).json(e.message)
+        res.status(500).json({ message: e.message });
     }
-})
+});
+
+router.delete("/delete/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const userExist = await masyarakat.exists({ _id: id });
+        if (!userExist) {
+            return res.status(404).json({ message: "Data tidak ditemukan" });
+        }
+
+        await masyarakat.findByIdAndDelete(id);
+        res.status(200).json({ message: "Data berhasil dihapus" });
+    } catch (e) {
+        res.status(500).json({ message: e.message });
+    }
+});
 
 module.exports = router;

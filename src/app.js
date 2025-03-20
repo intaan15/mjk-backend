@@ -2,6 +2,7 @@ const express = require('express')
 const app = express()
 const mongoose = require('mongoose')
 const http = require('http').Server(app)
+const bcrypt = require('bcryptjs')
 const cors = require('cors')
 const dotenv = require('dotenv')
 const bodyparser = require('body-parser')
@@ -17,10 +18,12 @@ mongoose.connect(MONGO_URL).then(()=>{
     })
 }).catch((error)=>console.log(error))
 
-// app.use(express.urlencoded({extended : true}))
+app.use(express.urlencoded({extended : true}))
 app.use(express.json())
 app.use(cors())
 
 const masyarakatController = require('./masyarakat/masyarakat.controller')
+const authController = require('./auth/auth.controller')
 
 app.use('/api/masyarakat', masyarakatController)
+app.use('/api/auth', authController)
