@@ -8,6 +8,7 @@ const dokterSchema = new mongoose.Schema({
     username_dokter: {
         type: String,
         required: true,
+        unique: true,
     },
     password_dokter: {
         type: String,
@@ -16,6 +17,7 @@ const dokterSchema = new mongoose.Schema({
     email_dokter: {
         type: String,
         required: true,
+        unique: true,
         match: [/^\S+@\S+\.\S+$/, "Email tidak valid"],
     },
     spesialis_dokter: {
@@ -31,11 +33,15 @@ const dokterSchema = new mongoose.Schema({
         required: true,
     },
     rating_dokter: {
-        type: Float64Array,
+        type: Number, 
         required: true,
+        min: 0,
+        max: 5,
     },
     foto_profil_dokter: {
         type: String,
         required: false,
     },
-})
+}, { timestamps: true });
+
+module.exports = mongoose.model("Dokter", dokterSchema);
