@@ -2,6 +2,7 @@ const express = require("express");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const masyarakat = require("../masyarakat/masyarakat.model");
+const dokter = require("../dokter/dokter.model");
 const router = express.Router();
 
 router.post("/register_masyarakat", async (req, res) => {
@@ -74,6 +75,35 @@ router.post("/login_masyarakat", async (req, res) => {
             id: user._id,
             username: user.username_masyarakat, 
             nik: user.nik_masyarakat 
+            },
+            process.env.JWT_SECRET, { expiresIn: "1h" }
+        );
+
+        res.status(200).json({ message: "Login berhasil", token });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+router.post("/login_dokter", async (req, res) => {
+    try {
+        const { identifier_dokter, password_dokter } = req.body; 
+        if (!identifier_dokter || !password_dokter) {
+            return res.status(400).json({ message: "Harap masukkan username/str dan password" });
+        }
+        const user = await dokter.findOne({
+            $or: [{ username_dokter: identifier_dokter }, { str_dokter: identifier_dokter }]
+        }).lean();
+
+        if (!user) return res.status(400).json({ message: "Akun tidak ditemukan" });
+
+        const isMatch = await bcrypt.compare(password_dokter, user.password_dokter);
+        if (!isMatch) return res.status(400).json({ message: "Password salah" });
+
+        const token = jwt.sign({ 
+            id: user._id,
+            username: user.username_dokter, 
+            str: user.str_dokter 
             },
             process.env.JWT_SECRET, { expiresIn: "1h" }
         );
