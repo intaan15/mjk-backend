@@ -25,6 +25,10 @@ router.post("/create", async (req, res, next) => {
       return res.status(400).json({ message: "STR sudah terdaftar" });
     }
 
+    if (await Dokter.exists({ email_dokter })) {
+      return res.status(400).json({ message: "Email sudah terdaftar" });
+    }
+
     const hashedPassword = await bcrypt.hash(password_dokter, 10);
     const newDokter = new Dokter({
       nama_dokter,
@@ -75,16 +79,25 @@ router.patch("/update/:id", async (req, res, next) => {
       return res.status(404).json({ message: "Data tidak ditemukan" });
     }
 
+    if (username_dokter) {
+        const usernameExist = await masyarakat.exists({ username_dokter, _id: { $ne: id } });
+        if (usernameExist) { return res.status(400).json({ message: "Username sudah terdaftar oleh pengguna lain." }) }
+    }
+
     if (str_dokter) {
       const strExist = await Dokter.exists({ str_dokter, _id: { $ne: id } });
-      if (strExist) {
-        return res.status(400).json({ message: "STR sudah terdaftar oleh pengguna lain." });
-      }
-    }
+      if (strExist) { return res.status(400).json({ message: "STR sudah terdaftar oleh pengguna lain." }) }
+    }    
+
+    if (email_dokter) {
+      const emailExist = await Dokter.exists({ email_dokter, _id: { $ne: id } });
+      if (emailExist) { return res.status(400).json({ message: "Email sudah terdaftar oleh pengguna lain." }) }
+    }    
 
     if (password_dokter) {
       req.body.password_dokter = await bcrypt.hash(password_dokter, 10);
     }
+    
     if (rating_dokter) {
       req.body.rating_dokter = rating_dokter >= 0 && rating_dokter <= 5 ? rating_dokter : 0
     }

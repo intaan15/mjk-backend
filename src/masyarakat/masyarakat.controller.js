@@ -26,6 +26,9 @@ router.post("/create", async (req, res) => {
         const nikExist = await masyarakat.exists({ nik_masyarakat });
         if (nikExist) return res.status(400).json({ message: "NIK sudah terdaftar." });
 
+        const emailExist = await masyarakat.exists({ email_masyarakat });
+        if (emailExist) return res.status(400).json({ message: "Email sudah terdaftar." });
+
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password_masyarakat, salt);
 
@@ -66,7 +69,7 @@ router.get("/getall", async (req, res) => {
 router.patch("/update/:id", async (req, res) => {
     try {
         const { id } = req.params;
-        const { nik_masyarakat, password_masyarakat } = req.body;
+        const { username_masyarakat, nik_masyarakat, email_masyarakat, password_masyarakat } = req.body;
 
         const userExist = await masyarakat.exists({ _id: id });
         if (!userExist) {
@@ -75,9 +78,17 @@ router.patch("/update/:id", async (req, res) => {
 
         if (nik_masyarakat) {
             const nikExist = await masyarakat.exists({ nik_masyarakat, _id: { $ne: id } });
-            if (nikExist) {
-                return res.status(400).json({ message: "NIK sudah terdaftar oleh pengguna lain." });
-            }
+            if (nikExist) {return res.status(400).json({ message: "NIK sudah terdaftar oleh pengguna lain." })}
+        }
+
+        if (username_masyarakat) {
+            const usernameExist = await masyarakat.exists({ username_masyarakat, _id: { $ne: id } });
+            if (usernameExist) {return res.status(400).json({ message: "Username sudah terdaftar oleh pengguna lain." })}
+        }
+
+        if (email_masyarakat) {
+            const emailExist = await masyarakat.exists({ email_masyarakat, _id: { $ne: id } });
+            if (emailExist) {return res.status(400).json({ message: "Email sudah terdaftar oleh pengguna lain." })}
         }
 
         if (password_masyarakat) {
