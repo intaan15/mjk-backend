@@ -31,6 +31,7 @@ const dokterSchema = new mongoose.Schema({
     str_dokter: {
         type: String,
         required: true,
+        unique: true,
     },
     rating_dokter: {
         type: Number, 
