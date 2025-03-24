@@ -6,7 +6,7 @@ const artikelSchema = new mongoose.Schema({
         required: true,
     },
     tgl_terbit_artikel: {
-        type: String,
+        type: Date,
         required: true,
         unique: true,
     },
