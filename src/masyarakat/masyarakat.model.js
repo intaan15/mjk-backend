@@ -23,8 +23,8 @@ const masyarakatSchema = new mongoose.Schema({
     nik_masyarakat: {
         type: String,
         required: true,
-        unique: true
-        // match: [/^\d{16}$/, "NIK harus 16 digit"],
+        unique: true,
+        match: [/^\d{16}$/, "NIK harus 16 digit"],
     },
     alamat_masyarakat: {
         type: String,
@@ -61,6 +61,6 @@ const masyarakatSchema = new mongoose.Schema({
         default: "Pending",
         required: true,
     },
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model("Masyarakat", masyarakatSchema, "masyarakat");
