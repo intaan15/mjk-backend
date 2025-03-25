@@ -2,7 +2,6 @@ const express = require("express");
 const router = express.Router();
 const artikel = require("./artikel.model");
 
-// CREATE - Tambah Artikel Baru
 router.post("/create", async (req, res) => {
     try {
         const newArtikel = new artikel(req.body);
@@ -13,7 +12,6 @@ router.post("/create", async (req, res) => {
     }
 });
 
-// READ - Ambil Semua Artikel
 router.get("/", async (req, res) => {
     try {
         const artikels = await artikel.find();
