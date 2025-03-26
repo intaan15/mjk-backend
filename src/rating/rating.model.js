@@ -6,13 +6,14 @@ const ratingSchema = new mongoose.Schema({
         required: true,
     },
     nama_dokter: {
-        type: Date,
-        required: true,
-        unique: true,
-    },
-    rating: {
         type: String,
         required: true,
+    },
+    rating: {
+        type: Number,
+        required: true,
+        min: 0,
+        max: 5,
     },
 })
 
