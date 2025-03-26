@@ -45,5 +45,16 @@ router.patch("/update/:id", async (req, res) => {
     }
 });
 
+router.delete("/delete/:id", async (req, res) => {
+    try {
+        const deletedArtikel = await artikel.findByIdAndDelete(req.params.id);
+        if (!deletedArtikel) {
+            return res.status(404).json({ message: "Artikel tidak ditemukan" });
+        }
+        res.status(200).json({ message: "Artikel berhasil dihapus" });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
 
 module.exports = router;
