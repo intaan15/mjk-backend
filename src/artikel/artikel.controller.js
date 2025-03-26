@@ -33,5 +33,17 @@ router.get("/:id", async (req, res) => {
     }
 });
 
+router.patch("/update/:id", async (req, res) => {
+    try {
+        const updatedArtikel = await artikel.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        if (!updatedArtikel) {
+            return res.status(404).json({ message: "Artikel tidak ditemukan" });
+        }
+        res.status(200).json(updatedArtikel);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
 
 module.exports = router;
