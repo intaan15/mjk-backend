@@ -21,4 +21,17 @@ router.get("/", async (req, res) => {
     }
 });
 
+router.get("/:id", async (req, res) => {
+    try {
+        const artikelItem = await artikel.findById(req.params.id);
+        if (!artikelItem) {
+            return res.status(404).json({ message: "Artikel tidak ditemukan" });
+        }
+        res.status(200).json(artikelItem);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+
 module.exports = router;
