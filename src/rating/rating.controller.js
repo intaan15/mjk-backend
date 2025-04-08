@@ -1,57 +1,36 @@
 const express = require("express");
 const router = express.Router();
 const rating = require("./rating.model");
+const dokter = require("../dokter/dokter.model");
 
 router.post("/create", async (req, res) => {
     try {
-        const { nama_masyarakat, nama_dokter, rating: ratingValue } = req.body;
+        const { nama_masyarakat, dokter_id, rating } = req.body;
 
-        if (ratingValue < 0 || ratingValue > 5) {
-            return res.status(400).json({ message: "rating harus berada di antara 0 hingga 5." });
+        const dokterData = await dokter.findById(dokter_id);
+        if (!dokterData) {
+            return res.status(404).json({ message: "Dokter tidak ditemukan" });
         }
 
-        const newRating = new rating(req.body);
-        const savedRating = await newRating.save();
-        res.status(201).json(savedRating);
+        const newRating = new rating({ nama_masyarakat, dokter_id, rating });
+        await newRating.save();
+
+        const ratings = await rating.find({ dokter_id });
+        const avgRating = ratings.reduce((acc, curr) => acc + curr.rating, 0) / ratings.length;
+
+        dokterData.rating_dokter = parseFloat(avgRating.toFixed(1));
+        await dokterData.save();
+
+        res.status(201).json({ message: "Rating berhasil ditambahkan", rating: newRating, avgRating });
     } catch (error) {
-        res.status(400).json({ message: error.message });
+        res.status(500).json({ message: error.message });
     }
 });
 
 router.get("/", async (req, res) => {
     try {
-        const ratings = await rating.find();
+        const ratings = await rating.find().populate("dokter_id", "nama_dokter rating_dokter");
         res.status(200).json(ratings);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-});
-
-router.patch("/update/:id", async (req, res) => {
-    try {
-        const { rating: ratingValue } = req.body;
-
-        if (ratingValue < 0 || ratingValue > 5) {
-            return res.status(400).json({ message: "rating harus berada di antara 0 hingga 5." });
-        }
-
-        const updatedRating = await rating.findByIdAndUpdate(req.params.id, req.body, { new: true });
-        if (!updatedRating) {
-            return res.status(404).json({ message: "rating tidak ditemukan" });
-        }
-        res.status(200).json(updatedRating);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-});
-
-router.delete("/delete/:id", async (req, res) => {
-    try {
-        const deletedRating = await rating.findByIdAndDelete(req.params.id);
-        if (!deletedRating) {
-            return res.status(404).json({ message: "rating tidak ditemukan" });
-        }
-        res.status(200).json({ message: "rating berhasil dihapus" });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
