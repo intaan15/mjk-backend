@@ -12,4 +12,16 @@ router.post("/create", async (req, res) => {
     }
 });
 
+router.get("/", async (req, res) => {
+    try {
+        const allJadwal = await jadwal.find()
+            .populate("verifikasi_id", "nama_masyarakat") // sesuaikan field jika perlu
+            .populate("dokter_id", "nama_dokter");
+        res.status(200).json(allJadwal);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+
 module.exports = router;
