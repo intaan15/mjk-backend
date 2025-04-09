@@ -35,4 +35,14 @@ router.get("/:id", async (req, res) => {
     }
 });
 
+router.patch("/update/:id", async (req, res) => {
+    try {
+        const updated = await jadwal.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        if (!updated) return res.status(404).json({ message: "Jadwal tidak ditemukan" });
+        res.status(200).json({ message: "Jadwal berhasil diperbarui", data: updated });
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+});
+
 module.exports = router;
