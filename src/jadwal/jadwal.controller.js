@@ -23,5 +23,16 @@ router.get("/", async (req, res) => {
     }
 });
 
+router.get("/:id", async (req, res) => {
+    try {
+        const oneJadwal = await jadwal.findById(req.params.id)
+            .populate("verifikasi_id", "nama_masyarakat")
+            .populate("dokter_id", "nama_dokter");
+        if (!oneJadwal) return res.status(404).json({ message: "Jadwal tidak ditemukan" });
+        res.status(200).json(oneJadwal);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
 
 module.exports = router;
