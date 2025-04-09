@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const masyarakat = require("../masyarakat/masyarakat.model");
 const dokter = require("../dokter/dokter.model");
 const router = express.Router();
+const dokterAuthorization = require('./middleware/dokterAuthorization')
 
 router.post("/register_masyarakat", async (req, res) => {
     try {
