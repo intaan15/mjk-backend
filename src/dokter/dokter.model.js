@@ -43,6 +43,11 @@ const dokterSchema = new mongoose.Schema({
         type: String,
         required: false,
     },
+    role: {
+        type: String,
+        enum: ["admin", "dokter", "masyarakat"],
+        default: "dokter",
+      },
 }, { timestamps: true });
 
 module.exports = mongoose.model("Dokter", dokterSchema, "dokter");

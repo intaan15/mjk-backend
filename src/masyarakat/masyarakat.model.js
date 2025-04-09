@@ -61,6 +61,11 @@ const masyarakatSchema = new mongoose.Schema({
         default: "Pending",
         required: true,
     },
+    role: {
+        type: String,
+        enum: ["admin", "dokter", "masyarakat"],
+        default: "masyarakat",
+      },
 }, { timestamps: true });
 
 module.exports = mongoose.model("Masyarakat", masyarakatSchema, "masyarakat");
