@@ -1,71 +1,76 @@
 const mongoose = require("mongoose");
 
-const masyarakatSchema = new mongoose.Schema({
+const masyarakatSchema = new mongoose.Schema(
+  {
     nama_masyarakat: {
-        type: String,
-        required: true,
+      type: String,
+      required: true,
     },
     username_masyarakat: {
-        type: String,
-        required: true,
-        unique: true,
+      type: String,
+      required: true,
+      unique: true,
     },
     password_masyarakat: {
-        type: String,
-        required: true,
+      type: String,
+      required: true,
     },
     email_masyarakat: {
-        type: String,
-        required: true,
-        unique: true,
-        match: [/^\S+@\S+\.\S+$/, "Email tidak valid"],
+      type: String,
+      required: true,
+      unique: true,
+      // match: [/^\S+@\S+\.\S+$/, "Email tidak valid"],
     },
+    email_hash: String,
     nik_masyarakat: {
-        type: String,
-        required: true,
-        unique: true,
-        match: [/^\d{16}$/, "NIK harus 16 digit"],
+      type: String,
+      required: true,
+      unique: true,
+      // match: [/^\d{16}$/, "NIK harus 16 digit"],
     },
+    nik_hash: String,
     alamat_masyarakat: {
-        type: String,
-        required: true,
+      type: String,
+      required: true,
     },
     notlp_masyarakat: {
-        type: String,
-        required: true,
+      type: String,
+      required: true,
     },
     jeniskelamin_masyarakat: {
-        type: String,
-        enum: ["Laki-laki", "Perempuan"],
-        required: true,
+      type: String,
+      enum: ["Laki-laki", "Perempuan"],
+      required: true,
     },
     tgl_lahir_masyarakat: {
-        type: Date,
-        required: true,
+      type: Date,
+      required: true,
     },
     foto_ktp_masyarakat: {
-        type: String,
-        required: true,
+      type: String,
+      required: true,
     },
     selfie_ktp_masyarakat: {
-        type: String,
-        required: true,
+      type: String,
+      required: true,
     },
     foto_profil_masyarakat: {
-        type: String,
-        required: false,
+      type: String,
+      required: false,
     },
     verifikasi_akun_masyarakat: {
-        type: String,
-        enum: ["Pending", "Terima", "Tolak"],
-        default: "Pending",
-        required: true,
+      type: String,
+      enum: ["Pending", "Terima", "Tolak"],
+      default: "Pending",
+      required: true,
     },
     role: {
-        type: String,
-        enum: ["admin", "dokter", "masyarakat"],
-        default: "masyarakat",
-      },
-}, { timestamps: true });
+      type: String,
+      enum: ["admin", "dokter", "masyarakat"],
+      default: "masyarakat",
+    },
+  },
+  { timestamps: true }
+);
 
 module.exports = mongoose.model("Masyarakat", masyarakatSchema, "masyarakat");
