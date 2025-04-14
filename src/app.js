@@ -28,6 +28,7 @@ const dokterController = require('./dokter/dokter.controller')
 const artikelController = require('./artikel/artikel.controller')
 const ratingController = require('./rating/rating.controller')
 const jadwalController = require('./jadwal/jadwal.controller');
+const captchaController = require('./admin/captcha.controller')
 // const verifikasiController = require('./verifikasi/verifikasi.controller');
 
 app.use('/api/masyarakat', masyarakatController)
@@ -36,4 +37,5 @@ app.use('/api/dokter', dokterController)
 app.use('/api/artikel', artikelController)
 app.use('/api/rating', ratingController)
 app.use("/api/jadwal", jadwalController);
+app.use("/api/captcha", captchaController);
 // app.use("/api/verifikasi", verifikasiController);
