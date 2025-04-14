@@ -3,6 +3,7 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const masyarakat = require("../masyarakat/masyarakat.model");
 const dokter = require("../dokter/dokter.model");
+const superadmin = require("../admin/admin.model");
 const router = express.Router();
 const dokterAuthorization = require('./middleware/dokterAuthorization')
 
