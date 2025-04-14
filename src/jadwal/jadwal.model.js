@@ -21,7 +21,7 @@ const jadwalSchema = new mongoose.Schema({
     },
     status_konsul: {
         type: String,
-        enum: ["menunggu", "ditolak", "diterima", "berlangsung", "selesai"],
+        enum: ["menunggu", "berlangsung", "selesai"],
         default: "menunggu",
         required: true,
     },
