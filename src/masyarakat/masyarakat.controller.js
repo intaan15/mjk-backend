@@ -78,6 +78,18 @@ router.post("/create", async (req, res) => {
   }
 });
 
+router.get("/getall", async (req, res) => {
+  try {
+      const readMasyarakat = await masyarakat.find().select("-password_masyarakat");
+      if (readMasyarakat.length === 0) {
+          return res.status(404).json({ message: "Tidak ada data" });
+      }
+      res.status(200).json(readMasyarakat);
+  } catch (e) {
+      res.status(500).json({ message: e.message });
+  }
+});
+
 router.patch("/update/:id", async (req, res) => {
   try {
     const { id } = req.params;

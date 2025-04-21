@@ -5,7 +5,7 @@ const masyarakat = require("../masyarakat/masyarakat.model");
 const dokter = require("../dokter/dokter.model");
 const superadmin = require("../admin/admin.model");
 const router = express.Router();
-const dokterAuthorization = require('./middleware/dokterAuthorization')
+// const dokterAuthorization = require('./middleware/dokterAuthorization')
 
 router.post("/register_masyarakat", async (req, res) => {
     try {
@@ -76,7 +76,8 @@ router.post("/login_masyarakat", async (req, res) => {
         const token = jwt.sign({ 
             id: user._id,
             username: user.username_masyarakat, 
-            nik: user.nik_masyarakat 
+            nik: user.nik_masyarakat,
+            role: 'masyarakat' 
             },
             process.env.JWT_SECRET, { expiresIn: "1h" }
         );
@@ -87,7 +88,7 @@ router.post("/login_masyarakat", async (req, res) => {
     }
 });
 
-router.post("/login_dokter", dokterAuthorization, async (req, res) => {
+router.post("/login_dokter", async (req, res) => {
     try {
         const { identifier_dokter, password_dokter } = req.body; 
         if (!identifier_dokter || !password_dokter) {
@@ -105,7 +106,8 @@ router.post("/login_dokter", dokterAuthorization, async (req, res) => {
         const token = jwt.sign({ 
             id: user._id,
             username: user.username_dokter, 
-            str: user.str_dokter 
+            str: user.str_dokter,
+            role: 'dokter' 
             },
             process.env.JWT_SECRET, { expiresIn: "1h" }
         );
