@@ -2,6 +2,8 @@ const express = require("express");
 const bcrypt = require("bcrypt");
 const router = express.Router();
 const Dokter = require("./dokter.model");
+const { encrypt, decrypt } = require("../utils/encryption");
+
 
 router.post("/create", async (req, res, next) => {
   try {
@@ -58,15 +60,23 @@ router.get("/getall", async (req, res, next) => {
   }
 });
 
-router.get("/getbyid/:id", async (req, res, next) => {
+router.get("/getbyid/:id", async (req, res) => {
   try {
-    const dokter = await Dokter.findById(req.params.id).select("-password_dokter");
-    if (!dokter) {
-      return res.status(404).json({ message: "Dokter tidak ditemukan" });
-    }
-    res.status(200).json(dokter);
+    const { id } = req.params;
+    const user = await masyarakat.findById(id).select("-password_dokter");
+    if (!user) return res.status(404).json({ message: "Dokter tidak ditemukan" });
+
+    const decryptedUser = {
+      ...user._doc,
+      email_masyarakat: decrypt(user.email_masyarakat),
+      nik_masyarakat: decrypt(user.nik_masyarakat),
+      alamat_masyarakat: decrypt(user.alamat_masyarakat),
+      notlp_masyarakat: decrypt(user.notlp_masyarakat),
+    };
+
+    res.status(200).json(decryptedUser);
   } catch (e) {
-    next(e);
+    res.status(500).json({ message: e.message });
   }
 });
 
