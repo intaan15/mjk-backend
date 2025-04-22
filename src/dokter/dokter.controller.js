@@ -131,4 +131,37 @@ router.delete("/delete/:id", async (req, res, next) => {
   }
 });
 
+router.patch("/ubah-password", verifyToken, async (req, res) => {
+  try {
+    const { password_lama, password_baru, konfirmasi_password_baru } = req.body;
+
+    if (!password_lama || !password_baru || !konfirmasi_password_baru) {
+      return res.status(400).json({ message: "Semua field harus diisi" });
+    }
+
+    if (password_baru !== konfirmasi_password_baru) {
+      return res.status(400).json({ message: "Konfirmasi password tidak cocok" });
+    }
+
+    const user = await masyarakat.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: "User tidak ditemukan" });
+    }
+
+    const validPassword = await bcrypt.compare(password_lama, user.password_masyarakat);
+    if (!validPassword) {
+      return res.status(400).json({ message: "Password lama salah" });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password_baru, salt);
+
+    user.password_masyarakat = hashedPassword;
+    await user.save();
+    res.status(200).json({ message: "Password berhasil diubah" });
+
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+});
 module.exports = router;
