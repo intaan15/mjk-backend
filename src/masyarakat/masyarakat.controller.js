@@ -3,7 +3,7 @@ const bcrypt = require("bcrypt");
 const router = express.Router();
 const masyarakat = require("./masyarakat.model");
 const verifyToken = require("../middlewares/verifyToken"); 
-const { encrypt } = require("../utils/encryption");
+const { encrypt, decrypt } = require("../utils/encryption");
 
 // const { encrypt } = require("../utils/encryption");
 const { hashString } = require("../utils/hash");
@@ -87,6 +87,26 @@ router.get("/getall", async (req, res) => {
       res.status(200).json(readMasyarakat);
   } catch (e) {
       res.status(500).json({ message: e.message });
+  }
+});
+
+router.get("/getbyid/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await masyarakat.findById(id).select("-password_masyarakat");
+    if (!user) return res.status(404).json({ message: "User tidak ditemukan" });
+
+    const decryptedUser = {
+      ...user._doc,
+      email_masyarakat: decrypt(user.email_masyarakat),
+      nik_masyarakat: decrypt(user.nik_masyarakat),
+      alamat_masyarakat: decrypt(user.alamat_masyarakat),
+      notlp_masyarakat: decrypt(user.notlp_masyarakat),
+    };
+
+    res.status(200).json(decryptedUser);
+  } catch (e) {
+    res.status(500).json({ message: e.message });
   }
 });
 
