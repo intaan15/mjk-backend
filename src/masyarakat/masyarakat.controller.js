@@ -2,7 +2,7 @@ const express = require("express");
 const bcrypt = require("bcrypt");
 const router = express.Router();
 const masyarakat = require("./masyarakat.model");
-const verifyToken = require("../middlewares/verifyToken"); 
+const verifyToken = require("../middleware/verifyToken"); 
 const { encrypt, decrypt } = require("../utils/encryption");
 
 // const { encrypt } = require("../utils/encryption");
