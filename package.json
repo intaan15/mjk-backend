@@ -1,5 +1,6 @@
 {
   "scripts": {
+    "build": "echo 'No build step required'",
     "start": "nodemon src/app.js"
   },
   "dependencies": {
