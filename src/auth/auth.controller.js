@@ -5,7 +5,7 @@ const masyarakat = require("../masyarakat/masyarakat.model");
 const dokter = require("../dokter/dokter.model");
 const superadmin = require("../admin/admin.model");
 const router = express.Router();
-// const loginlimiter = require("../middleware/ratelimiter");
+const loginLimiter = require("../middleware/ratelimiter");
 // const dokterAuthorization = require('./middleware/dokterAuthorization')
 
 router.post("/register_masyarakat", async (req, res) => {
@@ -89,34 +89,45 @@ router.post("/login_masyarakat", async (req, res) => {
     }
 });
 
-router.post("/login_dokter", async (req, res) => {
-    try {
-        const { identifier_dokter, password_dokter } = req.body; 
-        if (!identifier_dokter || !password_dokter) {
-            return res.status(400).json({ message: "Harap masukkan username/str dan password" });
-        }
-        const user = await dokter.findOne({
-            $or: [{ username_dokter: identifier_dokter }, { str_dokter: identifier_dokter }]
-        }).lean();
+router.post("/login_dokter", loginLimiter, async (req, res) => {
+  try {
+    const { identifier_dokter, password_dokter } = req.body;
 
-        if (!user) return res.status(400).json({ message: "Akun tidak ditemukan" });
-
-        const isMatch = await bcrypt.compare(password_dokter, user.password_dokter);
-        if (!isMatch) return res.status(400).json({ message: "Password salah" });
-
-        const token = jwt.sign({ 
-            id: user._id,
-            username: user.username_dokter, 
-            str: user.str_dokter,
-            role: 'dokter' 
-            },
-            process.env.JWT_SECRET, { expiresIn: "1h" }
-        );
-
-        res.status(200).json({ message: "Login berhasil", token });
-    } catch (e) {
-        res.status(500).json({ error: e.message });
+    if (!identifier_dokter || !password_dokter) {
+      return res
+        .status(400)
+        .json({ message: "Harap masukkan username/str dan password" });
     }
+
+    const user = await dokter
+      .findOne({
+        $or: [
+          { username_dokter: identifier_dokter },
+          { str_dokter: identifier_dokter },
+        ],
+      })
+      .lean();
+
+    if (!user) return res.status(400).json({ message: "Akun tidak ditemukan" });
+
+    const isMatch = await bcrypt.compare(password_dokter, user.password_dokter);
+    if (!isMatch) return res.status(400).json({ message: "Password salah" });
+
+    const token = jwt.sign(
+      {
+        id: user._id,
+        username: user.username_dokter,
+        str: user.str_dokter,
+        role: "dokter",
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    res.status(200).json({ message: "Login berhasil", token });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 

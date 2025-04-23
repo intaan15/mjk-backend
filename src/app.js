@@ -83,6 +83,8 @@ app.use('/api/artikel', artikelController);
 app.use('/api/rating', ratingController);
 app.use('/api/jadwal', jadwalController);
 app.use('/api/captcha', captchaController);
+app.set("trust proxy", 1); 
+
 
 module.exports = app;
 module.exports.handler = serverless(app);
