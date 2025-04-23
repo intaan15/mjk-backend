@@ -5,6 +5,10 @@ const Dokter = require("./dokter.model");
 const verifyToken = require("../middleware/verifyToken"); 
 const { encrypt, decrypt } = require("../utils/encryption");
 
+// const { encrypt } = require("../utils/encryption");
+const { hashString } = require("../utils/hash");
+
+
 
 router.post("/create", async (req, res, next) => {
   try {
@@ -20,6 +24,10 @@ router.post("/create", async (req, res, next) => {
       foto_profil_dokter,
     } = req.body;
 
+    const emailHash = hashString(email_dokter);
+
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    // Validasi data unik
     if (await Dokter.exists({ username_dokter })) {
       return res.status(400).json({ message: "Username sudah digunakan" });
     }
@@ -28,25 +36,34 @@ router.post("/create", async (req, res, next) => {
       return res.status(400).json({ message: "STR sudah terdaftar" });
     }
 
-    if (await Dokter.exists({ email_dokter })) {
+    if (await Dokter.exists({ email_hash: emailHash })) {
       return res.status(400).json({ message: "Email sudah terdaftar" });
     }
 
+    if (!emailRegex.test(email_dokter)) {
+      return res.status(400).json({ message: "Email tidak valid" });
+    }
+
     const hashedPassword = await bcrypt.hash(password_dokter, 10);
+
     const newDokter = new Dokter({
       nama_dokter,
       username_dokter,
       password_dokter: hashedPassword,
-      email_dokter,
+      email_dokter: encrypt(email_dokter),
+      email_hash: emailHash,
       spesialis_dokter,
-      notlp_dokter,
+      notlp_dokter: encrypt(notlp_dokter),
       str_dokter,
-      rating_dokter: rating_dokter >= 0 && rating_dokter <= 5 ? rating_dokter : 0,
+      rating_dokter:
+        rating_dokter >= 0 && rating_dokter <= 5 ? rating_dokter : 0,
       foto_profil_dokter,
     });
 
     await newDokter.save();
-    res.status(201).json({ message: "Dokter berhasil didaftarkan", dokter: newDokter });
+    res
+      .status(201)
+      .json({ message: "Dokter berhasil didaftarkan", dokter: newDokter });
   } catch (e) {
     next(e);
   }
@@ -69,10 +86,8 @@ router.get("/getbyid/:id", async (req, res) => {
 
     const decryptedUser = {
       ...user._doc,
-      email_masyarakat: decrypt(user.email_masyarakat),
-      nik_masyarakat: decrypt(user.nik_masyarakat),
-      alamat_masyarakat: decrypt(user.alamat_masyarakat),
-      notlp_masyarakat: decrypt(user.notlp_masyarakat),
+      email_dokter: decrypt(user.email_dokter),
+      notlp_dokter: decrypt(user.notlp_dokter),
     };
 
     res.status(200).json(decryptedUser);
