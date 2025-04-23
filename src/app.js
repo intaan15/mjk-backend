@@ -68,13 +68,13 @@ app.use(bodyparser.json());
 app.use(cors());
 
 // Controllers
-const masyarakatController = require('../masyarakat/masyarakat.controller');
-const authController = require('../auth/auth.controller');
-const dokterController = require('../dokter/dokter.controller');
-const artikelController = require('../artikel/artikel.controller');
-const ratingController = require('../rating/rating.controller');
-const jadwalController = require('../jadwal/jadwal.controller');
-const captchaController = require('../admin/captcha.controller');
+const masyarakatController = require('./masyarakat/masyarakat.controller');
+const authController = require('./auth/auth.controller');
+const dokterController = require('./dokter/dokter.controller');
+const artikelController = require('./artikel/artikel.controller');
+const ratingController = require('./rating/rating.controller');
+const jadwalController = require('./jadwal/jadwal.controller');
+const captchaController = require('./admin/captcha.controller');
 
 app.use('/api/masyarakat', masyarakatController);
 app.use('/api/auth', authController);
