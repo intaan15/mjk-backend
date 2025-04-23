@@ -56,7 +56,9 @@ mongoose.connect(MONGO_URL)
   .then(() => console.log('Database connected'))
   .catch((error) => console.log('MongoDB error:', error));
 
-alert("helloworld");
+  app.get('/api/test', (req, res) => {
+    res.json({ message: 'Hello from /api/test!' });
+  });
 
   
 app.use(express.urlencoded({ extended: true }));
