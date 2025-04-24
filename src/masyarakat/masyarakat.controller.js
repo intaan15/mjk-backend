@@ -93,6 +93,10 @@ router.get("/getall", async (req, res) => {
 router.get("/getbyid/:id", async (req, res) => {
   try {
     const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "ID tidak valid" });
+    }
+
     const user = await masyarakat.findById(id).select("-password_masyarakat");
     if (!user) return res.status(404).json({ message: "User tidak ditemukan" });
 
@@ -106,6 +110,7 @@ router.get("/getbyid/:id", async (req, res) => {
 
     res.status(200).json(decryptedUser);
   } catch (e) {
+    console.error("Error:", e);
     res.status(500).json({ message: e.message });
   }
 });
