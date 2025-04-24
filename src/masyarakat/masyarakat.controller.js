@@ -4,6 +4,7 @@ const router = express.Router();
 const masyarakat = require("./masyarakat.model");
 const verifyToken = require("../middleware/verifyToken"); 
 const { encrypt, decrypt } = require("../utils/encryption");
+const mongoose = require('mongoose');
 
 // const { encrypt } = require("../utils/encryption");
 const { hashString } = require("../utils/hash");
