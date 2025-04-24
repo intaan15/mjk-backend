@@ -59,7 +59,7 @@ router.post("/register_masyarakat", async (req, res) => {
 
 router.post("/login_masyarakat", async (req, res) => {
     try {
-        const { identifier_masyarakat, password_masyarakat } = req.body; 
+        const { identifier_masyarakat, password_masyarakat } = req.body;
         if (!identifier_masyarakat || !password_masyarakat) {
             return res.status(400).json({ message: "Harap masukkan username/NIK dan password" });
         }
@@ -74,13 +74,58 @@ router.post("/login_masyarakat", async (req, res) => {
         const isMatch = await bcrypt.compare(password_masyarakat, user.password_masyarakat);
         if (!isMatch) return res.status(400).json({ message: "Password salah" });
 
-        const token = jwt.sign({ 
+        const token = jwt.sign({
             id: user._id,
-            username: user.username_masyarakat, 
+            username: user.username_masyarakat,
             nik: user.nik_masyarakat,
-            role: 'masyarakat' 
-            },
+            role: 'masyarakat'
+        },
             process.env.JWT_SECRET, { expiresIn: "1h" }
+        );
+
+        res.status(200).json({
+            message: "Login berhasil",
+            token,
+            userId: user._id
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+router.post("/login_dokter", loginLimiter, async (req, res) => {
+    try {
+        const { identifier_dokter, password_dokter } = req.body;
+
+        if (!identifier_dokter || !password_dokter) {
+            return res
+                .status(400)
+                .json({ message: "Harap masukkan username/str dan password" });
+        }
+
+        const user = await dokter
+            .findOne({
+                $or: [
+                    { username_dokter: identifier_dokter },
+                    { str_dokter: identifier_dokter },
+                ],
+            })
+            .lean();
+
+        if (!user) return res.status(400).json({ message: "Akun tidak ditemukan" });
+
+        const isMatch = await bcrypt.compare(password_dokter, user.password_dokter);
+        if (!isMatch) return res.status(400).json({ message: "Password salah" });
+
+        const token = jwt.sign(
+            {
+                id: user._id,
+                username: user.username_dokter,
+                str: user.str_dokter,
+                role: "dokter",
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: "1h" }
         );
 
         res.status(200).json({ message: "Login berhasil", token });
@@ -89,80 +134,39 @@ router.post("/login_masyarakat", async (req, res) => {
     }
 });
 
-router.post("/login_dokter", loginLimiter, async (req, res) => {
-  try {
-    const { identifier_dokter, password_dokter } = req.body;
-
-    if (!identifier_dokter || !password_dokter) {
-      return res
-        .status(400)
-        .json({ message: "Harap masukkan username/str dan password" });
-    }
-
-    const user = await dokter
-      .findOne({
-        $or: [
-          { username_dokter: identifier_dokter },
-          { str_dokter: identifier_dokter },
-        ],
-      })
-      .lean();
-
-    if (!user) return res.status(400).json({ message: "Akun tidak ditemukan" });
-
-    const isMatch = await bcrypt.compare(password_dokter, user.password_dokter);
-    if (!isMatch) return res.status(400).json({ message: "Password salah" });
-
-    const token = jwt.sign(
-      {
-        id: user._id,
-        username: user.username_dokter,
-        str: user.str_dokter,
-        role: "dokter",
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: "1h" }
-    );
-
-    res.status(200).json({ message: "Login berhasil", token });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
 
 router.post("/login_superadmin", async (req, res) => {
-  try {
-    const { username_superadmin, password_superadmin } = req.body;
-    if (!username_superadmin || !password_superadmin) {
-      return res
-        .status(400)
-        .json({ message: "Harap masukkan username dan password" });
+    try {
+        const { username_superadmin, password_superadmin } = req.body;
+        if (!username_superadmin || !password_superadmin) {
+            return res
+                .status(400)
+                .json({ message: "Harap masukkan username dan password" });
+        }
+
+        const user = await superadmin.findOne({ username_superadmin });
+
+        if (!user) return res.status(400).json({ message: "Akun tidak ditemukan" });
+
+        const isMatch = await bcrypt.compare(
+            password_superadmin,
+            user.password_superadmin
+        );
+        if (!isMatch) return res.status(400).json({ message: "Password salah" });
+
+        const token = jwt.sign(
+            {
+                id: user._id,
+                username: user.username_superadmin,
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: "1h" }
+        );
+
+        res.status(200).json({ message: "Login berhasil", token });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
     }
-
-    const user = await superadmin.findOne({ username_superadmin });
-
-    if (!user) return res.status(400).json({ message: "Akun tidak ditemukan" });
-
-    const isMatch = await bcrypt.compare(
-      password_superadmin,
-      user.password_superadmin
-    );
-    if (!isMatch) return res.status(400).json({ message: "Password salah" });
-
-    const token = jwt.sign(
-      {
-        id: user._id,
-        username: user.username_superadmin,
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: "1h" }
-    );
-
-    res.status(200).json({ message: "Login berhasil", token });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
 });
 
 module.exports = router;
