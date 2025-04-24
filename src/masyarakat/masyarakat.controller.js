@@ -81,13 +81,24 @@ router.post("/create", async (req, res) => {
 
 router.get("/getall", async (req, res) => {
   try {
-      const readMasyarakat = await masyarakat.find().select("-password_masyarakat");
-      if (readMasyarakat.length === 0) {
-          return res.status(404).json({ message: "Tidak ada data" });
-      }
-      res.status(200).json(readMasyarakat);
+    const allUsers = await masyarakat.find().select("-password_masyarakat");
+
+    if (allUsers.length === 0) {
+      return res.status(404).json({ message: "Tidak ada data" });
+    }
+
+    const decryptedUsers = allUsers.map((user) => ({
+      ...user._doc,
+      email_masyarakat: decrypt(user.email_masyarakat),
+      nik_masyarakat: decrypt(user.nik_masyarakat),
+      alamat_masyarakat: decrypt(user.alamat_masyarakat),
+      notlp_masyarakat: decrypt(user.notlp_masyarakat),
+    }));
+
+    res.status(200).json(decryptedUsers);
   } catch (e) {
-      res.status(500).json({ message: e.message });
+    console.error("Error:", e);
+    res.status(500).json({ message: e.message });
   }
 });
 
