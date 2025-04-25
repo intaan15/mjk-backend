@@ -127,8 +127,11 @@ router.post("/login_dokter", loginLimiter, async (req, res) => {
             process.env.JWT_SECRET,
             { expiresIn: "1h" }
         );
-
-        res.status(200).json({ message: "Login berhasil", token });
+        res.status(200).json({
+            message: "Login berhasil",
+            token,
+            userId: user._id
+        });
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
