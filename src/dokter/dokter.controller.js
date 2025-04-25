@@ -159,7 +159,7 @@ router.patch("/ubah-password", verifyToken, async (req, res) => {
       return res.status(400).json({ message: "Konfirmasi password tidak cocok" });
     }
 
-    const user = await Dokter.findById(req.user._id);
+    const user = await Dokter.findById(req.user.id);
     if (!user) {
       return res.status(404).json({ message: "User tidak ditemukan" });
     }
