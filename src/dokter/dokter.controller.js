@@ -99,7 +99,7 @@ router.get("/getbyid/:id", async (req, res) => {
 router.patch("/update/:id", async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { str_dokter, password_dokter, rating_dokter } = req.body;
+    const { username_dokter, email_dokter, str_dokter, password_dokter, rating_dokter } = req.body;
 
     if (!(await Dokter.exists({ _id: id }))) {
       return res.status(404).json({ message: "Data tidak ditemukan" });
