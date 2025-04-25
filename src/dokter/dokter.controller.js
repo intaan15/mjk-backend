@@ -106,7 +106,7 @@ router.patch("/update/:id", async (req, res, next) => {
     }
 
     if (username_dokter) {
-        const usernameExist = await masyarakat.exists({ username_dokter, _id: { $ne: id } });
+        const usernameExist = await Dokter.exists({ username_dokter, _id: { $ne: id } });
         if (usernameExist) { return res.status(400).json({ message: "Username sudah terdaftar oleh pengguna lain." }) }
     }
 
@@ -159,12 +159,12 @@ router.patch("/ubah-password", verifyToken, async (req, res) => {
       return res.status(400).json({ message: "Konfirmasi password tidak cocok" });
     }
 
-    const user = await masyarakat.findById(req.user._id);
+    const user = await Dokter.findById(req.user._id);
     if (!user) {
       return res.status(404).json({ message: "User tidak ditemukan" });
     }
 
-    const validPassword = await bcrypt.compare(password_lama, user.password_masyarakat);
+    const validPassword = await bcrypt.compare(password_lama, user.password_dokter);
     if (!validPassword) {
       return res.status(400).json({ message: "Password lama salah" });
     }
@@ -172,7 +172,7 @@ router.patch("/ubah-password", verifyToken, async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password_baru, salt);
 
-    user.password_masyarakat = hashedPassword;
+    user.password_dokter = hashedPassword;
     await user.save();
     res.status(200).json({ message: "Password berhasil diubah" });
 
