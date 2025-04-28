@@ -1,33 +1,37 @@
-// routes/pesan.js
-const express = require("express");
-const router = express.Router();
+const { Server } = require("socket.io");
 
-let messages = [];
+const createSocketServer = (server) => {
+  const io = new Server(server, {
+    cors: {
+      origin: "*",
+      methods: ["GET", "POST"],
+    },
+  });
 
-// Endpoint untuk menerima pesan melalui HTTP
-router.post("/pesan", (req, res) => {
-  const { senderId, receiverId, text, mediaUrl } = req.body;
+  let messages = [];
 
-  const newMsg = {
-    id: Date.now().toString(),
-    senderId,
-    receiverId,
-    text,
-    mediaUrl,
-    timestamp: new Date().toISOString(),
-  };
+  io.on("connection", (socket) => {
+    console.log("Client connected");
 
-  messages.push(newMsg);
+    // Kirim riwayat chat ke user baru
+    socket.emit("chat history", messages);
 
-  // Kirim pesan ke semua client yang terhubung melalui Socket.IO
-  req.io.emit("chat message", newMsg);
+    // Saat pesan diterima
+    socket.on("chat message", (msg) => {
+      const newMsg = {
+        id: Date.now().toString(),
+        ...msg,
+      };
+      messages.push(newMsg);
+      io.emit("chat message", newMsg);
+    });
 
-  res.status(200).json(newMsg); // Kirim kembali pesan yang baru ditambahkan
-});
+    socket.on("disconnect", () => {
+      console.log("Client disconnected");
+    });
+  });
 
-// Endpoint untuk mendapatkan riwayat chat
-router.get("/api/pesan", (req, res) => {
-  res.status(200).json(messages); // Kirim semua pesan
-});
+  return io; // Return the io instance for future use if needed
+};
 
-module.exports = router;
+module.exports = createSocketServer;
