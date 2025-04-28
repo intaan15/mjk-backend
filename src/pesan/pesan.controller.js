@@ -1,30 +1,33 @@
-
-
-// Start server
-const PORT = process.env.PORT || 3333;
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
-
+// routes/pesan.js
 const express = require("express");
 const router = express.Router();
+const { Server } = require("socket.io");
 
-// Simpan pesan di memori sementara
 let messages = [];
 
-// Endpoint untuk ambil semua pesan
-router.get("/", (req, res) => {
-  res.status(200).json(messages);
+// Endpoint untuk menerima pesan melalui HTTP
+router.post("/pesan", (req, res) => {
+  const { senderId, receiverId, text, mediaUrl } = req.body;
+
+  const newMsg = {
+    id: Date.now().toString(),
+    senderId,
+    receiverId,
+    text,
+    mediaUrl,
+    timestamp: new Date().toISOString(),
+  };
+
+  messages.push(newMsg);
+  // Kirim pesan ke semua client yang terhubung melalui Socket.IO
+  io.emit("chat message", newMsg);
+
+  res.status(200).json(newMsg); // Kirim kembali pesan yang baru ditambahkan
 });
 
-// Function untuk diakses dari luar (server.js)
-function addMessage(newMsg) {
-  messages.push(newMsg);
-}
+// Endpoint untuk mendapatkan riwayat chat
+router.get("/api/pesan", (req, res) => {
+  res.status(200).json(messages); // Kirim semua pesan
+});
 
-function getMessages() {
-  return messages;
-}
-
-module.exports = { router, addMessage, getMessages };
-
+module.exports = router;
