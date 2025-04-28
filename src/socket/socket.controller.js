@@ -13,8 +13,10 @@ const createSocketServer = (server) => {
   io.on("connection", (socket) => {
     console.log("Client connected");
 
-    // Mengirim pesan saat koneksi berhasil
+    // ini yang perlu ada
     socket.emit("connected", { message: "Successfully connected to backend" });
+
+    socket.emit("chat history", messages);
 
     socket.on("chat message", (msg) => {
       const newMsg = {
@@ -29,6 +31,7 @@ const createSocketServer = (server) => {
       console.log("Client disconnected");
     });
   });
+
 
 
   return io;
