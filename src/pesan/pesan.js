@@ -1,3 +1,4 @@
+// pesan.js
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
@@ -16,6 +17,12 @@ const io = new Server(server, {
 let messages = []; // Menyimpan riwayat pesan
 app.use(cors());
 app.use(express.json());
+
+// Pass io ke router pesan
+app.use((req, res, next) => {
+  req.io = io;
+  next();
+});
 
 // Gunakan router pesan
 app.use(pesanRouter); // Menggunakan router pesan
@@ -42,5 +49,5 @@ io.on("connection", (socket) => {
 });
 
 server.listen(3333, () => {
-  console.log("Server jalan di http://10.52.170.225:3000");
+  console.log("Server berjalan di http://10.52.170.225:3333");
 });

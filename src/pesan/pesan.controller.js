@@ -1,7 +1,6 @@
 // routes/pesan.js
 const express = require("express");
 const router = express.Router();
-const { Server } = require("socket.io");
 
 let messages = [];
 
@@ -19,8 +18,9 @@ router.post("/pesan", (req, res) => {
   };
 
   messages.push(newMsg);
+
   // Kirim pesan ke semua client yang terhubung melalui Socket.IO
-  io.emit("chat message", newMsg);
+  req.io.emit("chat message", newMsg);
 
   res.status(200).json(newMsg); // Kirim kembali pesan yang baru ditambahkan
 });
