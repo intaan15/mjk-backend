@@ -69,7 +69,7 @@ app.use(cors());
 createSocketServer(httpServer); 
 
 httpServer.listen(PORT, () => {
-  console.log('server konek port : ${PORT}');
+        console.log('server port = ' + PORT)
 })
 
 const masyarakatController = require("./masyarakat/masyarakat.controller");
