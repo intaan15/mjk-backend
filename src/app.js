@@ -46,7 +46,7 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const bodyparser = require("body-parser");
 const serverless = require("serverless-http");
-const createSocketServer = require("./pesan/pesan.controller"); // Import koneksi Socket.IO
+const createSocketServer = require("./socket/socket.controller"); // Import koneksi Socket.IO
 
 dotenv.config();
 
@@ -87,7 +87,6 @@ app.use("/api/captcha", captchaController);
 app.set("trust proxy", 1);
 
 const httpServer = require("http").createServer(app);
-
 createSocketServer(httpServer); 
 
 module.exports = app;
