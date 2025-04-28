@@ -45,8 +45,9 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const bodyparser = require("body-parser");
-const serverless = require("serverless-http");
-const createSocketServer = require("./socket/socket.controller"); // Import koneksi Socket.IO
+const createSocketServer = require("./socket/socket.controller");
+const PORT = process.env.PORT
+const httpServer = require("http").createServer(app);
 
 dotenv.config();
 
@@ -67,8 +68,12 @@ app.use(bodyparser.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(bodyparser.json());
 app.use(cors());
+createSocketServer(httpServer); 
 
-// Controllers
+httpServer.listen(PORT, () => {
+  console.log('server konek port : ${PORT}');
+})
+
 const masyarakatController = require("./masyarakat/masyarakat.controller");
 const authController = require("./auth/auth.controller");
 const dokterController = require("./dokter/dokter.controller");
@@ -86,8 +91,5 @@ app.use("/api/jadwal", jadwalController);
 app.use("/api/captcha", captchaController);
 app.set("trust proxy", 1);
 
-const httpServer = require("http").createServer(app);
-createSocketServer(httpServer); 
 
 module.exports = app;
-module.exports.handler = serverless(app);
