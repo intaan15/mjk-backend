@@ -17,13 +17,39 @@ app.use(express.json());
 
 let messages = [];
 
+// Endpoint untuk mengambil semua chat
+app.get("/pesan", (req, res) => {
+  res.json(messages);
+});
+
+// Endpoint untuk mengirim chat baru
+app.post("/pesan", (req, res) => {
+  const { username, text } = req.body;
+  if (!username || !text) {
+    return res.status(400).json({ error: "username dan text harus diisi" });
+  }
+
+  const newMsg = {
+    id: Date.now().toString(),
+    username,
+    text,
+  };
+
+  messages.push(newMsg);
+
+  // Setelah nambah pesan, broadcast ke semua socket
+  io.emit("chat message", newMsg);
+
+  res.status(201).json(newMsg);
+});
+
 io.on("connection", (socket) => {
   console.log("Client connected");
 
   // Kirim riwayat chat ke user baru
   socket.emit("chat history", messages);
 
-  // Saat pesan diterima
+  // Saat pesan diterima via websocket
   socket.on("chat message", (msg) => {
     const newMsg = {
       id: Date.now().toString(),
@@ -39,5 +65,5 @@ io.on("connection", (socket) => {
 });
 
 server.listen(3333, () => {
-  console.log("Server jalan dihttps://mjk-backend-five.vercel.app:3333");
+  console.log("Server jalan di https://mjk-backend-five.vercel.app:3333");
 });
