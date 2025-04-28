@@ -47,12 +47,10 @@ const dotenv = require("dotenv");
 const bodyparser = require("body-parser");
 const createSocketServer = require("./socket/socket.controller");
 const PORT = process.env.PORT
-const httpServer = require("http").createServer(app);
-
 dotenv.config();
-
 const app = express();
 const MONGO_URL = process.env.MONGO_URL;
+const httpServer = require("http").createServer(app);
 
 mongoose
   .connect(MONGO_URL)
