@@ -13,10 +13,9 @@ const createSocketServer = (server) => {
   io.on("connection", (socket) => {
     console.log("Client connected");
 
-    // Kirim riwayat chat ke user baru
-    socket.emit("chat history", messages);
+    // Mengirim pesan saat koneksi berhasil
+    socket.emit("connected", { message: "Successfully connected to backend" });
 
-    // Saat pesan diterima
     socket.on("chat message", (msg) => {
       const newMsg = {
         id: Date.now().toString(),
@@ -31,7 +30,8 @@ const createSocketServer = (server) => {
     });
   });
 
-  return io; // Return the io instance for future use if needed
+
+  return io;
 };
 
 module.exports = createSocketServer;
