@@ -13,19 +13,19 @@ const io = new Server(server, {
   },
 });
 
+let messages = [];
+
 app.use(cors());
 app.use(express.json());
 
 // Gunakan router pesan
-app.use(pesanRouter); // Menggunakan router pesan
+app.use(pesanRouter(io)); // Pass io ke router pesan.js
 
 io.on("connection", (socket) => {
   console.log("Client connected");
 
-  // Kirim riwayat chat ke user baru
   socket.emit("chat history", messages);
 
-  // Saat pesan diterima melalui WebSocket
   socket.on("chat message", (msg) => {
     const newMsg = {
       id: Date.now().toString(),
@@ -40,6 +40,6 @@ io.on("connection", (socket) => {
   });
 });
 
-server.listen(3000, () => {
-  console.log("Server jalan di http://10.52.170.225:3000");
+server.listen(3333, () => {
+  console.log("Server berjalan di http://10.52.170.225:3000");
 });
