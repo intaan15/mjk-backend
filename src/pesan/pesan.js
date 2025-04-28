@@ -1,21 +1,36 @@
 const express = require("express");
-const router = express.Router();
+const { Server } = require("socket.io");
+const http = require("http");
+const cors = require("cors");
+const { router: pesanRouter, addMessage, getMessages } = require("./pesan.controller");
 
-// Simpan pesan di memori sementara
-let messages = [];
-
-// Endpoint untuk ambil semua pesan
-router.get("/", (req, res) => {
-  res.status(200).json(messages);
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "*", // kasih izin dari semua origin
+    methods: ["GET", "POST"],
+  },
 });
 
-// Function untuk diakses dari luar (server.js)
-function addMessage(newMsg) {
-  messages.push(newMsg);
-}
+app.use(cors());
+app.use(express.json());
+app.use("/api/pesan", pesanRouter);
 
-function getMessages() {
-  return messages;
-}
+// Socket.IO connection
+io.on("connection", (socket) => {
+  console.log("A user connected");
 
-module.exports = { router, addMessage, getMessages };
+  // Kirim semua chat history ke client baru
+  socket.emit("chat history", getMessages());
+
+  socket.on("chat message", (msg) => {
+    console.log("Received message:", msg);
+    addMessage(msg); // Simpan ke memori
+    io.emit("chat message", msg); // Kirim ke semua client
+  });
+
+  socket.on("disconnect", () => {
+    console.log("A user disconnected");
+  });
+});
