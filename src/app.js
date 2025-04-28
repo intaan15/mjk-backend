@@ -75,6 +75,7 @@ const artikelController = require('./artikel/artikel.controller');
 const ratingController = require('./rating/rating.controller');
 const jadwalController = require('./jadwal/jadwal.controller');
 const captchaController = require('./admin/captcha.controller');
+const pesanController = require('./pesan/pesan.controller');
 
 app.use('/api/masyarakat', masyarakatController);
 app.use('/api/auth', authController);
@@ -83,6 +84,7 @@ app.use('/api/artikel', artikelController);
 app.use('/api/rating', ratingController);
 app.use('/api/jadwal', jadwalController);
 app.use('/api/captcha', captchaController);
+app.use('/api/pesan', pesanController);
 app.set("trust proxy", 1); 
 
 
