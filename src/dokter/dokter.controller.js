@@ -255,7 +255,7 @@ router.post("/jadwal/:dokterId", async (req, res) => {
     const { dokterId } = req.params;
     const { tanggal, jam_mulai, jam_selesai } = req.body;
 
-    const doctorObjectId = mongoose.Types.ObjectId(dokterId);
+    const doctorObjectId = new mongoose.Types.ObjectId(dokterId);
 
     const dokter = await Dokter.findById(doctorObjectId);
     if (!dokter) {
