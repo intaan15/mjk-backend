@@ -255,7 +255,9 @@ router.post("/jadwal/:dokterId", async (req, res) => {
     const { dokterId } = req.params;
     const { tanggal, jam_mulai, jam_selesai } = req.body;
 
-    const dokter = await Dokter.findById(dokterId);
+    const doctorObjectId = mongoose.Types.ObjectId(dokterId);
+
+    const dokter = await Dokter.findById(doctorObjectId);
     if (!dokter) {
       return res.status(404).json({ message: "Dokter tidak ditemukan" });
     }
@@ -263,13 +265,12 @@ router.post("/jadwal/:dokterId", async (req, res) => {
     dokter.jadwal.push({ tanggal, jam_mulai, jam_selesai });
     await dokter.save();
 
-    res
-      .status(201)
-      .json({ message: "Jadwal berhasil ditambahkan", jadwal: dokter.jadwal });
+    res.status(201).json({ message: "Jadwal berhasil ditambahkan", jadwal: dokter.jadwal });
   } catch (e) {
     res.status(500).json({ message: e.message });
   }
 });
+
 
 router.patch("/jadwal/:dokterId/:jadwalId", async (req, res) => {
   try {
