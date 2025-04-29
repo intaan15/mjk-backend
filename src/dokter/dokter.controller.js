@@ -96,7 +96,7 @@ router.get("/getbyid/:id", async (req, res) => {
   }
 });
 
-router.get("/getbyid/:doctorName", async (req, res) => {
+router.get("/getbyname/:doctorName", async (req, res) => {
   try {
     const { doctorName } = req.params;
 
