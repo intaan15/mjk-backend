@@ -96,6 +96,28 @@ router.get("/getbyid/:id", async (req, res) => {
   }
 });
 
+router.get("/getbyid/:doctorName", async (req, res) => {
+  try {
+    const { doctorName } = req.params;
+
+    const dokter = await Dokter.findOne({ nama_dokter: doctorName }).select("-password_dokter");
+    
+    if (!dokter) {
+      return res.status(404).json({ message: "Dokter tidak ditemukan" });
+    }
+
+    const decryptedUser = {
+      ...dokter._doc,
+      email_dokter: decrypt(dokter.email_dokter),
+      notlp_dokter: decrypt(dokter.notlp_dokter),
+    };
+
+    res.status(200).json(decryptedUser);
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
 router.patch("/update/:id", async (req, res, next) => {
   try {
     const { id } = req.params;
