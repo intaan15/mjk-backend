@@ -280,4 +280,28 @@ router.delete("/jadwal/:dokterId/:jadwalId", async (req, res) => {
   }
 });
 
+router.patch("/addJadwal/:dokterId", async (req, res) => {
+  try {
+    const { tanggal, jam_mulai, jam_selesai } = req.body;
+    
+    const dokter = await Dokter.findByIdAndUpdate(
+      req.params.dokterId, 
+      { 
+        $push: {
+          jadwal: { tanggal, jam_mulai, jam_selesai }
+        }
+      },
+      { new: true }
+    );
+    
+    if (!dokter) {
+      return res.status(404).json({ message: "Dokter tidak ditemukan" });
+    }
+    
+    res.status(200).json(dokter);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 module.exports = router;
