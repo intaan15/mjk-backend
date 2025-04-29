@@ -283,9 +283,9 @@ router.delete("/jadwal/:dokterId/:jadwalId", async (req, res) => {
 router.patch("/addJadwal/:dokterId", async (req, res) => {
   try {
     const { tanggal, jam_mulai, jam_selesai } = req.body;
-    
+    const dokterId = mongoose.Types.ObjectId(req.params.dokterId);
     const dokter = await Dokter.findByIdAndUpdate(
-      req.params.dokterId, 
+      dokterId, 
       { 
         $push: {
           jadwal: { tanggal, jam_mulai, jam_selesai }
