@@ -319,6 +319,7 @@ router.patch("/addJadwal/:dokterId", async (req, res) => {
   try {
     const { tanggal, jam_mulai, jam_selesai } = req.body;
     const dokterId = req.params.dokterId;
+    console.log("Dokter ID:", dokterId);
     if (!mongoose.isValidObjectId(dokterId)) {
       return res.status(400).json({ message: "ID Dokter tidak valid" });
     }
