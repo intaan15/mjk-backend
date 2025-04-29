@@ -240,6 +240,9 @@ router.patch("/ubah-password", verifyToken, async (req, res) => {
 router.get("/jadwal/:dokterId", async (req, res) => {
   try {
     const { dokterId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(dokterId)) {
+      return res.status(400).json({ message: "ID dokter tidak valid" });
+    }
     const dokter = await Dokter.findById(dokterId).select("jadwal");
     if (!dokter) {
       return res.status(404).json({ message: "Dokter tidak ditemukan" });
@@ -255,8 +258,10 @@ router.post("/jadwal/:dokterId", async (req, res) => {
     const { dokterId } = req.params;
     const { tanggal, jam_mulai, jam_selesai } = req.body;
 
-    const doctorObjectId = new mongoose.Types.ObjectId(dokterId);
-
+    if (!mongoose.Types.ObjectId.isValid(dokterId)) {
+      return res.status(400).json({ message: "ID dokter tidak valid" });
+    }
+    
     const dokter = await Dokter.findById(doctorObjectId);
     if (!dokter) {
       return res.status(404).json({ message: "Dokter tidak ditemukan" });
