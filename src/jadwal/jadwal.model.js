@@ -11,8 +11,17 @@ const jadwalSchema = new mongoose.Schema({
         ref: "dokter", 
         required: true,
     },
+    masyarakat_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "masyarakat", 
+        required: true,
+    },
     tgl_konsul: {
         type: Date,
+        required: true,
+    },
+    keluhan_pasien: {
+        type: String,
         required: true,
     },
     jumlah_konsul: {
