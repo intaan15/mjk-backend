@@ -2,14 +2,12 @@ const express = require("express");
 const bcrypt = require("bcrypt");
 const router = express.Router();
 const Dokter = require("./dokter.model");
-const verifyToken = require("../middleware/verifyToken"); 
+const verifyToken = require("../middleware/verifyToken");
 const { encrypt, decrypt } = require("../utils/encryption");
 const mongoose = require("mongoose");
 
 // const { encrypt } = require("../utils/encryption");
 const { hashString } = require("../utils/hash");
-
-
 
 router.post("/create", async (req, res, next) => {
   try {
@@ -83,7 +81,8 @@ router.get("/getbyid/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const user = await Dokter.findById(id).select("-password_dokter");
-    if (!user) return res.status(404).json({ message: "Dokter tidak ditemukan" });
+    if (!user)
+      return res.status(404).json({ message: "Dokter tidak ditemukan" });
 
     const decryptedUser = {
       ...user._doc,
@@ -101,8 +100,10 @@ router.get("/getbyname/:doctorName", async (req, res) => {
   try {
     const { doctorName } = req.params;
 
-    const dokter = await Dokter.findOne({ nama_dokter: doctorName }).select("-password_dokter");
-    
+    const dokter = await Dokter.findOne({ nama_dokter: doctorName }).select(
+      "-password_dokter"
+    );
+
     if (!dokter) {
       return res.status(404).json({ message: "Dokter tidak ditemukan" });
     }
@@ -122,36 +123,63 @@ router.get("/getbyname/:doctorName", async (req, res) => {
 router.patch("/update/:id", async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { username_dokter, email_dokter, str_dokter, password_dokter, rating_dokter } = req.body;
+    const {
+      username_dokter,
+      email_dokter,
+      str_dokter,
+      password_dokter,
+      rating_dokter,
+    } = req.body;
 
     if (!(await Dokter.exists({ _id: id }))) {
       return res.status(404).json({ message: "Data tidak ditemukan" });
     }
 
     if (username_dokter) {
-        const usernameExist = await Dokter.exists({ username_dokter, _id: { $ne: id } });
-        if (usernameExist) { return res.status(400).json({ message: "Username sudah terdaftar oleh pengguna lain." }) }
+      const usernameExist = await Dokter.exists({
+        username_dokter,
+        _id: { $ne: id },
+      });
+      if (usernameExist) {
+        return res
+          .status(400)
+          .json({ message: "Username sudah terdaftar oleh pengguna lain." });
+      }
     }
 
     if (str_dokter) {
       const strExist = await Dokter.exists({ str_dokter, _id: { $ne: id } });
-      if (strExist) { return res.status(400).json({ message: "STR sudah terdaftar oleh pengguna lain." }) }
-    }    
+      if (strExist) {
+        return res
+          .status(400)
+          .json({ message: "STR sudah terdaftar oleh pengguna lain." });
+      }
+    }
 
     if (email_dokter) {
-      const emailExist = await Dokter.exists({ email_dokter, _id: { $ne: id } });
-      if (emailExist) { return res.status(400).json({ message: "Email sudah terdaftar oleh pengguna lain." }) }
-    }    
+      const emailExist = await Dokter.exists({
+        email_dokter,
+        _id: { $ne: id },
+      });
+      if (emailExist) {
+        return res
+          .status(400)
+          .json({ message: "Email sudah terdaftar oleh pengguna lain." });
+      }
+    }
 
     if (password_dokter) {
       req.body.password_dokter = await bcrypt.hash(password_dokter, 10);
     }
-    
+
     if (rating_dokter) {
-      req.body.rating_dokter = rating_dokter >= 0 && rating_dokter <= 5 ? rating_dokter : 0
+      req.body.rating_dokter =
+        rating_dokter >= 0 && rating_dokter <= 5 ? rating_dokter : 0;
     }
 
-    const updatedDokter = await Dokter.findByIdAndUpdate(id, req.body, { new: true }).select("-password_dokter");
+    const updatedDokter = await Dokter.findByIdAndUpdate(id, req.body, {
+      new: true,
+    }).select("-password_dokter");
     res.status(200).json(updatedDokter);
   } catch (e) {
     next(e);
@@ -179,7 +207,9 @@ router.patch("/ubah-password", verifyToken, async (req, res) => {
     }
 
     if (password_baru !== konfirmasi_password_baru) {
-      return res.status(400).json({ message: "Konfirmasi password tidak cocok" });
+      return res
+        .status(400)
+        .json({ message: "Konfirmasi password tidak cocok" });
     }
 
     const user = await Dokter.findById(req.user.id);
@@ -187,7 +217,10 @@ router.patch("/ubah-password", verifyToken, async (req, res) => {
       return res.status(404).json({ message: "User tidak ditemukan" });
     }
 
-    const validPassword = await bcrypt.compare(password_lama, user.password_dokter);
+    const validPassword = await bcrypt.compare(
+      password_lama,
+      user.password_dokter
+    );
     if (!validPassword) {
       return res.status(400).json({ message: "Password lama salah" });
     }
@@ -198,7 +231,6 @@ router.patch("/ubah-password", verifyToken, async (req, res) => {
     user.password_dokter = hashedPassword;
     await user.save();
     res.status(200).json({ message: "Password berhasil diubah" });
-
   } catch (e) {
     res.status(500).json({ message: e.message });
   }
@@ -231,7 +263,9 @@ router.post("/jadwal/:dokterId", async (req, res) => {
     dokter.jadwal.push({ tanggal, jam_mulai, jam_selesai });
     await dokter.save();
 
-    res.status(201).json({ message: "Jadwal berhasil ditambahkan", jadwal: dokter.jadwal });
+    res
+      .status(201)
+      .json({ message: "Jadwal berhasil ditambahkan", jadwal: dokter.jadwal });
   } catch (e) {
     res.status(500).json({ message: e.message });
   }
@@ -272,7 +306,7 @@ router.delete("/jadwal/:dokterId/:jadwalId", async (req, res) => {
       return res.status(404).json({ message: "Dokter tidak ditemukan" });
     }
 
-    dokter.jadwal = dokter.jadwal.filter(jadwal => jadwal.id !== jadwalId);
+    dokter.jadwal = dokter.jadwal.filter((jadwal) => jadwal.id !== jadwalId);
     await dokter.save();
 
     res.status(200).json({ message: "Jadwal berhasil dihapus" });
@@ -284,21 +318,24 @@ router.delete("/jadwal/:dokterId/:jadwalId", async (req, res) => {
 router.patch("/addJadwal/:dokterId", async (req, res) => {
   try {
     const { tanggal, jam_mulai, jam_selesai } = req.body;
-    const dokterId = new mongoose.Types.ObjectId(req.params.dokterId);
+    const dokterId = req.params.dokterId;
+    if (!mongoose.isValidObjectId(dokterId)) {
+      return res.status(400).json({ message: "ID Dokter tidak valid" });
+    }
     const dokter = await Dokter.findByIdAndUpdate(
-      dokterId, 
-      { 
+      dokterId,
+      {
         $push: {
-          jadwal: { tanggal, jam_mulai, jam_selesai }
-        }
+          jadwal: { tanggal, jam_mulai, jam_selesai },
+        },
       },
       { new: true }
     );
-    
+
     if (!dokter) {
       return res.status(404).json({ message: "Dokter tidak ditemukan" });
     }
-    
+
     res.status(200).json(dokter);
   } catch (error) {
     res.status(500).json({ message: error.message });
