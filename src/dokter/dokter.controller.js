@@ -243,6 +243,7 @@ router.get("/jadwal/:dokterId", async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(dokterId)) {
       return res.status(400).json({ message: "ID dokter tidak valid" });
     }
+    console.log("doctorId:", dokterId);  
     const dokter = await Dokter.findById(dokterId).select("jadwal");
     if (!dokter) {
       return res.status(404).json({ message: "Dokter tidak ditemukan" });
@@ -261,7 +262,7 @@ router.post("/jadwal/:dokterId", async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(dokterId)) {
       return res.status(400).json({ message: "ID dokter tidak valid" });
     }
-    
+    console.log("doctorId:", dokterId);  
     const dokter = await Dokter.findById(doctorObjectId);
     if (!dokter) {
       return res.status(404).json({ message: "Dokter tidak ditemukan" });
