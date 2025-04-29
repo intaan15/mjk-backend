@@ -180,4 +180,82 @@ router.patch("/ubah-password", verifyToken, async (req, res) => {
     res.status(500).json({ message: e.message });
   }
 });
+
+// jadwal dokter
+router.get("/jadwal/:dokterId", async (req, res) => {
+  try {
+    const { dokterId } = req.params;
+    const dokter = await Dokter.findById(dokterId).select("jadwal");
+    if (!dokter) {
+      return res.status(404).json({ message: "Dokter tidak ditemukan" });
+    }
+    res.status(200).json(dokter.jadwal);
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+router.post("/jadwal/:dokterId", async (req, res) => {
+  try {
+    const { dokterId } = req.params;
+    const { tanggal, jam_mulai, jam_selesai } = req.body;
+
+    const dokter = await Dokter.findById(dokterId);
+    if (!dokter) {
+      return res.status(404).json({ message: "Dokter tidak ditemukan" });
+    }
+
+    dokter.jadwal.push({ tanggal, jam_mulai, jam_selesai });
+    await dokter.save();
+
+    res.status(201).json({ message: "Jadwal berhasil ditambahkan", jadwal: dokter.jadwal });
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+router.patch("/jadwal/:dokterId/:jadwalId", async (req, res) => {
+  try {
+    const { dokterId, jadwalId } = req.params;
+    const { tanggal, jam_mulai, jam_selesai } = req.body;
+
+    const dokter = await Dokter.findById(dokterId);
+    if (!dokter) {
+      return res.status(404).json({ message: "Dokter tidak ditemukan" });
+    }
+
+    const jadwal = dokter.jadwal.id(jadwalId);
+    if (!jadwal) {
+      return res.status(404).json({ message: "Jadwal tidak ditemukan" });
+    }
+
+    if (tanggal) jadwal.tanggal = tanggal;
+    if (jam_mulai) jadwal.jam_mulai = jam_mulai;
+    if (jam_selesai) jadwal.jam_selesai = jam_selesai;
+
+    await dokter.save();
+    res.status(200).json({ message: "Jadwal berhasil diupdate", jadwal });
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+router.delete("/jadwal/:dokterId/:jadwalId", async (req, res) => {
+  try {
+    const { dokterId, jadwalId } = req.params;
+
+    const dokter = await Dokter.findById(dokterId);
+    if (!dokter) {
+      return res.status(404).json({ message: "Dokter tidak ditemukan" });
+    }
+
+    dokter.jadwal = dokter.jadwal.filter(jadwal => jadwal.id !== jadwalId);
+    await dokter.save();
+
+    res.status(200).json({ message: "Jadwal berhasil dihapus" });
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
 module.exports = router;
