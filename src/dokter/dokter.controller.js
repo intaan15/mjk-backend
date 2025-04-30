@@ -382,9 +382,9 @@ router.post("/jadwal/add/:dokterId", async (req, res) => {
       return res.status(404).json({ message: "Dokter tidak ditemukan" });
     }
     const slots = generateSlots(jam_mulai, jam_selesai);
-    dokter.jadwal.push({
+        dokter.jadwal.push({
       tanggal,
-      slots
+      jam: slots
     });
 
     await dokter.save();
@@ -394,5 +394,6 @@ router.post("/jadwal/add/:dokterId", async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 });
+
 
 module.exports = router;
