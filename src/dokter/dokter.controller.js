@@ -29,17 +29,14 @@ router.post("/create", async (req, res, next) => {
       return res.status(400).json({ message: "Email tidak valid" });
     }
 
-    // Validasi username
     if (await Dokter.exists({ username_dokter })) {
       return res.status(400).json({ message: "Username sudah digunakan" });
     }
 
-    // Validasi STR
     if (await Dokter.exists({ str_dokter })) {
       return res.status(400).json({ message: "STR sudah terdaftar" });
     }
 
-    // Cek apakah email sudah terdaftar dengan decrypt
     const allDokter = await Dokter.find(); // Ambil semua dokter
     const emailAlreadyUsed = allDokter.some((dok) => {
       try {
@@ -143,7 +140,8 @@ router.patch("/update/:id", async (req, res, next) => {
       notlp_dokter,
     } = req.body;
 
-    if (!(await Dokter.exists({ _id: id }))) {
+    const dokterExist = await Dokter.findById(id);
+    if (!dokterExist) {
       return res.status(404).json({ message: "Data tidak ditemukan" });
     }
 
@@ -155,40 +153,44 @@ router.patch("/update/:id", async (req, res, next) => {
       if (usernameExist) {
         return res
           .status(400)
-          .json({ message: "Username sudah terdaftar oleh pengguna lain." });
+          .json({ message: "Username sudah digunakan oleh pengguna lain" });
       }
     }
 
     if (str_dokter) {
-      const strExist = await Dokter.exists({ str_dokter, _id: { $ne: id } });
+      const strExist = await Dokter.exists({
+        str_dokter,
+        _id: { $ne: id },
+      });
       if (strExist) {
         return res
           .status(400)
-          .json({ message: "STR sudah terdaftar oleh pengguna lain." });
+          .json({ message: "STR sudah terdaftar oleh pengguna lain" });
       }
     }
 
     if (email_dokter) {
       const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-
       if (!emailRegex.test(email_dokter)) {
         return res.status(400).json({ message: "Email tidak valid" });
       }
 
-      const emailHash = hashString(email_dokter);
-      const emailExist = await Dokter.exists({
-        email_hash: emailHash,
-        _id: { $ne: id },
+      const allDokter = await Dokter.find({ _id: { $ne: id } });
+      const emailExist = allDokter.some((dok) => {
+        try {
+          return decrypt(dok.email_dokter) === email_dokter;
+        } catch (e) {
+          return false;
+        }
       });
 
       if (emailExist) {
         return res
           .status(400)
-          .json({ message: "Email sudah terdaftar oleh pengguna lain." });
+          .json({ message: "Email sudah digunakan oleh pengguna lain" });
       }
 
       req.body.email_dokter = encrypt(email_dokter);
-      req.body.email_hash = emailHash;
     }
 
     if (notlp_dokter) {
@@ -208,14 +210,12 @@ router.patch("/update/:id", async (req, res, next) => {
       new: true,
     }).select("-password_dokter");
 
-    res.status(200).json({
-      message: "Data dokter berhasil diperbarui",
-      dokter: updatedDokter,
-    });
+    res.status(200).json(updatedDokter);
   } catch (e) {
     next(e);
   }
 });
+
 
 
 router.delete("/delete/:id", async (req, res, next) => {
