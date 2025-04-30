@@ -23,24 +23,34 @@ router.post("/create", async (req, res, next) => {
       foto_profil_dokter,
     } = req.body;
 
-    const emailHash = hashString(email_dokter);
-
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    // Validasi data unik
+
+    if (!emailRegex.test(email_dokter)) {
+      return res.status(400).json({ message: "Email tidak valid" });
+    }
+
+    // Validasi username
     if (await Dokter.exists({ username_dokter })) {
       return res.status(400).json({ message: "Username sudah digunakan" });
     }
 
+    // Validasi STR
     if (await Dokter.exists({ str_dokter })) {
       return res.status(400).json({ message: "STR sudah terdaftar" });
     }
 
-    if (await Dokter.exists({ email_hash: emailHash })) {
-      return res.status(400).json({ message: "Email sudah terdaftar" });
-    }
+    // Cek apakah email sudah terdaftar dengan decrypt
+    const allDokter = await Dokter.find(); // Ambil semua dokter
+    const emailAlreadyUsed = allDokter.some((dok) => {
+      try {
+        return decrypt(dok.email_dokter) === email_dokter;
+      } catch (e) {
+        return false;
+      }
+    });
 
-    if (!emailRegex.test(email_dokter)) {
-      return res.status(400).json({ message: "Email tidak valid" });
+    if (emailAlreadyUsed) {
+      return res.status(400).json({ message: "Email sudah terdaftar" });
     }
 
     const hashedPassword = await bcrypt.hash(password_dokter, 10);
@@ -50,7 +60,6 @@ router.post("/create", async (req, res, next) => {
       username_dokter,
       password_dokter: hashedPassword,
       email_dokter: encrypt(email_dokter),
-      email_hash: emailHash,
       spesialis_dokter,
       notlp_dokter: encrypt(notlp_dokter),
       str_dokter,
@@ -60,17 +69,19 @@ router.post("/create", async (req, res, next) => {
     });
 
     await newDokter.save();
-    res
-      .status(201)
-      .json({ message: "Dokter berhasil didaftarkan", dokter: newDokter });
+    res.status(201).json({
+      message: "Dokter berhasil didaftarkan",
+      dokter: newDokter,
+    });
   } catch (e) {
     next(e);
   }
 });
 
+
 router.get("/getall", async (req, res, next) => {
   try {
-    const dokterList = await Dokter.find().select("-password_dokter");
+    const dokterList = await Dokter.find().select("-password_dokter -email_dokter -notlp_dokter");
     res.status(200).json(dokterList);
   } catch (e) {
     next(e);

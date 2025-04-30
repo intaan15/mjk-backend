@@ -29,7 +29,6 @@ const dokterSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  email_hash: String,
   email_dokter: {
     type: String,
     required: true,
