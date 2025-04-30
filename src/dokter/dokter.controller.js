@@ -275,7 +275,6 @@ router.get("/jadwal/:dokterId", async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(dokterId)) {
       return res.status(400).json({ message: "ID dokter tidak valid" });
     }
-    console.log("doctorId:", dokterId);  
     const dokter = await Dokter.findById(dokterId).select("jadwal");
     if (!dokter) {
       return res.status(404).json({ message: "Dokter tidak ditemukan" });
@@ -294,7 +293,6 @@ router.post("/jadwal/:dokterId", async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(dokterId)) {
       return res.status(400).json({ message: "ID dokter tidak valid" });
     }
-    console.log("doctorId:", dokterId);  
     const dokter = await Dokter.findById(doctorObjectId);
     if (!dokter) {
       return res.status(404).json({ message: "Dokter tidak ditemukan" });
@@ -371,12 +369,12 @@ function generateSlots(start, end, interval = 30) {
   return slots;
 }
 
-router.post("/jadwal/add/:doctorId", async (req, res) => {
+router.post("/jadwal/add/:dokterId", async (req, res) => {
   try {
-    const { doctorId } = req.params;
+    const { dokterId } = req.params;
     const { tanggal, jam_mulai, jam_selesai } = req.body;
-
-    const dokter = await Dokter.findById(doctorId);
+    console.log("dokterId:", dokterId);  
+    const dokter = await Dokter.findById(dokterId);
     if (!dokter) return res.status(404).json({ message: "Dokter tidak ditemukan" });
 
     const slots = generateSlots(jam_mulai, jam_selesai);
