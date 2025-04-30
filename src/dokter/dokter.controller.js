@@ -373,16 +373,24 @@ router.post("/jadwal/add/:dokterId", async (req, res) => {
   try {
     const { dokterId } = req.params;
     const { tanggal, jam_mulai, jam_selesai } = req.body;
-    console.log("dokterId:", dokterId);  
-    const dokter = await Dokter.findById(dokterId);
-    if (!dokter) return res.status(404).json({ message: "Dokter tidak ditemukan" });
 
+    if (!mongoose.Types.ObjectId.isValid(dokterId)) {
+      return res.status(400).json({ message: "ID dokter tidak valid" });
+    }
+    const dokter = await Dokter.findById(dokterId);
+    if (!dokter) {
+      return res.status(404).json({ message: "Dokter tidak ditemukan" });
+    }
     const slots = generateSlots(jam_mulai, jam_selesai);
-    dokter.jadwal.push({ tanggal, slots });
+    dokter.jadwal.push({
+      tanggal,
+      slots
+    });
 
     await dokter.save();
     res.status(201).json({ message: "Jadwal berhasil ditambahkan", data: dokter.jadwal });
   } catch (error) {
+    console.error(error);
     res.status(400).json({ message: error.message });
   }
 });
