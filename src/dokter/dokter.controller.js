@@ -396,5 +396,47 @@ router.post("/jadwal/add/:dokterId", async (req, res) => {
   }
 });
 
+router.patch("/jadwal/:dokterId/jam/:jamId", async (req, res) => {
+  try {
+    const { dokterId, jamId } = req.params; // Ambil dokterId dan jamId dari URL
+
+    // Cari dokter berdasarkan dokterId
+    const dokter = await Dokter.findById(dokterId);
+    if (!dokter) {
+      return res.status(404).json({ message: "Dokter tidak ditemukan" });
+    }
+
+    // Cari jadwal berdasarkan tanggal yang relevan (misalnya "2025-05-02")
+    const tanggalJadwal = req.body.tanggal; // Dapatkan tanggal dari request body
+    const jadwalDokter = dokter.jadwal.find(jadwal => 
+      new Date(jadwal.tanggal).toISOString() === new Date(tanggalJadwal).toISOString()
+    );
+
+    if (!jadwalDokter) {
+      return res.status(404).json({ message: "Jadwal untuk tanggal ini tidak ditemukan" });
+    }
+
+    // Cari slot jam yang sesuai dengan jamId
+    let updated = false;
+    const jamSlot = jadwalDokter.jam.find(jam => jam._id.toString() === jamId);
+    if (jamSlot) {
+      jamSlot.available = false;  // Tandai slot sebagai tidak tersedia
+      updated = true;
+    }
+
+    if (!updated) {
+      return res.status(404).json({ message: "Slot jam tidak ditemukan" });
+    }
+
+    // Simpan perubahan pada dokter
+    await dokter.save();
+
+    res.status(200).json({ message: "Status slot jam berhasil diubah", dokter });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+
 
 module.exports = router;
