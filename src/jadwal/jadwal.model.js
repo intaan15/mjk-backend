@@ -28,7 +28,8 @@ const jadwalSchema = new mongoose.Schema({
         enum: ["menunggu", "ditolak", "diterima", "berlangsung", "selesai"],
         default: "menunggu",
         required: true,
-    }
-});
+    },
+}, { timestamps: true }
+);
 
 module.exports = mongoose.model("jadwal", jadwalSchema, "jadwal");

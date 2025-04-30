@@ -18,11 +18,12 @@ const artikelSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    kategori_artikel:{
+    kategori_artikel: {
         type: String,
         enum: ["Kesehatan", "Obat"],
         required: true,
     },
-})
+}, { timestamps: true }
+)
 
 module.exports = mongoose.model("artikel", artikelSchema, "artikel");
