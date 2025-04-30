@@ -1,19 +1,14 @@
 const mongoose = require("mongoose");
 
 const jadwalSchema = new mongoose.Schema({
-    verifikasi_id: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "verifikasi", 
-        required: true,
-    },
     dokter_id: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "dokter", 
+        ref: "dokter",
         required: true,
     },
     masyarakat_id: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "masyarakat", 
+        ref: "masyarakat",
         required: true,
     },
     tgl_konsul: {
@@ -30,10 +25,10 @@ const jadwalSchema = new mongoose.Schema({
     },
     status_konsul: {
         type: String,
-        enum: ["menunggu", "berlangsung", "selesai"],
+        enum: ["menunggu", "ditolak", "diterima", "berlangsung", "selesai"],
         default: "menunggu",
         required: true,
-    },
+    }
 });
 
 module.exports = mongoose.model("jadwal", jadwalSchema, "jadwal");
