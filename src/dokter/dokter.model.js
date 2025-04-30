@@ -1,18 +1,22 @@
 const mongoose = require("mongoose");
 
+const jamSchema = new mongoose.Schema({
+  time: {
+    type: String, 
+    required: true,
+  },
+  available: {
+    type: Boolean,
+    default: true,
+  },
+});
+
 const jadwalSchema = new mongoose.Schema({
   tanggal: {
     type: Date,
     required: true,
   },
-  jam_mulai: {
-    type: String,
-    required: true,
-  },
-  jam_selesai: {
-    type: String,
-    required: true,
-  },
+  jam: [jamSchema],
 });
 
 const dokterSchema = new mongoose.Schema({
@@ -33,7 +37,6 @@ const dokterSchema = new mongoose.Schema({
     type: String,
     required: true,
     unique: true,
-    //   match: [/^\S+@\S+\.\S+$/, "Email tidak valid"],
   },
   spesialis_dokter: {
     type: String,
@@ -56,16 +59,15 @@ const dokterSchema = new mongoose.Schema({
   },
   foto_profil_dokter: {
     type: String,
-    required: false,
   },
   role: {
     type: String,
     enum: ["admin", "dokter", "masyarakat"],
     default: "dokter",
   },
-  jadwal: [jadwalSchema]
-},
-  { timestamps: true }
-);
+  jadwal: [jadwalSchema],
+}, {
+  timestamps: true,
+});
 
 module.exports = mongoose.model("Dokter", dokterSchema, "dokter");
