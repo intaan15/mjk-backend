@@ -21,14 +21,12 @@ const masyarakatSchema = new mongoose.Schema(
       unique: true,
       // match: [/^\S+@\S+\.\S+$/, "Email tidak valid"],
     },
-    email_hash: String,
     nik_masyarakat: {
       type: String,
       required: true,
       unique: true,
       // match: [/^\d{16}$/, "NIK harus 16 digit"],
     },
-    nik_hash: String,
     alamat_masyarakat: {
       type: String,
       required: true,

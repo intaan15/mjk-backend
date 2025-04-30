@@ -6,8 +6,6 @@ const verifyToken = require("../middleware/verifyToken");
 const { encrypt, decrypt } = require("../utils/encryption");
 const mongoose = require('mongoose');
 
-// const { encrypt } = require("../utils/encryption");
-const { hashString } = require("../utils/hash");
 
 router.post("/create", async (req, res) => {
   try {
@@ -38,31 +36,38 @@ router.post("/create", async (req, res) => {
     }
 
     const usernameExist = await masyarakat.exists({ username_masyarakat });
-    if (usernameExist)
+    if (usernameExist) {
       return res.status(400).json({ message: "Username sudah digunakan" });
+    }
 
-    const emailHash = hashString(email_masyarakat);
-    const nikHash = hashString(nik_masyarakat);
+    const allUsers = await masyarakat.find();
 
-    const emailExist = await masyarakat.exists({ email_hash: emailHash });
-    if (emailExist)
+    const emailExist = allUsers.some((user) => {
+      const decryptedEmail = decrypt(user.email_masyarakat);
+      return decryptedEmail && decryptedEmail === email_masyarakat;
+    });
+
+    if (emailExist) {
       return res.status(400).json({ message: "Email sudah terdaftar" });
+    }
 
-    const nikExist = await masyarakat.exists({ nik_hash: nikHash });
-    if (nikExist)
+    const nikExist = allUsers.some((user) => {
+      const decryptedNIK = decrypt(user.nik_masyarakat);
+      return decryptedNIK && decryptedNIK === nik_masyarakat;
+    });
+
+    if (nikExist) {
       return res.status(400).json({ message: "NIK sudah terdaftar" });
+    }
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password_masyarakat, salt);
+    const hashedPassword = await bcrypt.hash(password_masyarakat, 10);
 
     const newUser = new masyarakat({
       nama_masyarakat,
       username_masyarakat,
       password_masyarakat: hashedPassword,
       email_masyarakat: encrypt(email_masyarakat),
-      email_hash: emailHash,
       nik_masyarakat: encrypt(nik_masyarakat),
-      nik_hash: nikHash,
       alamat_masyarakat: encrypt(alamat_masyarakat),
       notlp_masyarakat: encrypt(notlp_masyarakat),
       jeniskelamin_masyarakat,
@@ -73,6 +78,7 @@ router.post("/create", async (req, res) => {
     });
 
     await newUser.save();
+
     res.status(201).json({ message: "Registrasi berhasil", user: newUser });
   } catch (e) {
     res.status(500).json({ error: e.message });
