@@ -354,31 +354,38 @@ router.delete("/jadwal/:dokterId/:jadwalId", async (req, res) => {
   }
 });
 
-router.patch("/addJadwal/:dokterId", async (req, res) => {
+function generateSlots(start, end, interval = 30) {
+  const slots = [];
+  let [hour, minute] = start.split(":").map(Number);
+  const [endHour, endMinute] = end.split(":").map(Number);
+
+  while (hour < endHour || (hour === endHour && minute < endMinute)) {
+    const time = `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
+    slots.push({ time, available: true });
+    minute += interval;
+    if (minute >= 60) {
+      minute -= 60;
+      hour++;
+    }
+  }
+  return slots;
+}
+
+router.post("/jadwal/add/:doctorId", async (req, res) => {
   try {
+    const { doctorId } = req.params;
     const { tanggal, jam_mulai, jam_selesai } = req.body;
-    const dokterId = req.params.dokterId;
-    console.log("Dokter ID:", dokterId);
-    if (!mongoose.isValidObjectId(dokterId)) {
-      return res.status(400).json({ message: "ID Dokter tidak valid" });
-    }
-    const dokter = await Dokter.findByIdAndUpdate(
-      dokterId,
-      {
-        $push: {
-          jadwal: { tanggal, jam_mulai, jam_selesai },
-        },
-      },
-      { new: true }
-    );
 
-    if (!dokter) {
-      return res.status(404).json({ message: "Dokter tidak ditemukan" });
-    }
+    const dokter = await Dokter.findById(doctorId);
+    if (!dokter) return res.status(404).json({ message: "Dokter tidak ditemukan" });
 
-    res.status(200).json(dokter);
+    const slots = generateSlots(jam_mulai, jam_selesai);
+    dokter.jadwal.push({ tanggal, slots });
+
+    await dokter.save();
+    res.status(201).json({ message: "Jadwal berhasil ditambahkan", data: dokter.jadwal });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(400).json({ message: error.message });
   }
 });
 
