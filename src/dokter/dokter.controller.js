@@ -88,7 +88,6 @@ router.get("/getall", async (req, res, next) => {
 router.get("/getbyid/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    console.log("Received doctor ID:", id); 
     const user = await Dokter.findById(id).select("-password_dokter");
     if (!user)
       return res.status(404).json({ message: "Dokter tidak ditemukan" });
@@ -101,7 +100,6 @@ router.get("/getbyid/:id", async (req, res) => {
 
     res.status(200).json(decryptedUser);
   } catch (e) {
-    console.error("Error fetching doctor:", e);
     res.status(500).json({ message: e.message });
   }
 });
