@@ -129,6 +129,7 @@ router.patch("/update/:id", async (req, res, next) => {
       str_dokter,
       password_dokter,
       rating_dokter,
+      notlp_dokter,
     } = req.body;
 
     if (!(await Dokter.exists({ _id: id }))) {
@@ -157,22 +158,37 @@ router.patch("/update/:id", async (req, res, next) => {
     }
 
     if (email_dokter) {
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+      if (!emailRegex.test(email_dokter)) {
+        return res.status(400).json({ message: "Email tidak valid" });
+      }
+
+      const emailHash = hashString(email_dokter);
       const emailExist = await Dokter.exists({
-        email_dokter,
+        email_hash: emailHash,
         _id: { $ne: id },
       });
+
       if (emailExist) {
         return res
           .status(400)
           .json({ message: "Email sudah terdaftar oleh pengguna lain." });
       }
+
+      req.body.email_dokter = encrypt(email_dokter);
+      req.body.email_hash = emailHash;
+    }
+
+    if (notlp_dokter) {
+      req.body.notlp_dokter = encrypt(notlp_dokter);
     }
 
     if (password_dokter) {
       req.body.password_dokter = await bcrypt.hash(password_dokter, 10);
     }
 
-    if (rating_dokter) {
+    if (rating_dokter !== undefined) {
       req.body.rating_dokter =
         rating_dokter >= 0 && rating_dokter <= 5 ? rating_dokter : 0;
     }
@@ -180,11 +196,16 @@ router.patch("/update/:id", async (req, res, next) => {
     const updatedDokter = await Dokter.findByIdAndUpdate(id, req.body, {
       new: true,
     }).select("-password_dokter");
-    res.status(200).json(updatedDokter);
+
+    res.status(200).json({
+      message: "Data dokter berhasil diperbarui",
+      dokter: updatedDokter,
+    });
   } catch (e) {
     next(e);
   }
 });
+
 
 router.delete("/delete/:id", async (req, res, next) => {
   try {
