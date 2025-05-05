@@ -383,7 +383,7 @@ router.post("/jadwal/add/:dokterId", async (req, res) => {
       return res.status(404).json({ message: "Dokter tidak ditemukan" });
     }
     const slots = generateSlots(jam_mulai, jam_selesai);
-        dokter.jadwal.push({
+    dokter.jadwal.push({
       tanggal,
       jam: slots
     });
@@ -415,9 +415,10 @@ router.patch("/jadwal/:dokterId/jam/:jamId", async (req, res) => {
       return res.status(404).json({ message: "Jadwal untuk tanggal ini tidak ditemukan" });
     }
 
-    const jamSlot = jadwalDokter.jam.find(
-      (jam) => jam._id.toString() === jamId
-    );
+    const jamSlot = jadwalDokter.jam.find((jam) => {
+      console.log("Checking jam ID:", jam._id.toString(), jamId);
+      return jam._id.toString() === jamId
+    });
 
     if (!jamSlot) {
       return res.status(404).json({ message: "Slot jam tidak ditemukan" });
