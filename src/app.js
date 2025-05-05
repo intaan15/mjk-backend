@@ -51,6 +51,9 @@ dotenv.config();
 const app = express();
 const MONGO_URL = process.env.MONGO_URL;
 const httpServer = require("http").createServer(app);
+const logHistory = require("./middleware/loghistory"); // ⬅️ Import middleware log kamu
+
+app.use(logHistory);
 
 mongoose
   .connect(MONGO_URL)
