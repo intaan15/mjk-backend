@@ -359,7 +359,7 @@ function generateSlots(start, end, interval = 30) {
   const [endHour, endMinute] = end.split(":").map(Number);
 
   while (hour < endHour || (hour === endHour && minute < endMinute)) {
-    const time = ${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")};
+    const time = `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
     slots.push({ time, available: true });
     minute += interval;
     if (minute >= 60) {
