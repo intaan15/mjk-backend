@@ -417,7 +417,7 @@ router.patch("/jadwal/:dokterId/jam/:jamId", async (req, res) => {
 
     const jamSlot = jadwalDokter.jam.find((jam) => {
       console.log("Checking jam ID:", jam._id.toString(), jamId);
-      return jam._id.toString() === jamId
+      return jam._id.toString() === jamId.toString();
     });
 
     if (!jamSlot) {
