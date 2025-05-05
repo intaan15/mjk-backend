@@ -397,41 +397,31 @@ router.post("/jadwal/add/:dokterId", async (req, res) => {
 });
 
 router.patch("/jadwal/:dokterId/jam/:jamId", async (req, res) => {
+  const { dokterId, jamId } = req.params;
+  const { tanggal, jam_mulai, jam_selesai } = req.body;
+
   try {
-    const { dokterId, jamId } = req.params;
-    const { tanggal } = req.body;
     const dokter = await Dokter.findById(dokterId);
-    if (!dokter) {
-      return res.status(404).json({ message: "Dokter tidak ditemukan" });
-    }
+    if (!dokter) return res.status(404).json({ message: "Dokter tidak ditemukan" });
 
-    const formatDateOnly = (date) => new Date(date).toISOString().split("T")[0];
-    const targetTanggal = formatDateOnly(tanggal);
-    const jadwalDokter = dokter.jadwal.find((jadwal) =>
-      formatDateOnly(jadwal.tanggal) === targetTanggal
-    );
-
-    if (!jadwalDokter) {
-      return res.status(404).json({ message: "Jadwal untuk tanggal ini tidak ditemukan" });
-    }
-    console.log("Received jamId:", jamId);
-    console.log("Checking against available jam IDs:", jadwalDokter.jam.map(jam => jam._id.toString()));
-
-    const jamSlot = jadwalDokter.jam.find((jam) => {
-      console.log("Checking jam ID:", jam._id.toString(), jamId);
-      return jam._id.toString() === jamId.toString();
+    const jadwal = dokter.jadwal.find(j => {
+      const tgl = new Date(j.tanggal).toISOString().split("T")[0];
+      const targetTgl = new Date(tanggal).toISOString().split("T")[0];
+      return tgl === targetTgl;
     });
-    if (!jamSlot) {
-      return res.status(404).json({ message: "Slot jam tidak ditemukan" });
-    }
 
-    jamSlot.available = false;
+    if (!jadwal) return res.status(404).json({ message: "Jadwal tidak ditemukan" });
+
+    const jamItem = jadwal.jam.find(j => j._id.toString() === jamId);
+    if (!jamItem) return res.status(404).json({ message: "Jam tidak ditemukan" });
+
+    jamItem.available = false;
+
     await dokter.save();
-
-    res.status(200).json({ message: "Status slot jam berhasil diubah", dokter });
-  } catch (error) {
-    console.error("PATCH jadwal error:", error);
-    res.status(500).json({ message: "Terjadi kesalahan server" });
+    return res.status(200).json({ message: "Jadwal diperbarui" });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Terjadi kesalahan server" });
   }
 });
 
