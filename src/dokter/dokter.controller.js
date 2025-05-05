@@ -414,12 +414,13 @@ router.patch("/jadwal/:dokterId/jam/:jamId", async (req, res) => {
     if (!jadwalDokter) {
       return res.status(404).json({ message: "Jadwal untuk tanggal ini tidak ditemukan" });
     }
+    console.log("Received jamId:", jamId);
+    console.log("Checking against available jam IDs:", jadwalDokter.jam.map(jam => jam._id.toString()));
 
     const jamSlot = jadwalDokter.jam.find((jam) => {
       console.log("Checking jam ID:", jam._id.toString(), jamId);
       return jam._id.toString() === jamId.toString();
     });
-
     if (!jamSlot) {
       return res.status(404).json({ message: "Slot jam tidak ditemukan" });
     }
