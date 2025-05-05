@@ -399,36 +399,37 @@ router.post("/jadwal/add/:dokterId", async (req, res) => {
 router.patch("/jadwal/:dokterId/jam/:jamId", async (req, res) => {
   try {
     const { dokterId, jamId } = req.params;
+    const { tanggal } = req.body;
     const dokter = await Dokter.findById(dokterId);
     if (!dokter) {
       return res.status(404).json({ message: "Dokter tidak ditemukan" });
     }
 
-    const tanggalJadwal = req.body.tanggal;
-    const jadwalDokter = dokter.jadwal.find(jadwal => 
-      new Date(jadwal.tanggal).toISOString() === new Date(tanggalJadwal).toISOString()
+    const formatDateOnly = (date) => new Date(date).toISOString().split("T")[0];
+    const targetTanggal = formatDateOnly(tanggal);
+    const jadwalDokter = dokter.jadwal.find((jadwal) =>
+      formatDateOnly(jadwal.tanggal) === targetTanggal
     );
 
     if (!jadwalDokter) {
       return res.status(404).json({ message: "Jadwal untuk tanggal ini tidak ditemukan" });
     }
 
-    let updated = false;
-    const jamSlot = jadwalDokter.jam.find(jam => jam._id.toString() === jamId);
-    if (jamSlot) {
-      jamSlot.available = false;
-      updated = true;
-    }
+    const jamSlot = jadwalDokter.jam.find(
+      (jam) => jam._id.toString() === jamId
+    );
 
-    if (!updated) {
+    if (!jamSlot) {
       return res.status(404).json({ message: "Slot jam tidak ditemukan" });
     }
 
+    jamSlot.available = false;
     await dokter.save();
 
     res.status(200).json({ message: "Status slot jam berhasil diubah", dokter });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("PATCH jadwal error:", error);
+    res.status(500).json({ message: "Terjadi kesalahan server" });
   }
 });
 
