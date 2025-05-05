@@ -55,6 +55,7 @@ const logHistory = require("./middleware/loghistory"); // ⬅️ Import middlewa
 
 app.use(logHistory);
 
+console.log("Mulai aplikasi..")
 mongoose
   .connect(MONGO_URL)
   .then(() => console.log("Database connected"))
@@ -69,10 +70,10 @@ app.use(bodyparser.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(bodyparser.json());
 app.use(cors());
-createSocketServer(httpServer); 
+createSocketServer(httpServer);
 
 httpServer.listen(PORT, () => {
-        console.log('server port = ' + PORT)
+  console.log('server port = ' + PORT)
 })
 
 const masyarakatController = require("./masyarakat/masyarakat.controller");
