@@ -15,6 +15,10 @@ const jadwalSchema = new mongoose.Schema({
         type: Date,
         required: true,
     },
+    jam_konsul: {
+        type: String,
+        required: true
+    },
     keluhan_pasien: {
         type: String,
         required: true,
