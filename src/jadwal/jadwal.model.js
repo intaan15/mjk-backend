@@ -3,12 +3,12 @@ const mongoose = require("mongoose");
 const jadwalSchema = new mongoose.Schema({
     dokter_id: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "dokter",
+        ref: "Dokter",
         required: true,
     },
     masyarakat_id: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "masyarakat",
+        ref: "Masyarakat",
         required: true,
     },
     tgl_konsul: {
