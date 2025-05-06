@@ -12,10 +12,10 @@ router.post("/create", async (req, res) => {
     }
 });
 
-router.get("/", async (req, res) => {
+router.get("/getall", async (req, res) => {
     try {
         const allJadwal = await jadwal.find()
-            .populate("verifikasi_id", "nama_masyarakat") // sesuaikan field jika perlu
+            .populate("masyarakat_id", "nama_masyarakat")
             .populate("dokter_id", "nama_dokter");
         res.status(200).json(allJadwal);
     } catch (error) {
@@ -23,7 +23,7 @@ router.get("/", async (req, res) => {
     }
 });
 
-router.get("/:id", async (req, res) => {
+router.get("/getbyid/:id", async (req, res) => {
     try {
         const oneJadwal = await jadwal.findById(req.params.id)
             .populate("verifikasi_id", "nama_masyarakat")
