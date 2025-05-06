@@ -26,7 +26,7 @@ router.get("/getall", async (req, res) => {
 router.get("/getbyid/:id", async (req, res) => {
     try {
         const oneJadwal = await jadwal.findById(req.params.id)
-            .populate("verifikasi_id", "nama_masyarakat")
+            .populate("masyarakat_id", "nama_masyarakat")
             .populate("dokter_id", "nama_dokter");
         if (!oneJadwal) return res.status(404).json({ message: "Jadwal tidak ditemukan" });
         res.status(200).json(oneJadwal);
