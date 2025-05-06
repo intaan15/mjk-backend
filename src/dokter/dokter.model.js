@@ -57,9 +57,11 @@ const dokterSchema = new mongoose.Schema({
     min: 0,
     max: 5,
   },
-  foto_profil_dokter: {
-    type: String,
-  },
+foto_profil_dokter: {
+  type: String,
+  required: true,
+},
+
   role: {
     type: String,
     enum: ["admin", "dokter", "masyarakat"],

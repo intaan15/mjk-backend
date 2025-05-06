@@ -10,16 +10,49 @@ const multer = require("multer");
 const path = require("path");
 
 const storage = multer.diskStorage({
-  destination: "public/imagesdokter",
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
+  destination: function (req, file, cb) {
+    cb(null, "public/imagesdokter");
+  },
+  filename: function (req, file, cb) {
+    const originalName = file.originalname;
+    const sanitized = originalName
+      .toLowerCase()
+      .replace(/\s+/g, "-") // ubah spasi jadi dash
+      .replace(/[^a-z0-9.\-]/g, ""); // hapus karakter aneh
+
+    const uniqueName = Date.now() + "-" + sanitized;
+    cb(null, uniqueName);
   },
 });
+
+
 const upload = multer({ storage });
 
-router.post("/upload", upload.single("photo"), (req, res) => {
-  res.json({ message: "Upload berhasil", file: req.file });
+router.post("/upload", upload.single("image"), async (req, res) => {
+  try {
+    const dokterId = req.body.id;
+
+    if (!req.file) {
+      return res.status(400).json({ error: "File tidak ditemukan" });
+    }
+
+    const filePath = `/imagesdokter/${req.file.filename}`;
+
+    const updated = await Dokter.findByIdAndUpdate(dokterId, {
+      foto_profil_dokter: filePath,
+    });
+
+    if (!updated) {
+      return res.status(404).json({ error: "Dokter tidak ditemukan" });
+    }
+
+    res.status(200).json({ message: "Upload berhasil", path: filePath });
+  } catch (err) {
+    console.error("Upload error:", err);
+    res.status(500).json({ error: "Upload gagal" });
+  }
 });
+
 
 
 router.post("/create", async (req, res, next) => {

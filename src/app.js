@@ -92,6 +92,8 @@ app.use("/api/rating", ratingController);
 app.use("/api/jadwal", jadwalController);
 app.use("/api/captcha", captchaController);
 app.set("trust proxy", 1);
+app.use("/imagesdokter", express.static("public/imagesdokter"));
+
 
 
 module.exports = app;
