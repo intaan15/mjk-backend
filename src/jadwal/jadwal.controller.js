@@ -14,23 +14,32 @@ router.post("/create", async (req, res) => {
 
 router.get("/getall", async (req, res) => {
     try {
-        const allJadwal = await jadwal.find()
-            .populate("masyarakat_id", "nama_masyarakat")
-            .populate("dokter_id", "nama_dokter");
+        const allJadwal = await jadwal
+            .find()
+            .populate({ path: "masyarakat_id", select: "nama_masyarakat", strictPopulate: false })
+            .populate({ path: "dokter_id", select: "nama_dokter", strictPopulate: false });
+
         res.status(200).json(allJadwal);
     } catch (error) {
+        console.error("Error getall jadwal:", error);
         res.status(500).json({ message: error.message });
     }
 });
 
 router.get("/getbyid/:id", async (req, res) => {
     try {
-        const oneJadwal = await jadwal.findById(req.params.id)
-            .populate("masyarakat_id", "nama_masyarakat")
-            .populate("dokter_id", "nama_dokter");
-        if (!oneJadwal) return res.status(404).json({ message: "Jadwal tidak ditemukan" });
+        const oneJadwal = await jadwal
+            .findById(req.params.id)
+            .populate({ path: "masyarakat_id", select: "nama_masyarakat", strictPopulate: false })
+            .populate({ path: "dokter_id", select: "nama_dokter", strictPopulate: false });
+
+        if (!oneJadwal) {
+            return res.status(404).json({ message: "Jadwal tidak ditemukan" });
+        }
+
         res.status(200).json(oneJadwal);
     } catch (error) {
+        console.error("Error getbyid jadwal:", error);
         res.status(500).json({ message: error.message });
     }
 });
@@ -41,8 +50,8 @@ router.patch("/update/:id", async (req, res) => {
         if (!updated) return res.status(404).json({ message: "Jadwal tidak ditemukan" });
         res.status(200).json({ message: "Jadwal berhasil diperbarui", data: updated });
     } catch (error) {
-        res.status(400).json({ message: error.message });
-    }
+        res.status(400).json({ message: error.message });
+    }
 });
 
 router.delete("/delete/:id", async (req, res) => {
@@ -51,8 +60,8 @@ router.delete("/delete/:id", async (req, res) => {
         if (!deleted) return res.status(404).json({ message: "Jadwal tidak ditemukan" });
         res.status(200).json({ message: "Jadwal berhasil dihapus" });
     } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
+        res.status(500).json({ message: error.message });
+    }
 });
 
 module.exports = router;
