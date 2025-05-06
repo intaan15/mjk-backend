@@ -46,8 +46,8 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const bodyparser = require("body-parser");
 const createSocketServer = require("./socket/socket.controller");
-const PORT = process.env.PORT
 dotenv.config();
+const PORT = process.env.PORT
 const app = express();
 const MONGO_URL = process.env.MONGO_URL;
 const httpServer = require("http").createServer(app);
