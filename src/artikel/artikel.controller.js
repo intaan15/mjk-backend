@@ -12,7 +12,7 @@ router.post("/create", async (req, res) => {
     }
 });
 
-router.get("/", async (req, res) => {
+router.get("/getall", async (req, res) => {
     try {
         const artikels = await artikel.find();
         res.status(200).json(artikels);
@@ -21,7 +21,7 @@ router.get("/", async (req, res) => {
     }
 });
 
-router.get("/:id", async (req, res) => {
+router.get("/getbyid/:id", async (req, res) => {
     try {
         const artikelItem = await artikel.findById(req.params.id);
         if (!artikelItem) {
