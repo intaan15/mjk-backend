@@ -5,9 +5,22 @@ const Dokter = require("./dokter.model");
 const verifyToken = require("../middleware/verifyToken");
 const { encrypt, decrypt } = require("../utils/encryption");
 const mongoose = require("mongoose");
-
-// const { encrypt } = require("../utils/encryption");
 const { hashString } = require("../utils/hash");
+const multer = require("multer");
+const path = require("path");
+
+const storage = multer.diskStorage({
+  destination: "uploads/",
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname));
+  },
+});
+const upload = multer({ storage });
+
+router.post("/upload", upload.single("photo"), (req, res) => {
+  res.json({ message: "Upload berhasil", file: req.file });
+});
+
 
 router.post("/create", async (req, res, next) => {
   try {
