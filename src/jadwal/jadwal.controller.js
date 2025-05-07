@@ -72,4 +72,29 @@ router.delete("/delete/:id", async (req, res) => {
   }
 });
 
+router.patch("/update/status/:id", async (req, res) => {
+    try {
+      const { status_konsul } = req.body;
+      if (!["menunggu", "ditolak", "diterima"].includes(status_konsul)) {
+        return res.status(400).json({ message: "Status tidak valid" });
+      }
+  
+      const updated = await jadwal.findByIdAndUpdate(
+        req.params.id,
+        { status_konsul },
+        { new: true }
+      );
+  
+      if (!updated)
+        return res.status(404).json({ message: "Jadwal tidak ditemukan" });
+  
+      res.status(200).json({
+        message: "Status berhasil diperbarui",
+        data: updated,
+      });
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
 module.exports = router;
