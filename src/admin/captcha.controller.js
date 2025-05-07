@@ -23,7 +23,7 @@ router.get("/captcha", (req, res) => {
   res.json({
     captcha: captchaText, 
     captchaId, 
-    expiresIn: 10, 
+    expiresIn: 20, 
   });
 });
 
