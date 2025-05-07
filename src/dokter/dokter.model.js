@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const jamSchema = new mongoose.Schema({
   time: {
-    type: String, 
+    type: String,
     required: true,
   },
   available: {
@@ -57,11 +57,11 @@ const dokterSchema = new mongoose.Schema({
     min: 0,
     max: 5,
   },
-foto_profil_dokter: {
-  type: String,
-  required: true,
-},
-
+  foto_profil_dokter: {
+    type: String,
+    required: false,
+    default: "",
+  },
   role: {
     type: String,
     enum: ["admin", "dokter", "masyarakat"],
