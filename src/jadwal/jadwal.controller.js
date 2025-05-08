@@ -19,7 +19,7 @@ router.get("/getall", async (req, res) => {
     const allJadwal = await jadwal
       .find()
       .populate({ path: "masyarakat_id", select: "nama_masyarakat" })
-      .populate({ path: "dokter_id", select: "nama_dokter rating_dokter" });
+      .populate({ path: "dokter_id", select: "nama_dokter rating_dokter spesialis_dokter" });
 
     res.status(200).json(allJadwal);
   } catch (error) {
@@ -33,7 +33,7 @@ router.get("/getbyid/:id", async (req, res) => {
     const oneJadwal = await jadwal
       .findById(req.params.id)
       .populate({ path: "masyarakat_id", select: "nama_masyarakat" })
-      .populate({ path: "dokter_id", select: "nama_dokter rating_dokter" });
+      .populate({ path: "dokter_id", select: "nama_dokter rating_dokter spesialis_dokter" });
 
     if (!oneJadwal) {
       return res.status(404).json({ message: "Jadwal tidak ditemukan" });
