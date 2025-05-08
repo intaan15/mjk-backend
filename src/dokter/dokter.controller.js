@@ -416,7 +416,7 @@ function generateSlots(start, end, interval = 30) {
   return slots;
 }
 
-router.patch("/jadwal/add/:dokterId", async (req, res) => {
+router.post("/jadwal/add/:dokterId", async (req, res) => {
   try {
     const { dokterId } = req.params;
     const { tanggal, jam_mulai, jam_selesai } = req.body;
