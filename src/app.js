@@ -83,6 +83,7 @@ const artikelController = require("./artikel/artikel.controller");
 const ratingController = require("./rating/rating.controller");
 const jadwalController = require("./jadwal/jadwal.controller");
 const captchaController = require("./admin/captcha.controller");
+const adminController = require("./admin/admin.controller");
 
 app.use("/api/masyarakat", masyarakatController);
 app.use("/api/auth", authController);
@@ -91,6 +92,7 @@ app.use("/api/artikel", artikelController);
 app.use("/api/rating", ratingController);
 app.use("/api/jadwal", jadwalController);
 app.use("/api/captcha", captchaController);
+app.use("/api/admin", adminController);
 app.set("trust proxy", 1);
 app.use("/imagesdokter", express.static("public/imagesdokter"));
 
