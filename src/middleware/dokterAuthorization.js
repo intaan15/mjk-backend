@@ -1,21 +1,24 @@
-const jwt = require('jsonwebtoken')
+const jwt = require("jsonwebtoken");
 
 const authorizeDokter = (req, res, next) => {
-    const token = req.headers.authorization
-    if (!token) {
-        return res.status(401).json({ message: 'Token not provided' })
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ message: "Token not provided" });
+  }
+
+  const token = authHeader.split(" ")[1];
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (decoded.role !== "dokter") {
+      return res.status(403).json({ message: "Unauthorized - not dokter" });
     }
 
-    try {
-        const token = req.headers.authorization.split(" ")[1];
-        const decoded = jwt.verify(token, process.env.JWT_SECRET)
-        if (decoded.role !== 'dokter') {
-            return res.status(403).json({ message: 'unauthorized' })
-        }
-        next()
-    } catch (error) {
-        return res.status(401).json({ message: 'token invalid' })
-    }
-}
+    req.user = decoded; 
+    next();
+  } catch (error) {
+    return res.status(401).json({ message: "Invalid token" });
+  }
+};
 
 module.exports = authorizeDokter;
