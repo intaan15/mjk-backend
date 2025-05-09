@@ -141,6 +141,7 @@ router.patch("/update/:id", async (req, res) => {
       nik_masyarakat,
       email_masyarakat,
       password_masyarakat,
+      ...otherFields
     } = req.body;
 
     const userExist = await masyarakat.exists({ _id: id });
@@ -148,6 +149,7 @@ router.patch("/update/:id", async (req, res) => {
       return res.status(404).json({ message: "Data tidak ditemukan" });
     }
 
+    // Cek NIK
     if (nik_masyarakat) {
       const nikExist = await masyarakat.exists({
         nik_masyarakat,
@@ -160,6 +162,7 @@ router.patch("/update/:id", async (req, res) => {
       }
     }
 
+    // Cek Username
     if (username_masyarakat) {
       const usernameExist = await masyarakat.exists({
         username_masyarakat,
@@ -172,6 +175,7 @@ router.patch("/update/:id", async (req, res) => {
       }
     }
 
+    // Cek Email
     if (email_masyarakat) {
       const emailExist = await masyarakat.exists({
         email_masyarakat,
@@ -184,20 +188,32 @@ router.patch("/update/:id", async (req, res) => {
       }
     }
 
+    // Siapkan update object
+    const updateData = { ...otherFields };
+
+    if (username_masyarakat)
+      updateData.username_masyarakat = username_masyarakat;
+    if (nik_masyarakat) updateData.nik_masyarakat = encrypt(nik_masyarakat);
+    if (email_masyarakat)
+      updateData.email_masyarakat = encrypt(email_masyarakat);
     if (password_masyarakat) {
       const salt = await bcrypt.genSalt(10);
-      req.body.password_masyarakat = await bcrypt.hash(
+      updateData.password_masyarakat = await bcrypt.hash(
         password_masyarakat,
         salt
       );
     }
 
     const updatedUser = await masyarakat
-      .findByIdAndUpdate(id, req.body, { new: true })
+      .findByIdAndUpdate(id, updateData, { new: true })
       .select("-password_masyarakat");
+
     res.status(200).json(updatedUser);
   } catch (e) {
-    res.status(500).json({ message: e.message });
+    console.error("Update error:", e);
+    res
+      .status(500)
+      .json({ message: "Terjadi kesalahan saat memperbarui data" });
   }
 });
 
