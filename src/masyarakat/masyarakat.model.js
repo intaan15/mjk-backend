@@ -58,8 +58,8 @@ const masyarakatSchema = new mongoose.Schema(
     },
     verifikasi_akun_masyarakat: {
       type: String,
-      enum: ["Pending", "Terima", "Tolak"],
-      default: "Pending",
+      enum: ["pending", "diterima", "ditolak"],
+      default: "pending",
       required: true,
     },
     role: {

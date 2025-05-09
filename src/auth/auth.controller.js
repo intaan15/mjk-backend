@@ -68,26 +68,27 @@ router.post("/login_masyarakat", async (req, res) => {
         }).lean();
 
         if (!user) return res.status(400).json({ message: "Akun tidak ditemukan" });
-        if (user.verifikasi_akun_masyarakat === "Pending") return res.status(403).json({ message: "Akun belum diverifikasi" });
-        if (user.verifikasi_akun_masyarakat === "Tolak") return res.status(403).json({ message: "Akun anda ditolak" })
+        if (user.verifikasi_akun_masyarakat === "pending") return res.status(403).json({ message: "Akun belum diverifikasi" });
+        if (user.verifikasi_akun_masyarakat === "ditolak") return res.status(403).json({ message: "Akun anda ditolak" })
+        if (user.verifikasi_akun_masyarakat === "diterima") {
+            const isMatch = await bcrypt.compare(password_masyarakat, user.password_masyarakat);
+            if (!isMatch) return res.status(400).json({ message: "Password salah" });
 
-        const isMatch = await bcrypt.compare(password_masyarakat, user.password_masyarakat);
-        if (!isMatch) return res.status(400).json({ message: "Password salah" });
+            const token = jwt.sign({
+                id: user._id,
+                username: user.username_masyarakat,
+                nik: user.nik_masyarakat,
+                role: 'masyarakat'
+            },
+                process.env.JWT_SECRET, { expiresIn: "1h" }
+            );
 
-        const token = jwt.sign({
-            id: user._id,
-            username: user.username_masyarakat,
-            nik: user.nik_masyarakat,
-            role: 'masyarakat'
-        },
-            process.env.JWT_SECRET, { expiresIn: "1h" }
-        );
-
-        res.status(200).json({
-            message: "Login berhasil",
-            token,
-            userId: user._id
-        });
+            res.status(200).json({
+                message: "Login berhasil",
+                token,
+                userId: user._id
+            });
+        };
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
