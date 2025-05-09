@@ -141,61 +141,56 @@ router.patch("/update/:id", async (req, res) => {
       nik_masyarakat,
       email_masyarakat,
       password_masyarakat,
+      alamat_masyarakat, // Tambahkan alamat_masyarakat
       ...otherFields
     } = req.body;
 
+    // Validasi apakah user ada
     const userExist = await masyarakat.exists({ _id: id });
     if (!userExist) {
       return res.status(404).json({ message: "Data tidak ditemukan" });
     }
 
-    // Cek NIK
+    // Validasi NIK, username, email
     if (nik_masyarakat) {
       const nikExist = await masyarakat.exists({
         nik_masyarakat,
         _id: { $ne: id },
       });
       if (nikExist) {
-        return res
-          .status(400)
-          .json({ message: "NIK sudah terdaftar oleh pengguna lain." });
+        return res.status(400).json({ message: "NIK sudah terdaftar." });
       }
     }
 
-    // Cek Username
     if (username_masyarakat) {
       const usernameExist = await masyarakat.exists({
         username_masyarakat,
         _id: { $ne: id },
       });
       if (usernameExist) {
-        return res
-          .status(400)
-          .json({ message: "Username sudah terdaftar oleh pengguna lain." });
+        return res.status(400).json({ message: "Username sudah terdaftar." });
       }
     }
 
-    // Cek Email
     if (email_masyarakat) {
       const emailExist = await masyarakat.exists({
         email_masyarakat,
         _id: { $ne: id },
       });
       if (emailExist) {
-        return res
-          .status(400)
-          .json({ message: "Email sudah terdaftar oleh pengguna lain." });
+        return res.status(400).json({ message: "Email sudah terdaftar." });
       }
     }
 
-    // Siapkan update object
+    // Siapkan data yang akan di-update
     const updateData = { ...otherFields };
-
     if (username_masyarakat)
       updateData.username_masyarakat = username_masyarakat;
     if (nik_masyarakat) updateData.nik_masyarakat = encrypt(nik_masyarakat);
     if (email_masyarakat)
       updateData.email_masyarakat = encrypt(email_masyarakat);
+    if (alamat_masyarakat)
+      updateData.alamat_masyarakat = encrypt(alamat_masyarakat); // Enkripsi alamat_masyarakat
     if (password_masyarakat) {
       const salt = await bcrypt.genSalt(10);
       updateData.password_masyarakat = await bcrypt.hash(
@@ -204,6 +199,7 @@ router.patch("/update/:id", async (req, res) => {
       );
     }
 
+    // Update user di database
     const updatedUser = await masyarakat
       .findByIdAndUpdate(id, updateData, { new: true })
       .select("-password_masyarakat");
@@ -216,6 +212,7 @@ router.patch("/update/:id", async (req, res) => {
       .json({ message: "Terjadi kesalahan saat memperbarui data" });
   }
 });
+
 
 router.delete("/delete/:id", async (req, res) => {
   try {
