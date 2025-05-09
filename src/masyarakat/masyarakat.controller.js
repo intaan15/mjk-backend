@@ -142,6 +142,7 @@ router.patch("/update/:id", async (req, res) => {
       email_masyarakat,
       password_masyarakat,
       alamat_masyarakat, // Tambahkan alamat_masyarakat
+      notlp_masyarakat, // Tambahkan notlp_masyarakat
       ...otherFields
     } = req.body;
 
@@ -191,6 +192,8 @@ router.patch("/update/:id", async (req, res) => {
       updateData.email_masyarakat = encrypt(email_masyarakat);
     if (alamat_masyarakat)
       updateData.alamat_masyarakat = encrypt(alamat_masyarakat); // Enkripsi alamat_masyarakat
+    if (notlp_masyarakat)
+      updateData.notlp_masyarakat = encrypt(notlp_masyarakat); // Enkripsi notlp_masyarakat
     if (password_masyarakat) {
       const salt = await bcrypt.genSalt(10);
       updateData.password_masyarakat = await bcrypt.hash(
@@ -212,6 +215,7 @@ router.patch("/update/:id", async (req, res) => {
       .json({ message: "Terjadi kesalahan saat memperbarui data" });
   }
 });
+
 
 
 router.delete("/delete/:id", async (req, res) => {
