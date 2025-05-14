@@ -447,29 +447,19 @@ router.patch("/jadwal/tanggal/:dokterId", async (req, res) => {
   const { dokterId } = req.params;
   const { tanggal, jam_mulai, jam_selesai, interval = 30 } = req.body;
 
-  console.log("Request diterima:", { 
+  console.log("Request Received", { 
     dokterId, 
-    tanggal, 
+    tanggal,
     jam_mulai, 
-    jam_selesai,
-    body: req.body 
+    jam_selesai 
   });
 
-  // Validasi input
-  if (!tanggal || !jam_mulai || !jam_selesai) {
-    return res.status(400).json({ 
-      success: false,
-      message: "Tanggal, jam_mulai, dan jam_selesai harus diisi" 
-    });
-  }
-
   try {
-    // Validasi format waktu
-    const timeRegex = /^([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$/;
-    if (!timeRegex.test(jam_mulai) || !timeRegex.test(jam_selesai)) {
-      return res.status(400).json({
+    // Validasi input
+    if (!tanggal || !jam_mulai || !jam_selesai) {
+      return res.status(400).json({ 
         success: false,
-        message: "Format waktu harus HH:mm:ss"
+        message: "Tanggal, jam_mulai, dan jam_selesai harus diisi" 
       });
     }
 
@@ -481,66 +471,75 @@ router.patch("/jadwal/tanggal/:dokterId", async (req, res) => {
       });
     }
 
-    // Format tanggal ke YYYY-MM-DD
-    const tanggalDipilih = new Date(tanggal).toISOString().split("T")[0];
-    
-    // Cari atau buat jadwal baru
-    let jadwal = dokter.jadwal.find(j => 
-      new Date(j.tanggal).toISOString().split("T")[0] === tanggalDipilih
-    );
+    // Normalisasi format tanggal (YYYY-MM-DD)
+    const tanggalNormalized = new Date(tanggal);
+    const tanggalString = tanggalNormalized.toISOString().split('T')[0];
+
+    // Cari jadwal yang sudah ada atau buat baru
+    let jadwal = dokter.jadwal.find(j => {
+      const jadwalDate = new Date(j.tanggal);
+      return jadwalDate.toISOString().split('T')[0] === tanggalString;
+    });
 
     if (!jadwal) {
-      jadwal = { tanggal: new Date(tanggal), jam: [] };
+      jadwal = {
+        tanggal: tanggalNormalized,
+        jam: []
+      };
       dokter.jadwal.push(jadwal);
     }
 
     // Generate time slots
-    const start = new Date(`2000-01-01T${jam_mulai}`);
-    const end = new Date(`2000-01-01T${jam_selesai}`);
-    
-    if (start >= end) {
-      return res.status(400).json({
+    const startTime = new Date(`2000-01-01T${jam_mulai}`);
+    const endTime = new Date(`2000-01-01T${jam_selesai}`);
+
+    if (startTime >= endTime) {
+      return res.status(400).json({ 
         success: false,
-        message: "jam_mulai harus sebelum jam_selesai"
+        message: "jam_mulai harus lebih kecil dari jam_selesai" 
       });
     }
 
-    const slots = [];
-    const current = new Date(start);
-    
-    while (current < end) {
-      slots.push({
-        time: current.toTimeString().slice(0, 8),
+    // Clear existing slots
+    jadwal.jam = [];
+
+    // Generate new slots
+    const currentTime = new Date(startTime);
+    while (currentTime < endTime) {
+      const hours = currentTime.getHours().toString().padStart(2, '0');
+      const minutes = currentTime.getMinutes().toString().padStart(2, '0');
+      const timeStr = `${hours}:${minutes}`;
+      
+      jadwal.jam.push({
+        time: timeStr,
         available: true
       });
-      current.setMinutes(current.getMinutes() + interval);
+
+      currentTime.setMinutes(currentTime.getMinutes() + interval);
     }
 
-    jadwal.jam = slots;
     await dokter.save();
 
-    return res.status(200).json({
+    return res.status(200).json({ 
       success: true,
       message: "Jadwal berhasil diperbarui",
       data: {
-        tanggal: tanggalDipilih,
-        jam: slots
+        tanggal: tanggalString,
+        jam: jadwal.jam
       }
     });
 
   } catch (err) {
     console.error("Error detail:", {
       message: err.message,
-      stack: err.stack,
-      fullError: err
+      stack: err.stack
     });
     
-    return res.status(500).json({
+    return res.status(500).json({ 
       success: false,
       message: "Terjadi kesalahan server",
       error: process.env.NODE_ENV === 'development' ? err.message : undefined
     });
   }
 });
-
 module.exports = router;
