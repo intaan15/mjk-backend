@@ -400,16 +400,17 @@ function generateSlots(start, end, interval = 30) {
   let [hour, minute] = start.split(":").map(Number);
   const [endHour, endMinute] = end.split(":").map(Number);
 
-  while (hour < endHour || (hour === endHour && minute < endMinute)) {
-    const time = `${hour.toString().padStart(2, "0")}:${minute
+  let currentTimeInMinutes = hour * 60 + minute;
+  const endTimeInMinutes = endHour * 60 + endMinute;
+
+  while (currentTimeInMinutes < endTimeInMinutes) {
+    const slotHour = Math.floor(currentTimeInMinutes / 60);
+    const slotMinute = currentTimeInMinutes % 60;
+    const time = `${slotHour.toString().padStart(2, "0")}:${slotMinute
       .toString()
       .padStart(2, "0")}`;
     slots.push({ time, available: true });
-    minute += interval;
-    if (minute >= 60) {
-      minute -= 60;
-      hour++;
-    }
+    currentTimeInMinutes += interval;
   }
   return slots;
 }
