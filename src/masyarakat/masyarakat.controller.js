@@ -15,37 +15,43 @@ const storage = multer.diskStorage({
   filename: function (req, file, cb) {
     const originalName = file.originalname;
     const sanitized = originalName
-    .toLowerCase()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9.\-]/g, ""); 
-    
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9.\-]/g, "");
+
     const uniqueName = Date.now() + "-" + sanitized;
     cb(null, uniqueName);
   },
 });
 
 const upload = multer({ storage });
+
 router.post("/upload", upload.single("image"), async (req, res) => {
   try {
     const masyarakatId = req.body.id;
 
     if (!req.file) {
+      console.log("⛔ Tidak ada file yang diunggah");
       return res.status(400).json({ error: "File tidak ditemukan" });
     }
 
     const filePath = `/images/${req.file.filename}`;
+
+    // console.log("📸 URI Gambar yang diunggah:", filePath);
+    // console.log("👤 ID Masyarakat:", masyarakatId);
 
     const updated = await masyarakat.findByIdAndUpdate(masyarakatId, {
       foto_profil_masyarakat: filePath,
     });
 
     if (!updated) {
+      console.log("⚠️ Masyarakat tidak ditemukan dengan ID:", masyarakatId);
       return res.status(404).json({ error: "Masyarakat tidak ditemukan" });
     }
 
     res.status(200).json({ message: "Upload berhasil", path: filePath });
   } catch (err) {
-    console.error("Upload error:", err);
+    console.error("❌ Upload error:", err);
     res.status(500).json({ error: "Upload gagal" });
   }
 });

@@ -94,7 +94,7 @@ app.use("/api/jadwal", jadwalController);
 app.use("/api/captcha", captchaController);
 app.use("/api/admin", adminController);
 app.set("trust proxy", 1);
-app.use("/images/", express.static("/public/"));
+app.use("/images/", express.static("/public/images"));
 
 
 

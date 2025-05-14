@@ -56,6 +56,7 @@ const masyarakatSchema = new mongoose.Schema(
     foto_profil_masyarakat: {
       type: String,
       required: false,
+      default: "",
     },
     verifikasi_akun_masyarakat: {
       type: String,
