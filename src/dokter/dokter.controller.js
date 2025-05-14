@@ -443,7 +443,7 @@ router.post("/jadwal/add/:dokterId", async (req, res) => {
   }
 });
 
-router.patch("/jadwal/:dokterId/tanggal", async (req, res) => {
+router.patch("/jadwal/tanggal/:dokterId", async (req, res) => {
   const { dokterId } = req.params;
   const { tanggal, jam_mulai, jam_selesai, interval = 30 } = req.body;
 
