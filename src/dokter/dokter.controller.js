@@ -9,7 +9,6 @@ const { hashString } = require("../utils/hash");
 const multer = require("multer");
 const path = require("path");
 
-
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, "public/images/");
@@ -17,15 +16,14 @@ const storage = multer.diskStorage({
   filename: function (req, file, cb) {
     const originalName = file.originalname;
     const sanitized = originalName
-    .toLowerCase()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9.\-]/g, ""); 
-    
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9.\-]/g, "");
+
     const uniqueName = Date.now() + "-" + sanitized;
     cb(null, uniqueName);
   },
 });
-
 
 const upload = multer({ storage });
 
@@ -53,8 +51,6 @@ router.post("/upload", upload.single("image"), async (req, res) => {
     res.status(500).json({ error: "Upload gagal" });
   }
 });
-
-
 
 router.post("/create", async (req, res, next) => {
   try {
@@ -122,10 +118,11 @@ router.post("/create", async (req, res, next) => {
   }
 });
 
-
 router.get("/getall", async (req, res, next) => {
   try {
-    const dokterList = await Dokter.find().select("-password_dokter -email_dokter -notlp_dokter");
+    const dokterList = await Dokter.find().select(
+      "-password_dokter -email_dokter -notlp_dokter"
+    );
     res.status(200).json(dokterList);
   } catch (e) {
     next(e);
@@ -150,7 +147,6 @@ router.get("/getbyid/:id", async (req, res) => {
     res.status(500).json({ message: e.message });
   }
 });
-
 
 router.get("/getbyname/:doctorName", async (req, res) => {
   try {
@@ -264,8 +260,6 @@ router.patch("/update/:id", async (req, res, next) => {
   }
 });
 
-
-
 router.delete("/delete/:id", async (req, res, next) => {
   try {
     const deletedDokter = await Dokter.findByIdAndDelete(req.params.id);
@@ -349,12 +343,13 @@ router.post("/jadwal/:dokterId", async (req, res) => {
     dokter.jadwal.push({ tanggal, jam_mulai, jam_selesai });
     await dokter.save();
 
-    res.status(201).json({ message: "Jadwal berhasil ditambahkan", jadwal: dokter.jadwal });
+    res
+      .status(201)
+      .json({ message: "Jadwal berhasil ditambahkan", jadwal: dokter.jadwal });
   } catch (e) {
     res.status(500).json({ message: e.message });
   }
 });
-
 
 router.patch("/jadwal/:dokterId/:jadwalId", async (req, res) => {
   try {
@@ -406,7 +401,9 @@ function generateSlots(start, end, interval = 30) {
   const [endHour, endMinute] = end.split(":").map(Number);
 
   while (hour < endHour || (hour === endHour && minute < endMinute)) {
-    const time = `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
+    const time = `${hour.toString().padStart(2, "0")}:${minute
+      .toString()
+      .padStart(2, "0")}`;
     slots.push({ time, available: true });
     minute += interval;
     if (minute >= 60) {
@@ -432,11 +429,13 @@ router.post("/jadwal/add/:dokterId", async (req, res) => {
     const slots = generateSlots(jam_mulai, jam_selesai);
     dokter.jadwal.push({
       tanggal,
-      jam: slots
+      jam: slots,
     });
 
     await dokter.save();
-    res.status(201).json({ message: "Jadwal berhasil ditambahkan", data: dokter.jadwal });
+    res
+      .status(201)
+      .json({ message: "Jadwal berhasil ditambahkan", data: dokter.jadwal });
   } catch (error) {
     console.error(error);
     res.status(400).json({ message: error.message });
@@ -447,72 +446,65 @@ router.patch("/jadwal/tanggal/:dokterId", async (req, res) => {
   const { dokterId } = req.params;
   const { tanggal, jam_mulai, jam_selesai, interval = 30 } = req.body;
 
-  console.log("Request Received", { 
-    dokterId, 
+  console.log("Request Received", {
+    dokterId,
     tanggal,
-    jam_mulai, 
-    jam_selesai 
+    jam_mulai,
+    jam_selesai,
   });
 
   try {
-    // Validasi input
     if (!tanggal || !jam_mulai || !jam_selesai) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: "Tanggal, jam_mulai, dan jam_selesai harus diisi" 
+        message: "Tanggal, jam_mulai, dan jam_selesai harus diisi",
       });
     }
 
     const dokter = await Dokter.findById(dokterId);
     if (!dokter) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        message: "Dokter tidak ditemukan" 
+        message: "Dokter tidak ditemukan",
       });
     }
 
-    // Normalisasi format tanggal (YYYY-MM-DD)
     const tanggalNormalized = new Date(tanggal);
-    const tanggalString = tanggalNormalized.toISOString().split('T')[0];
+    const tanggalString = tanggalNormalized.toISOString().split("T")[0];
 
-    // Cari jadwal yang sudah ada atau buat baru
-    let jadwal = dokter.jadwal.find(j => {
+    let jadwal = dokter.jadwal.find((j) => {
       const jadwalDate = new Date(j.tanggal);
-      return jadwalDate.toISOString().split('T')[0] === tanggalString;
+      return jadwalDate.toISOString().split("T")[0] === tanggalString;
     });
 
     if (!jadwal) {
       jadwal = {
         tanggal: tanggalNormalized,
-        jam: []
+        jam: [],
       };
       dokter.jadwal.push(jadwal);
     }
 
-    // Generate time slots
     const startTime = new Date(`2000-01-01T${jam_mulai}`);
     const endTime = new Date(`2000-01-01T${jam_selesai}`);
 
     if (startTime >= endTime) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: "jam_mulai harus lebih kecil dari jam_selesai" 
+        message: "jam_mulai harus lebih kecil dari jam_selesai",
       });
     }
 
-    // Clear existing slots
     jadwal.jam = [];
-
-    // Generate new slots
     const currentTime = new Date(startTime);
     while (currentTime < endTime) {
-      const hours = currentTime.getHours().toString().padStart(2, '0');
-      const minutes = currentTime.getMinutes().toString().padStart(2, '0');
+      const hours = currentTime.getHours().toString().padStart(2, "0");
+      const minutes = currentTime.getMinutes().toString().padStart(2, "0");
       const timeStr = `${hours}:${minutes}`;
-      
+
       jadwal.jam.push({
         time: timeStr,
-        available: true
+        available: true,
       });
 
       currentTime.setMinutes(currentTime.getMinutes() + interval);
@@ -520,25 +512,24 @@ router.patch("/jadwal/tanggal/:dokterId", async (req, res) => {
 
     await dokter.save();
 
-    return res.status(200).json({ 
+    return res.status(200).json({
       success: true,
       message: "Jadwal berhasil diperbarui",
       data: {
         tanggal: tanggalString,
-        jam: jadwal.jam
-      }
+        jam: jadwal.jam,
+      },
     });
-
   } catch (err) {
     console.error("Error detail:", {
       message: err.message,
-      stack: err.stack
+      stack: err.stack,
     });
-    
-    return res.status(500).json({ 
+
+    return res.status(500).json({
       success: false,
       message: "Terjadi kesalahan server",
-      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+      error: process.env.NODE_ENV === "development" ? err.message : undefined,
     });
   }
 });
