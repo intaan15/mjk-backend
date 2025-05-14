@@ -446,38 +446,67 @@ router.post("/jadwal/add/:dokterId", async (req, res) => {
 router.patch("/jadwal/:dokterId/tanggal", async (req, res) => {
   const { dokterId } = req.params;
   const { tanggal, jam_mulai, jam_selesai, interval = 30 } = req.body;
+
   console.log("Request Received", { dokterId, tanggal, jam_mulai, jam_selesai });
 
   try {
+    // Cari dokter berdasarkan dokterId
     const dokter = await Dokter.findById(dokterId);
-    if (!dokter) return res.status(404).json({ message: "Dokter tidak ditemukan" });
+    if (!dokter) {
+      return res.status(404).json({ message: "Dokter tidak ditemukan" });
+    }
 
+    // Format tanggal yang diterima menjadi format yang seragam (YYYY-MM-DD)
     const tanggalDipilih = new Date(tanggal).toISOString().split("T")[0];
-    const jadwal = dokter.jadwal.find(j => new Date(j.tanggal).toISOString().split("T")[0] === tanggalDipilih);
+    console.log("Tanggal yang dipilih:", tanggalDipilih);
 
-    if (!jadwal) return res.status(404).json({ message: "Jadwal pada tanggal ini tidak ditemukan" });
+    // Pastikan dokter memiliki jadwal dan cari jadwal berdasarkan tanggal
+    if (!dokter.jadwal || dokter.jadwal.length === 0) {
+      return res.status(404).json({ message: "Tidak ada jadwal yang ditemukan untuk dokter ini" });
+    }
 
+    // Cari jadwal yang sesuai dengan tanggal yang dipilih
+    const jadwal = dokter.jadwal.find(j => {
+      const tglJadwal = new Date(j.tanggal).toISOString().split("T")[0];
+      return tglJadwal === tanggalDipilih;
+    });
+
+    if (!jadwal) {
+      return res.status(404).json({ message: "Jadwal pada tanggal ini tidak ditemukan" });
+    }
+
+    // Reset jam pada jadwal yang dipilih
     jadwal.jam = [];
+
     const startDate = new Date(`2000-01-01T${jam_mulai}:00`);
     const endDate = new Date(`2000-01-01T${jam_selesai}:00`);
 
+    // Validasi agar jam mulai lebih kecil dari jam selesai
     if (startDate >= endDate) {
       return res.status(400).json({ message: "jam_mulai harus lebih kecil dari jam_selesai" });
     }
 
+    // Generate waktu berdasarkan interval
     const times = [];
     while (startDate < endDate) {
-      const timeStr = startDate.toTimeString().slice(0, 5);
+      const timeStr = startDate.toTimeString().slice(0, 5); // Ambil jam dan menit
       times.push({ time: timeStr, available: true });
-      startDate.setMinutes(startDate.getMinutes() + interval);
+      startDate.setMinutes(startDate.getMinutes() + interval); // Tambah interval
     }
+
+    // Simpan waktu ke dalam jadwal
     jadwal.jam = times;
+
+    // Simpan perubahan ke database
     await dokter.save();
+
+    // Respons sukses dengan data waktu yang diperbarui
     return res.status(200).json({ message: "Jam berhasil diperbarui", jam: times });
   } catch (err) {
-    console.error(err);
+    console.error("Terjadi kesalahan:", err);
     return res.status(500).json({ message: "Terjadi kesalahan server" });
   }
 });
+
 
 module.exports = router;
