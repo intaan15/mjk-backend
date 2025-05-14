@@ -442,33 +442,42 @@ router.post("/jadwal/add/:dokterId", async (req, res) => {
   }
 });
 
-router.patch("/jadwal/:dokterId/jam/:jamId", async (req, res) => {
-  const { dokterId, jamId } = req.params;
-  const { tanggal, jam_mulai, jam_selesai } = req.body;
+router.patch("/jadwal/:dokterId/tanggal", async (req, res) => {
+  const { dokterId } = req.params;
+  const { tanggal, jam_mulai, jam_selesai, interval = 30 } = req.body;
 
   try {
     const dokter = await Dokter.findById(dokterId);
     if (!dokter) return res.status(404).json({ message: "Dokter tidak ditemukan" });
-
+    const tanggalDipilih = new Date(tanggal).toISOString().split("T")[0];
     const jadwal = dokter.jadwal.find(j => {
-      const tgl = new Date(j.tanggal).toISOString().split("T")[0];
-      const targetTgl = new Date(tanggal).toISOString().split("T")[0];
-      return tgl === targetTgl;
+      const tglJadwal = new Date(j.tanggal).toISOString().split("T")[0];
+      return tglJadwal === tanggalDipilih;
     });
 
-    if (!jadwal) return res.status(404).json({ message: "Jadwal tidak ditemukan" });
+    if (!jadwal) return res.status(404).json({ message: "Jadwal pada tanggal ini tidak ditemukan" });
+    jadwal.jam = [];
 
-    const jamItem = jadwal.jam.find(j => j._id.toString() === jamId);
-    if (!jamItem) return res.status(404).json({ message: "Jam tidak ditemukan" });
+    const startDate = new Date(2000-01-01T${jam_mulai}:00);
+    const endDate = new Date(2000-01-01T${jam_selesai}:00);
 
-    jamItem.available = false;
+    if (startDate >= endDate) {
+      return res.status(400).json({ message: "jam_mulai harus lebih kecil dari jam_selesai" });
+    }
 
+    const times = [];
+    while (startDate < endDate) {
+      const timeStr = startDate.toTimeString().slice(0, 5); 
+      times.push({ time: timeStr, available: true });
+      startDate.setMinutes(startDate.getMinutes() + interval);
+    }
+    jadwal.jam = times;
     await dokter.save();
-    return res.status(200).json({ message: "Jadwal diperbarui" });
+    return res.status(200).json({ message: "Jam berhasil diperbarui", jam: times });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ message: "Terjadi kesalahan server" });
-  }
+    return res.status(500).json({ message: "Terjadi kesalahan server" });
+  }
 });
 
 module.exports = router;
