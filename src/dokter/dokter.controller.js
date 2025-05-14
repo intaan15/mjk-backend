@@ -446,90 +446,80 @@ router.patch("/jadwal/tanggal/:dokterId", async (req, res) => {
   const { dokterId } = req.params;
   const { tanggal, jam_mulai, jam_selesai, interval = 30 } = req.body;
 
-  console.log("Request Received", {
-    dokterId,
+  console.log("Request Received", { 
+    dokterId, 
     tanggal,
-    jam_mulai,
-    jam_selesai,
+    jam_mulai, 
+    jam_selesai 
   });
 
   try {
+    // Validasi input
     if (!tanggal || !jam_mulai || !jam_selesai) {
-      return res.status(400).json({
+      return res.status(400).json({ 
         success: false,
-        message: "Tanggal, jam_mulai, dan jam_selesai harus diisi",
+        message: "Tanggal, jam_mulai, dan jam_selesai harus diisi" 
       });
     }
 
     const dokter = await Dokter.findById(dokterId);
     if (!dokter) {
-      return res.status(404).json({
+      return res.status(404).json({ 
         success: false,
-        message: "Dokter tidak ditemukan",
+        message: "Dokter tidak ditemukan" 
       });
     }
-
-    const tanggalNormalized = new Date(tanggal);
-    const tanggalString = tanggalNormalized.toISOString().split("T")[0];
-
-    let jadwal = dokter.jadwal.find((j) => {
+    const tanggalCari = new Date(tanggal);
+    const tanggalCariString = tanggalCari.toISOString().split('T')[0];
+    const jadwalIndex = dokter.jadwal.findIndex(j => {
       const jadwalDate = new Date(j.tanggal);
-      return jadwalDate.toISOString().split("T")[0] === tanggalString;
+      return jadwalDate.toISOString().split('T')[0] === tanggalCariString;
     });
 
-    if (!jadwal) {
-      jadwal = {
-        tanggal: tanggalNormalized,
-        jam: [],
-      };
-      dokter.jadwal.push(jadwal);
+    if (jadwalIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: "Jadwal pada tanggal tersebut tidak ditemukan"
+      });
     }
-
     const startTime = new Date(`2000-01-01T${jam_mulai}`);
     const endTime = new Date(`2000-01-01T${jam_selesai}`);
-
     if (startTime >= endTime) {
-      return res.status(400).json({
+      return res.status(400).json({ 
         success: false,
-        message: "jam_mulai harus lebih kecil dari jam_selesai",
+        message: "jam_mulai harus lebih kecil dari jam_selesai" 
       });
     }
-
-    jadwal.jam = [];
-    const currentTime = new Date(startTime);
+    const newSlots = [];
+    const currentTime = new Date(startTime);    
     while (currentTime < endTime) {
-      const hours = currentTime.getHours().toString().padStart(2, "0");
-      const minutes = currentTime.getMinutes().toString().padStart(2, "0");
-      const timeStr = `${hours}:${minutes}`;
-
-      jadwal.jam.push({
-        time: timeStr,
-        available: true,
+      const hours = currentTime.getHours().toString().padStart(2, '0');
+      const minutes = currentTime.getMinutes().toString().padStart(2, '0');
+      newSlots.push({
+        time: `${hours}:${minutes}`,
+        available: true
       });
-
       currentTime.setMinutes(currentTime.getMinutes() + interval);
     }
 
+    dokter.jadwal[jadwalIndex].jam = newSlots;
+    dokter.jadwal[jadwalIndex].tanggal = tanggalCari; 
     await dokter.save();
-
-    return res.status(200).json({
+    return res.status(200).json({ 
       success: true,
       message: "Jadwal berhasil diperbarui",
       data: {
-        tanggal: tanggalString,
-        jam: jadwal.jam,
-      },
-    });
-  } catch (err) {
-    console.error("Error detail:", {
-      message: err.message,
-      stack: err.stack,
+        tanggal: tanggalCariString,
+        jam: newSlots
+      }
     });
 
-    return res.status(500).json({
+  } catch (err) {
+    console.error("Error detail:", err);
+    return res.status(500).json({ 
       success: false,
       message: "Terjadi kesalahan server",
-      error: process.env.NODE_ENV === "development" ? err.message : undefined,
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
     });
   }
 });
