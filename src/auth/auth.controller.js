@@ -57,7 +57,7 @@ router.post("/register_masyarakat", async (req, res) => {
     }
 });
 
-router.post("/login_masyarakat", async (req, res) => {
+router.post("/login_masyarakat", loginLimiter, async (req, res) => {
     try {
         const { identifier_masyarakat, password_masyarakat } = req.body;
         if (!identifier_masyarakat || !password_masyarakat) {
