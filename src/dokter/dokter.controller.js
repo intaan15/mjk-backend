@@ -458,8 +458,8 @@ router.patch("/jadwal/:dokterId/tanggal", async (req, res) => {
     if (!jadwal) return res.status(404).json({ message: "Jadwal pada tanggal ini tidak ditemukan" });
     jadwal.jam = [];
 
-    const startDate = new Date('2000-01-01T${jam_mulai}:00');
-    const endDate = new Date('2000-01-01T${jam_selesai}:00');
+    const startDate = new Date(`2000-01-01T${jam_mulai}:00`);
+    const endDate = new Date(`2000-01-01T${jam_selesai}:00`);
 
     if (startDate >= endDate) {
       return res.status(400).json({ message: "jam_mulai harus lebih kecil dari jam_selesai" });
