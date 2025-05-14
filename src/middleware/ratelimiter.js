@@ -1,4 +1,4 @@
-import rateLimit from "express-rate-limit";
+const rateLimit = require("express-rate-limit");
 
 const loginLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 15 menit
@@ -6,4 +6,4 @@ const loginLimiter = rateLimit({
   message: "Terlalu banyak percobaan login. Coba lagi nanti.",
 });
 
-export default loginLimiter;
+module.exports = loginLimiter;
