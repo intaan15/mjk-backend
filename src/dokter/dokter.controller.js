@@ -8,7 +8,6 @@ const mongoose = require("mongoose");
 const { hashString } = require("../utils/hash");
 const multer = require("multer");
 const path = require("path");
-const upload = multer({ storage });
 
 
 const storage = multer.diskStorage({
@@ -18,16 +17,17 @@ const storage = multer.diskStorage({
   filename: function (req, file, cb) {
     const originalName = file.originalname;
     const sanitized = originalName
-      .toLowerCase()
-      .replace(/\s+/g, "-")
-      .replace(/[^a-z0-9.\-]/g, ""); 
-
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9.\-]/g, ""); 
+    
     const uniqueName = Date.now() + "-" + sanitized;
     cb(null, uniqueName);
   },
 });
 
 
+const upload = multer({ storage });
 
 router.post("/upload", upload.single("image"), async (req, res) => {
   try {
