@@ -482,7 +482,7 @@ router.patch("/:dokterId/jadwal/update", async (req, res) => {
     let currentH = startH;
     let currentM = startM;
 
-    while (currentH < endH || (currentH === endH && currentM < endM)) {
+    while ((currentH * 60 + currentM + interval) <= (endH * 60 + endM)) {
       newSlots.push({
         time: `${currentH.toString().padStart(2, '0')}:${currentM.toString().padStart(2, '0')}`,
         available: true
