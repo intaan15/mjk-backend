@@ -446,7 +446,7 @@ router.patch("/jadwal/tanggal/:dokterId", async (req, res) => {
   const { dokterId } = req.params;
   const { tanggal, jam_mulai, jam_selesai, interval = 30 } = req.body;
 
-  console.log("Request Received", { 
+  console.log("Request Update Jadwal:", { 
     dokterId, 
     tanggal,
     jam_mulai, 
@@ -454,11 +454,24 @@ router.patch("/jadwal/tanggal/:dokterId", async (req, res) => {
   });
 
   try {
-    // Validasi input
+    if (!mongoose.Types.ObjectId.isValid(dokterId)) {
+      return res.status(400).json({ 
+        success: false,
+        message: "ID Dokter tidak valid" 
+      });
+    }
+
     if (!tanggal || !jam_mulai || !jam_selesai) {
       return res.status(400).json({ 
         success: false,
         message: "Tanggal, jam_mulai, dan jam_selesai harus diisi" 
+      });
+    }
+
+    if (jam_mulai >= jam_selesai) {
+      return res.status(400).json({ 
+        success: false,
+        message: "jam_mulai harus lebih kecil dari jam_selesai" 
       });
     }
 
@@ -469,12 +482,11 @@ router.patch("/jadwal/tanggal/:dokterId", async (req, res) => {
         message: "Dokter tidak ditemukan" 
       });
     }
+
     const tanggalCari = new Date(tanggal);
-    const tanggalCariString = tanggalCari.toISOString().split('T')[0];
-    const jadwalIndex = dokter.jadwal.findIndex(j => {
-      const jadwalDate = new Date(j.tanggal);
-      return jadwalDate.toISOString().split('T')[0] === tanggalCariString;
-    });
+    const jadwalIndex = dokter.jadwal.findIndex(j => 
+      new Date(j.tanggal).toISOString() === tanggalCari.toISOString()
+    );
 
     if (jadwalIndex === -1) {
       return res.status(404).json({
@@ -482,40 +494,47 @@ router.patch("/jadwal/tanggal/:dokterId", async (req, res) => {
         message: "Jadwal pada tanggal tersebut tidak ditemukan"
       });
     }
-    const startTime = new Date(`2000-01-01T${jam_mulai}`);
-    const endTime = new Date(`2000-01-01T${jam_selesai}`);
-    if (startTime >= endTime) {
-      return res.status(400).json({ 
-        success: false,
-        message: "jam_mulai harus lebih kecil dari jam_selesai" 
-      });
-    }
+
     const newSlots = [];
-    const currentTime = new Date(startTime);    
-    while (currentTime < endTime) {
-      const hours = currentTime.getHours().toString().padStart(2, '0');
-      const minutes = currentTime.getMinutes().toString().padStart(2, '0');
+    const [startHour, startMinute] = jam_mulai.split(':');
+    const [endHour, endMinute] = jam_selesai.split(':');
+    
+    let currentHour = parseInt(startHour);
+    let currentMinute = parseInt(startMinute);
+    const endHourInt = parseInt(endHour);
+    const endMinuteInt = parseInt(endMinute);
+
+    while (currentHour < endHourInt || 
+          (currentHour === endHourInt && currentMinute < endMinuteInt)) {
+      
       newSlots.push({
-        time: `${hours}:${minutes}`,
+        time: `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`,
         available: true
       });
-      currentTime.setMinutes(currentTime.getMinutes() + interval);
+      currentMinute += interval;
+      if (currentMinute >= 60) {
+        currentHour += 1;
+        currentMinute -= 60;
+      }
     }
 
     dokter.jadwal[jadwalIndex].jam = newSlots;
-    dokter.jadwal[jadwalIndex].tanggal = tanggalCari; 
     await dokter.save();
     return res.status(200).json({ 
       success: true,
       message: "Jadwal berhasil diperbarui",
       data: {
-        tanggal: tanggalCariString,
+        tanggal: tanggalCari.toISOString(),
         jam: newSlots
       }
     });
 
   } catch (err) {
-    console.error("Error detail:", err);
+    console.error("Error detail:", {
+      message: err.message,
+      stack: err.stack
+    });
+    
     return res.status(500).json({ 
       success: false,
       message: "Terjadi kesalahan server",
