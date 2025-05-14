@@ -8,17 +8,19 @@ const mongoose = require("mongoose");
 const { hashString } = require("../utils/hash");
 const multer = require("multer");
 const path = require("path");
+const upload = multer({ storage });
+
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "public/imagesdokter");
+    cb(null, "public/images/");
   },
   filename: function (req, file, cb) {
     const originalName = file.originalname;
     const sanitized = originalName
       .toLowerCase()
-      .replace(/\s+/g, "-") // ubah spasi jadi dash
-      .replace(/[^a-z0-9.\-]/g, ""); // hapus karakter aneh
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9.\-]/g, ""); 
 
     const uniqueName = Date.now() + "-" + sanitized;
     cb(null, uniqueName);
@@ -26,7 +28,6 @@ const storage = multer.diskStorage({
 });
 
 
-const upload = multer({ storage });
 
 router.post("/upload", upload.single("image"), async (req, res) => {
   try {
@@ -36,7 +37,7 @@ router.post("/upload", upload.single("image"), async (req, res) => {
       return res.status(400).json({ error: "File tidak ditemukan" });
     }
 
-    const filePath = `/imagesdokter/${req.file.filename}`;
+    const filePath = `/images/${req.file.filename}`;
 
     const updated = await Dokter.findByIdAndUpdate(dokterId, {
       foto_profil_dokter: filePath,

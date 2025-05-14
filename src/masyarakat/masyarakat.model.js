@@ -46,7 +46,8 @@ const masyarakatSchema = new mongoose.Schema(
     },
     foto_ktp_masyarakat: {
       type: String,
-      required: true,
+      required: false,
+      default: "",
     },
     selfie_ktp_masyarakat: {
       type: String,

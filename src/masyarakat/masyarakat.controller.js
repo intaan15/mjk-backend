@@ -5,7 +5,50 @@ const masyarakat = require("./masyarakat.model");
 const verifyToken = require("../middleware/verifyToken"); 
 const { encrypt, decrypt } = require("../utils/encryption");
 const mongoose = require('mongoose');
+const multer = require("multer");
+const path = require("path");
+const upload = multer({ storage });
 
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "public/images/");
+  },
+  filename: function (req, file, cb) {
+    const originalName = file.originalname;
+    const sanitized = originalName
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9.\-]/g, ""); 
+
+    const uniqueName = Date.now() + "-" + sanitized;
+    cb(null, uniqueName);
+  },
+});
+
+router.post("/upload", upload.single("image"), async (req, res) => {
+  try {
+    const masyarakatId = req.body.id;
+
+    if (!req.file) {
+      return res.status(400).json({ error: "File tidak ditemukan" });
+    }
+
+    const filePath = `/images/${req.file.filename}`;
+
+    const updated = await masyarakat.findByIdAndUpdate(masyarakatId, {
+      foto_profil_masyarakat: filePath,
+    });
+
+    if (!updated) {
+      return res.status(404).json({ error: "Masyarakat tidak ditemukan" });
+    }
+
+    res.status(200).json({ message: "Upload berhasil", path: filePath });
+  } catch (err) {
+    console.error("Upload error:", err);
+    res.status(500).json({ error: "Upload gagal" });
+  }
+});
 
 router.post("/create", async (req, res) => {
   try {
