@@ -446,6 +446,7 @@ router.post("/jadwal/add/:dokterId", async (req, res) => {
 router.patch("/jadwal/:dokterId/tanggal", async (req, res) => {
   const { dokterId } = req.params;
   const { tanggal, jam_mulai, jam_selesai, interval = 30 } = req.body;
+  console.log("Request Received", { dokterId, tanggal, jam_mulai, jam_selesai });
 
   try {
     const dokter = await Dokter.findById(dokterId);
