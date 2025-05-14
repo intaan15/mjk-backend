@@ -465,7 +465,7 @@ router.patch("/:dokterId/jadwal/update", async (req, res) => {
     const targetDate = new Date(tanggal);
     const jadwalIndex = dokter.jadwal.findIndex(j => {
       const jadwalDate = new Date(j.tanggal);
-      return Math.abs(jadwalDate - targetDate) < 60000; 
+      return jadwalDate.toISOString().slice(0, 10) === targetDate.toISOString().slice(0, 10);
     });
 
     if (jadwalIndex === -1) {
