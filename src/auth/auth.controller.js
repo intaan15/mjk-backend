@@ -5,7 +5,7 @@ const masyarakat = require("../masyarakat/masyarakat.model");
 const dokter = require("../dokter/dokter.model");
 const superadmin = require("../admin/admin.model");
 const router = express.Router();
-const loginLimiter = require("../middleware/ratelimiter");
+// const loginLimiter = require("../middleware/ratelimiter");
 // const dokterAuthorization = require('./middleware/dokterAuthorization')
 
 router.post("/register_masyarakat", async (req, res) => {
@@ -57,7 +57,7 @@ router.post("/register_masyarakat", async (req, res) => {
     }
 });
 
-router.post("/login_masyarakat", loginLimiter, async (req, res) => {
+router.post("/login_masyarakat", async (req, res) => {
     try {
         const { identifier_masyarakat, password_masyarakat } = req.body;
         if (!identifier_masyarakat || !password_masyarakat) {
@@ -96,7 +96,7 @@ router.post("/login_masyarakat", loginLimiter, async (req, res) => {
     }
 });
 
-router.post("/login_dokter", loginLimiter, async (req, res) => {
+router.post("/login_dokter", async (req, res) => {
     try {
         const { identifier_dokter, password_dokter } = req.body;
 
