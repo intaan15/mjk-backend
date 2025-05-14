@@ -448,36 +448,44 @@ router.patch("/jadwal/:dokterId/tanggal", async (req, res) => {
 
   try {
     const dokter = await Dokter.findById(dokterId);
-    if (!dokter) return res.status(404).json({ message: "Dokter tidak ditemukan" });
+    if (!dokter) {
+      return res.status(404).json({ message: "Dokter tidak ditemukan" });
+    }
     const tanggalDipilih = new Date(tanggal).toISOString().split("T")[0];
     const jadwal = dokter.jadwal.find(j => {
       const tglJadwal = new Date(j.tanggal).toISOString().split("T")[0];
       return tglJadwal === tanggalDipilih;
     });
 
-    if (!jadwal) return res.status(404).json({ message: "Jadwal pada tanggal ini tidak ditemukan" });
-    jadwal.jam = [];
+    if (!jadwal) {
+      return res.status(404).json({ message: "Jadwal pada tanggal ini tidak ditemukan" });
+    }
 
-    const startDate = new Date(`2000-01-01T${jam_mulai}:00`);
-    const endDate = new Date(`2000-01-01T${jam_selesai}:00`);
+    const startTime = new Date(`2000-01-01T${jam_mulai}:00`);
+    const endTime = new Date(`2000-01-01T${jam_selesai}:00`);
 
-    if (startDate >= endDate) {
+    if (isNaN(startTime) || isNaN(endTime)) {
+      return res.status(400).json({ message: "Format jam tidak valid" });
+    }
+
+    if (startTime >= endTime) {
       return res.status(400).json({ message: "jam_mulai harus lebih kecil dari jam_selesai" });
     }
 
     const times = [];
-    while (startDate < endDate) {
-      const timeStr = startDate.toTimeString().slice(0, 5); 
+    let current = new Date(startTime);
+    while (current < endTime) {
+      const timeStr = current.toTimeString().slice(0, 5);
       times.push({ time: timeStr, available: true });
-      startDate.setMinutes(startDate.getMinutes() + interval);
+      current.setMinutes(current.getMinutes() + interval);
     }
     jadwal.jam = times;
     await dokter.save();
     return res.status(200).json({ message: "Jam berhasil diperbarui", jam: times });
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: "Terjadi kesalahan server" });
-  }
+    console.error("Error saat update jam:", err);
+    return res.status(500).json({ message: "Terjadi kesalahan server" });
+  }
 });
 
 module.exports = router;
