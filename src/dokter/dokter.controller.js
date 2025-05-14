@@ -446,32 +446,11 @@ router.patch("/:dokterId/jadwal/update", async (req, res) => {
   const { dokterId } = req.params;
   const { tanggal, jam_mulai, jam_selesai, interval = 30 } = req.body;
 
-  console.log("Request Update Jadwal:", { 
-    dokterId, 
-    tanggal,
-    jam_mulai, 
-    jam_selesai 
-  });
-
   try {
-    if (!mongoose.Types.ObjectId.isValid(dokterId)) {
-      return res.status(400).json({ 
-        success: false,
-        message: "ID Dokter tidak valid" 
-      });
-    }
-
     if (!tanggal || !jam_mulai || !jam_selesai) {
       return res.status(400).json({ 
         success: false,
         message: "Tanggal, jam_mulai, dan jam_selesai harus diisi" 
-      });
-    }
-
-    if (jam_mulai >= jam_selesai) {
-      return res.status(400).json({ 
-        success: false,
-        message: "jam_mulai harus lebih kecil dari jam_selesai" 
       });
     }
 
@@ -483,10 +462,11 @@ router.patch("/:dokterId/jadwal/update", async (req, res) => {
       });
     }
 
-    const tanggalCari = new Date(tanggal);
-    const jadwalIndex = dokter.jadwal.findIndex(j => 
-      new Date(j.tanggal).toISOString() === tanggalCari.toISOString()
-    );
+    const targetDate = new Date(tanggal);
+    const jadwalIndex = dokter.jadwal.findIndex(j => {
+      const jadwalDate = new Date(j.tanggal);
+      return Math.abs(jadwalDate - targetDate) < 60000; 
+    });
 
     if (jadwalIndex === -1) {
       return res.status(404).json({
@@ -496,25 +476,22 @@ router.patch("/:dokterId/jadwal/update", async (req, res) => {
     }
 
     const newSlots = [];
-    const [startHour, startMinute] = jam_mulai.split(':');
-    const [endHour, endMinute] = jam_selesai.split(':');
+    const [startH, startM] = jam_mulai.split(':').map(Number);
+    const [endH, endM] = jam_selesai.split(':').map(Number);
     
-    let currentHour = parseInt(startHour);
-    let currentMinute = parseInt(startMinute);
-    const endHourInt = parseInt(endHour);
-    const endMinuteInt = parseInt(endMinute);
+    let currentH = startH;
+    let currentM = startM;
 
-    while (currentHour < endHourInt || 
-          (currentHour === endHourInt && currentMinute < endMinuteInt)) {
-      
+    while (currentH < endH || (currentH === endH && currentM < endM)) {
       newSlots.push({
-        time: `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`,
+        time: `${currentH.toString().padStart(2, '0')}:${currentM.toString().padStart(2, '0')}`,
         available: true
       });
-      currentMinute += interval;
-      if (currentMinute >= 60) {
-        currentHour += 1;
-        currentMinute -= 60;
+
+      currentM += interval;
+      if (currentM >= 60) {
+        currentH += 1;
+        currentM -= 60;
       }
     }
 
@@ -523,23 +500,16 @@ router.patch("/:dokterId/jadwal/update", async (req, res) => {
     return res.status(200).json({ 
       success: true,
       message: "Jadwal berhasil diperbarui",
-      data: {
-        tanggal: tanggalCari.toISOString(),
-        jam: newSlots
-      }
+      data: dokter.jadwal[jadwalIndex]
     });
 
   } catch (err) {
-    console.error("Error detail:", {
-      message: err.message,
-      stack: err.stack
-    });
-    
+    console.error("Error:", err);
     return res.status(500).json({ 
       success: false,
-      message: "Terjadi kesalahan server",
-      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+      message: "Terjadi kesalahan server" 
     });
   }
 });
+
 module.exports = router;
