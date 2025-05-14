@@ -403,7 +403,7 @@ function generateSlots(start, end, interval = 30) {
   let currentTimeInMinutes = hour * 60 + minute;
   const endTimeInMinutes = endHour * 60 + endMinute;
 
-  while (currentTimeInMinutes < endTimeInMinutes) {
+  while (currentTimeInMinutes <= endTimeInMinutes) {
     const slotHour = Math.floor(currentTimeInMinutes / 60);
     const slotMinute = currentTimeInMinutes % 60;
     const time = `${slotHour.toString().padStart(2, "0")}:${slotMinute
