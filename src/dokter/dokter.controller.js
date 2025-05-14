@@ -482,18 +482,15 @@ router.patch("/:dokterId/jadwal/update", async (req, res) => {
     const [startH, startM] = jam_mulai.split(":").map(Number);
     const [endH, endM] = jam_selesai.split(":").map(Number);
 
-    const endInMinutes = endH * 60 + endM;
+    let currentH = startH;
+    let currentM = startM;
     let currentInMinutes = startH * 60 + startM;
+    let endInMinutes = endH * 60 + endM;
 
-    while (currentInMinutes + interval <= endInMinutes) {
-      const hours = Math.floor(currentInMinutes / 60);
-      const minutes = currentInMinutes % 60;
-
+    while (currentInMinutes + interval <= endInMinutes || currentInMinutes <= endInMinutes) {
       newSlots.push({
-        time: `${hours.toString().padStart(2, "0")}:${minutes
-          .toString()
-          .padStart(2, "0")}`,
-        available: true,
+        time: `${Math.floor(currentInMinutes / 60).toString().padStart(2, '0')}:${(currentInMinutes % 60).toString().padStart(2, '0')}`,
+        available: true
       });
 
       currentInMinutes += interval;
