@@ -452,6 +452,7 @@ router.patch("/jadwal/:dokterId/tanggal", async (req, res) => {
       return res.status(404).json({ message: "Dokter tidak ditemukan" });
     }
     const tanggalDipilih = new Date(tanggal).toISOString().substring(0, 10);
+    console.log("Tanggal dari body:", req.body.tanggal);
     console.log("Tanggal dari request:", tanggalDipilih);
     dokter.jadwal.forEach(j => {
       console.log("Tanggal dari DB:", new Date(j.tanggal).toISOString().substring(0, 10));
