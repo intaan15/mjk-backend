@@ -448,66 +448,69 @@ router.patch("/:dokterId/jadwal/update", async (req, res) => {
 
   try {
     if (!tanggal || !jam_mulai || !jam_selesai) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: "Tanggal, jam_mulai, dan jam_selesai harus diisi" 
+        message: "Tanggal, jam_mulai, dan jam_selesai harus diisi",
       });
     }
 
     const dokter = await Dokter.findById(dokterId);
     if (!dokter) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        message: "Dokter tidak ditemukan" 
+        message: "Dokter tidak ditemukan",
       });
     }
 
     const targetDate = new Date(tanggal);
-    const jadwalIndex = dokter.jadwal.findIndex(j => {
+    const jadwalIndex = dokter.jadwal.findIndex((j) => {
       const jadwalDate = new Date(j.tanggal);
-      return jadwalDate.toISOString().slice(0, 10) === targetDate.toISOString().slice(0, 10);
+      return (
+        jadwalDate.toISOString().slice(0, 10) ===
+        targetDate.toISOString().slice(0, 10)
+      );
     });
 
     if (jadwalIndex === -1) {
       return res.status(404).json({
         success: false,
-        message: "Jadwal pada tanggal tersebut tidak ditemukan"
+        message: "Jadwal pada tanggal tersebut tidak ditemukan",
       });
     }
 
     const newSlots = [];
-    const [startH, startM] = jam_mulai.split(':').map(Number);
-    const [endH, endM] = jam_selesai.split(':').map(Number);
-    
-    let currentH = startH;
-    let currentM = startM;
+    const [startH, startM] = jam_mulai.split(":").map(Number);
+    const [endH, endM] = jam_selesai.split(":").map(Number);
 
-    while ((currentH * 60 + currentM + interval) <= (endH * 60 + endM)) {
+    const endInMinutes = endH * 60 + endM;
+    let currentInMinutes = startH * 60 + startM;
+
+    while (currentInMinutes + interval <= endInMinutes) {
+      const hours = Math.floor(currentInMinutes / 60);
+      const minutes = currentInMinutes % 60;
+
       newSlots.push({
-        time: `${currentH.toString().padStart(2, '0')}:${currentM.toString().padStart(2, '0')}`,
-        available: true
+        time: `${hours.toString().padStart(2, "0")}:${minutes
+          .toString()
+          .padStart(2, "0")}`,
+        available: true,
       });
 
-      currentM += interval;
-      if (currentM >= 60) {
-        currentH += 1;
-        currentM -= 60;
-      }
+      currentInMinutes += interval;
     }
 
     dokter.jadwal[jadwalIndex].jam = newSlots;
     await dokter.save();
-    return res.status(200).json({ 
+    return res.status(200).json({
       success: true,
       message: "Jadwal berhasil diperbarui",
-      data: dokter.jadwal[jadwalIndex]
+      data: dokter.jadwal[jadwalIndex],
     });
-
   } catch (err) {
     console.error("Error:", err);
-    return res.status(500).json({ 
+    return res.status(500).json({
       success: false,
-      message: "Terjadi kesalahan server" 
+      message: "Terjadi kesalahan server",
     });
   }
 });
