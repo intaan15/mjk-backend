@@ -513,4 +513,33 @@ router.patch("/:dokterId/jadwal/update", async (req, res) => {
   }
 });
 
+router.patch("/jadwal/:dokterId/jam/:jamId", async (req, res) => {
+  const { dokterId, jamId } = req.params;
+  const { tanggal, jam_mulai, jam_selesai } = req.body;
+
+  try {
+    const dokter = await Dokter.findById(dokterId);
+    if (!dokter) return res.status(404).json({ message: "Dokter tidak ditemukan" });
+
+    const jadwal = dokter.jadwal.find(j => {
+      const tgl = new Date(j.tanggal).toISOString().split("T")[0];
+      const targetTgl = new Date(tanggal).toISOString().split("T")[0];
+      return tgl === targetTgl;
+    });
+
+    if (!jadwal) return res.status(404).json({ message: "Jadwal tidak ditemukan" });
+
+    const jamItem = jadwal.jam.find(j => j._id.toString() === jamId);
+    if (!jamItem) return res.status(404).json({ message: "Jam tidak ditemukan" });
+
+    jamItem.available = false;
+
+    await dokter.save();
+    return res.status(200).json({ message: "Jadwal diperbarui" });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Terjadi kesalahan server" });
+  }
+});
+
 module.exports = router;
