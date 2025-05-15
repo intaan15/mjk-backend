@@ -4,58 +4,118 @@ const jwt = require("jsonwebtoken");
 const masyarakat = require("../masyarakat/masyarakat.model");
 const dokter = require("../dokter/dokter.model");
 const superadmin = require("../admin/admin.model");
+const { encrypt, decrypt } = require("../utils/encryption");
 const router = express.Router();
 const loginLimiter = require("../middleware/ratelimiter");
 // const dokterAuthorization = require('./middleware/dokterAuthorization')
 
 router.post("/register_masyarakat", async (req, res) => {
-    try {
-        const {
-            nama_masyarakat,
-            username_masyarakat,
-            password_masyarakat,
-            email_masyarakat,
-            nik_masyarakat,
-            alamat_masyarakat,
-            notlp_masyarakat,
-            jeniskelamin_masyarakat,
-            tgl_lahir_masyarakat,
-            foto_ktp_masyarakat,
-            selfie_ktp_masyarakat,
-            foto_profil_masyarakat
-        } = req.body;
+  try {
+    console.log("Received data:", req.body);
+    const {
+      nama_masyarakat,
+      username_masyarakat,
+      password_masyarakat,
+      email_masyarakat,
+      nik_masyarakat,
+      alamat_masyarakat,
+      notlp_masyarakat,
+      jeniskelamin_masyarakat,
+      tgl_lahir_masyarakat,
+      foto_ktp_masyarakat,
+      selfie_ktp_masyarakat,
+      foto_profil_masyarakat,
+    } = req.body;
 
-        const usernameExist = await masyarakat.exists({ username_masyarakat });
-        if (usernameExist) return res.status(400).json({ message: "Username sudah digunakan" });
-
-        const nikExist = await masyarakat.exists({ nik_masyarakat });
-        if (nikExist) return res.status(400).json({ message: "NIK sudah terdaftar" });
-
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password_masyarakat, salt);
-
-        const newUser = new masyarakat({
-            nama_masyarakat,
-            username_masyarakat,
-            password_masyarakat: hashedPassword,
-            email_masyarakat,
-            nik_masyarakat,
-            alamat_masyarakat,
-            notlp_masyarakat,
-            jeniskelamin_masyarakat,
-            tgl_lahir_masyarakat,
-            foto_ktp_masyarakat,
-            selfie_ktp_masyarakat,
-            foto_profil_masyarakat
-        });
-
-        await newUser.save();
-
-        res.status(201).json({ message: "Registrasi berhasil", user: newUser });
-    } catch (e) {
-        res.status(500).json({ error: e.message });
+    // ✅ Cek apakah ada field yang kosong
+    if (
+      !nama_masyarakat ||
+      !username_masyarakat ||
+      !password_masyarakat ||
+      !email_masyarakat ||
+      !nik_masyarakat ||
+      !alamat_masyarakat ||
+      !notlp_masyarakat ||
+      !jeniskelamin_masyarakat ||
+      !tgl_lahir_masyarakat ||
+      !foto_ktp_masyarakat ||
+      !selfie_ktp_masyarakat ||
+      !foto_profil_masyarakat
+    ) {
+      return res
+        .status(400)
+        .json({ message: "Semua data harus diisi dengan lengkap" });
     }
+
+    // Validasi email
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email_masyarakat)) {
+      return res.status(400).json({ message: "Email tidak valid" });
+    }
+
+    // Validasi NIK harus 16 digit angka
+    const nikRegex = /^\d{16}$/;
+    if (!nikRegex.test(nik_masyarakat)) {
+      return res.status(400).json({ message: "NIK harus 16 digit" });
+    }
+
+    // Cek username sudah ada
+    const usernameExist = await masyarakat.exists({ username_masyarakat });
+    if (usernameExist) {
+      return res.status(400).json({ message: "Username sudah digunakan" });
+    }
+
+    // Ambil semua user untuk cek email dan NIK dengan decrypt
+    const allUsers = await masyarakat.find();
+
+    const emailExist = allUsers.some((user) => {
+      const decryptedEmail = decrypt(user.email_masyarakat);
+      return decryptedEmail && decryptedEmail === email_masyarakat;
+    });
+    if (emailExist) {
+      return res.status(400).json({ message: "Email sudah terdaftar" });
+    }
+
+    const nikExist = allUsers.some((user) => {
+      const decryptedNIK = decrypt(user.nik_masyarakat);
+      return decryptedNIK && decryptedNIK === nik_masyarakat;
+    });
+    if (nikExist) {
+      return res.status(400).json({ message: "NIK sudah terdaftar" });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password_masyarakat, 10);
+
+    // Simpan data user baru dengan encrypt untuk field tertentu
+    const newUser = new masyarakat({
+      nama_masyarakat,
+      username_masyarakat,
+      password_masyarakat: hashedPassword,
+      email_masyarakat: encrypt(email_masyarakat),
+      nik_masyarakat: encrypt(nik_masyarakat),
+      alamat_masyarakat: encrypt(alamat_masyarakat),
+      notlp_masyarakat: encrypt(notlp_masyarakat),
+      jeniskelamin_masyarakat,
+      tgl_lahir_masyarakat,
+      foto_ktp_masyarakat,
+      selfie_ktp_masyarakat,
+      foto_profil_masyarakat,
+    });
+    
+
+    await newUser.save();
+
+    res.status(201).json({ message: "Registrasi berhasil", user: newUser });
+  } catch (e) {
+    // Kirim pesan error yang lebih ramah ke client
+    res
+      .status(500)
+      .json({ message: "Terjadi kesalahan pada server. Coba lagi nanti." });
+  }
 });
+  
+  
 
 router.post("/login_masyarakat", loginLimiter, async (req, res) => {
     try {
@@ -92,7 +152,7 @@ router.post("/login_masyarakat", loginLimiter, async (req, res) => {
             userId: user._id
         });
     } catch (e) {
-        res.status(500).json({ error: e.message });
+        // res.status(500).json({ error: e.message });
     }
 });
 
