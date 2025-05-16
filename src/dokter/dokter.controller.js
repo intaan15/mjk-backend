@@ -377,23 +377,23 @@ router.patch("/jadwal/:dokterId/:jadwalId", async (req, res) => {
   }
 });
 
-router.delete("/jadwal/:dokterId/:jadwalId", async (req, res) => {
-  try {
-    const { dokterId, jadwalId } = req.params;
+// router.delete("/jadwal/:dokterId/:jadwalId", async (req, res) => {
+//   try {
+//     const { dokterId, jadwalId } = req.params;
 
-    const dokter = await Dokter.findById(dokterId);
-    if (!dokter) {
-      return res.status(404).json({ message: "Dokter tidak ditemukan" });
-    }
+//     const dokter = await Dokter.findById(dokterId);
+//     if (!dokter) {
+//       return res.status(404).json({ message: "Dokter tidak ditemukan" });
+//     }
 
-    dokter.jadwal = dokter.jadwal.filter((jadwal) => jadwal.id !== jadwalId);
-    await dokter.save();
+//     dokter.jadwal = dokter.jadwal.filter((jadwal) => jadwal.id !== jadwalId);
+//     await dokter.save();
 
-    res.status(200).json({ message: "Jadwal berhasil dihapus" });
-  } catch (e) {
-    res.status(500).json({ message: e.message });
-  }
-});
+//     res.status(200).json({ message: "Jadwal berhasil dihapus" });
+//   } catch (e) {
+//     res.status(500).json({ message: e.message });
+//   }
+// });
 
 function generateSlots(start, end, interval = 30) {
   const slots = [];
