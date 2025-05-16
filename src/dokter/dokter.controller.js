@@ -544,10 +544,10 @@ router.patch("/jadwal/:dokterId/jam/:jamId", async (req, res) => {
 
 router.delete("/jadwal/delete/:dokterId", verifyToken, async (req, res) => {
   try {
-    const { id } = req.params;
+    const { dokterId } = req.params;
     const { tanggal } = req.body;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!mongoose.Types.ObjectId.isValid(dokterId)) {
       return res.status(400).json({
         success: false,
         message: "ID Dokter tidak valid"
@@ -576,7 +576,7 @@ router.delete("/jadwal/delete/:dokterId", verifyToken, async (req, res) => {
     endOfDay.setUTCHours(23, 59, 59, 999);
 
     const updatedDokter = await Dokter.findByIdAndUpdate(
-      id, 
+      dokterId, 
       {
         $pull: {
           jadwal: {
