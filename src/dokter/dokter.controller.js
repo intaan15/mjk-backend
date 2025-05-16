@@ -547,86 +547,57 @@ router.delete("/jadwal/delete/:dokterId", verifyToken, async (req, res) => {
     const { dokterId } = req.params;
     const { tanggal } = req.body;
 
-    if (!dokterId || !mongoose.Types.ObjectId.isValid(dokterId)) {
-      return res.status(400).json({
+    if (!mongoose.Types.ObjectId.isValid(dokterId)) {
+      return res.status(400).json({ 
         success: false,
-        message: "ID dokter tidak valid"
+        message: "ID Dokter tidak valid" 
       });
     }
 
     if (!tanggal) {
-      return res.status(400).json({
+      return res.status(400).json({ 
         success: false,
-        message: "Parameter tanggal diperlukan dalam format ISO"
+        message: "Parameter tanggal diperlukan" 
       });
     }
 
-    let parsedDate;
-    try {
-      parsedDate = new Date(tanggal);
-      if (isNaN(parsedDate.getTime())) {
-        throw new Error("Format tanggal invalid");
-      }
-    } catch (error) {
-      return res.status(400).json({
+    const date = new Date(tanggal);
+    if (isNaN(date.getTime())) {
+      return res.status(400).json({ 
         success: false,
-        message: "Format tanggal tidak valid, gunakan format ISO 8601"
+        message: "Format tanggal tidak valid" 
       });
     }
 
-    const startOfDay = new Date(parsedDate);
-    startOfDay.setHours(0, 0, 0, 0);
-
-    const endOfDay = new Date(parsedDate);
-    endOfDay.setHours(23, 59, 59, 999);
-
-    const deleted = await Jadwal.deleteOne({
+    const result = await Jadwal.findOneAndDelete({
       dokter: dokterId,
       tanggal: {
-        $gte: startOfDay,
-        $lte: endOfDay
+        $gte: new Date(date.setHours(0, 0, 0, 0)),
+        $lte: new Date(date.setHours(23, 59, 59, 999))
       }
     });
 
-    if (deleted.deletedCount === 0) {
-      return res.status(404).json({
+    if (!result) {
+      return res.status(404).json({ 
         success: false,
-        message: `Tidak ditemukan jadwal untuk dokter ${dokterId} pada tanggal ${parsedDate.toLocaleDateString('id-ID')}`,
-        details: {
-          dokterId,
-          tanggal: parsedDate.toISOString()
-        }
+        message: "Jadwal tidak ditemukan" 
       });
     }
 
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
-      message: `Berhasil menghapus jadwal pada ${parsedDate.toLocaleDateString('id-ID')}`,
-      data: {
-        deletedCount: deleted.deletedCount,
-        dokterId,
-        tanggal: parsedDate.toISOString()
-      }
+      message: "Jadwal berhasil dihapus",
+      deletedJadwal: result
     });
 
   } catch (error) {
-    console.error("[ERROR] Delete Jadwal:", {
-      error: error.message,
-      stack: error.stack,
-      request: {
-        params: req.params,
-        body: req.body
-      }
-    });
-
-    return res.status(500).json({
+    console.error("Error deleting schedule:", error);
+    res.status(500).json({
       success: false,
-      message: "Terjadi kesalahan internal server",
-      error: process.env.NODE_ENV === 'development' ? {
-        message: error.message,
-        stack: error.stack
-      } : undefined
+      message: "Terjadi kesalahan server",
+      error: error.message
     });
   }
 });
+
 module.exports = router;
