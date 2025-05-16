@@ -11,10 +11,9 @@ const loginLimiter = require("../middleware/ratelimiter");
 const multer = require("multer");
 
 
-// Konfigurasi penyimpanan multer
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-      cb(null, "public/images"); // folder lokal, bukan root
+      cb(null, "public/images"); 
     },
     filename: function (req, file, cb) {
       const uniqueName = Date.now() + "-" + file.originalname;
@@ -29,8 +28,6 @@ const storage = multer.diskStorage({
     upload.fields([
       { name: "foto_ktp_masyarakat", maxCount: 1 },
       { name: "selfie_ktp_masyarakat", maxCount: 1 },
-      // Tambahkan jika `foto_profil_masyarakat` juga berupa file:
-      // { name: "foto_profil_masyarakat", maxCount: 1 },
     ]),
     async (req, res) => {
       try {
@@ -45,8 +42,7 @@ const storage = multer.diskStorage({
           alamat_masyarakat,
           notlp_masyarakat,
           jeniskelamin_masyarakat,
-          tgl_lahir_masyarakat,
-          foto_profil_masyarakat, // diasumsikan berupa teks (nama file string)
+          tgl_lahir_masyarakat, 
         } = req.body;
   
         const foto_ktp_masyarakat =
@@ -66,33 +62,28 @@ const storage = multer.diskStorage({
           !jeniskelamin_masyarakat ||
           !tgl_lahir_masyarakat ||
           !foto_ktp_masyarakat ||
-          !selfie_ktp_masyarakat ||
-          !foto_profil_masyarakat
+          !selfie_ktp_masyarakat
         ) {
           return res
             .status(400)
             .json({ message: "Semua data harus diisi dengan lengkap" });
         }
   
-        // Validasi email
         const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
         if (!emailRegex.test(email_masyarakat)) {
           return res.status(400).json({ message: "Email tidak valid" });
         }
   
-        // Validasi NIK harus 16 digit angka
         const nikRegex = /^\d{16}$/;
         if (!nikRegex.test(nik_masyarakat)) {
           return res.status(400).json({ message: "NIK harus 16 digit angka" });
         }
   
-        // Cek username sudah dipakai
         const usernameExist = await masyarakat.exists({ username_masyarakat });
         if (usernameExist) {
           return res.status(400).json({ message: "Username sudah digunakan" });
         }
   
-        // Ambil semua user dan cek email/NIK (setelah decrypt)
         const allUsers = await masyarakat.find();
   
         const emailExist = allUsers.some((user) => {
@@ -113,10 +104,8 @@ const storage = multer.diskStorage({
           return res.status(400).json({ message: "NIK sudah terdaftar" });
         }
   
-        // Hash password
         const hashedPassword = await bcrypt.hash(password_masyarakat, 10);
   
-        // Simpan data
         const newUser = new masyarakat({
           nama_masyarakat,
           username_masyarakat,
@@ -129,7 +118,6 @@ const storage = multer.diskStorage({
           tgl_lahir_masyarakat,
           foto_ktp_masyarakat,
           selfie_ktp_masyarakat,
-          foto_profil_masyarakat, // string nama file
         });
   
         await newUser.save();
