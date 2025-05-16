@@ -542,4 +542,36 @@ router.patch("/jadwal/:dokterId/jam/:jamId", async (req, res) => {
   }
 });
 
+router.delete("/jadwal/delete/:dokterId", verifyToken, async (req, res) => {
+  try {
+    const { dokterId } = req.params;
+    const { tanggal } = req.body; 
+
+    if (!tanggal) {
+      return res.status(400).json({ message: "Parameter tanggal diperlukan" });
+    }
+
+    const deleted = await Jadwal.deleteOne({ 
+      dokter: dokterId,
+      tanggal: new Date(tanggal)
+    });
+
+    if (deleted.deletedCount === 0) {
+      return res.status(404).json({ 
+        message: "Tidak ada jadwal yang ditemukan untuk tanggal tersebut" 
+      });
+    }
+
+    res.status(200).json({ 
+      success: true,
+      message: `Berhasil menghapus jadwal pada tanggal ${new Date(tanggal).toLocaleDateString('id-ID')}` 
+    });
+  } catch (error) {
+    console.error("Gagal hapus jadwal:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Terjadi kesalahan server saat menghapus jadwal" 
+    });
+  }
+});
 module.exports = router;
