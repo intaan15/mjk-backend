@@ -544,50 +544,62 @@ router.patch("/jadwal/:dokterId/jam/:jamId", async (req, res) => {
 
 router.delete("/jadwal/delete/:dokterId", verifyToken, async (req, res) => {
   try {
-    const { dokterId } = req.params;
+    const { id } = req.params;
     const { tanggal } = req.body;
 
-    if (!mongoose.Types.ObjectId.isValid(dokterId)) {
-      return res.status(400).json({ 
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
         success: false,
-        message: "ID Dokter tidak valid" 
+        message: "ID Dokter tidak valid"
       });
     }
 
     if (!tanggal) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: "Parameter tanggal diperlukan" 
+        message: "Parameter tanggal diperlukan"
       });
     }
 
-    const date = new Date(tanggal);
-    if (isNaN(date.getTime())) {
-      return res.status(400).json({ 
+    const targetDate = new Date(tanggal);
+    if (isNaN(targetDate.getTime())) {
+      return res.status(400).json({
         success: false,
-        message: "Format tanggal tidak valid" 
+        message: "Format tanggal tidak valid"
       });
     }
 
-    const result = await Jadwal.findOneAndDelete({
-      dokter: dokterId,
-      tanggal: {
-        $gte: new Date(date.setHours(0, 0, 0, 0)),
-        $lte: new Date(date.setHours(23, 59, 59, 999))
-      }
-    });
+    const startOfDay = new Date(targetDate);
+    startOfDay.setUTCHours(0, 0, 0, 0);
 
-    if (!result) {
-      return res.status(404).json({ 
+    const endOfDay = new Date(targetDate);
+    endOfDay.setUTCHours(23, 59, 59, 999);
+
+    const updatedDokter = await Dokter.findByIdAndUpdate(
+      id, 
+      {
+        $pull: {
+          jadwal: {
+            tanggal: {
+              $gte: startOfDay,
+              $lte: endOfDay
+            }
+          }
+        }
+      },
+      { new: true }
+    );
+
+    if (!updatedDokter) {
+      return res.status(404).json({
         success: false,
-        message: "Jadwal tidak ditemukan" 
+        message: "Dokter tidak ditemukan"
       });
     }
 
     res.status(200).json({
       success: true,
-      message: "Jadwal berhasil dihapus",
-      deletedJadwal: result
+      message: `Jadwal pada ${targetDate.toLocaleDateString('id-ID')} berhasil dihapus`
     });
 
   } catch (error) {
@@ -595,8 +607,8 @@ router.delete("/jadwal/delete/:dokterId", verifyToken, async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Terjadi kesalahan server",
-      error: error.message
-    });
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    })
   }
 });
 
