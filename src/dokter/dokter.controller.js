@@ -542,7 +542,7 @@ router.patch("/jadwal/:dokterId/jam/:jamId", async (req, res) => {
   }
 });
 
-router.delete("/jadwal/delete/:dokterId", verifyToken, async (req, res) => {
+router.delete("/jadwal/hapus/:dokterId", verifyToken, async (req, res) => {
   try {
     const { dokterId } = req.params;
     const { tanggal } = req.body;
