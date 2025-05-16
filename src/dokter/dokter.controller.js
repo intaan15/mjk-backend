@@ -545,32 +545,87 @@ router.patch("/jadwal/:dokterId/jam/:jamId", async (req, res) => {
 router.delete("/jadwal/delete/:dokterId", verifyToken, async (req, res) => {
   try {
     const { dokterId } = req.params;
-    const { tanggal } = req.body; 
+    const { tanggal } = req.body;
 
-    if (!tanggal) {
-      return res.status(400).json({ message: "Parameter tanggal diperlukan" });
-    }
-
-    const deleted = await Jadwal.deleteOne({ 
-      dokter: dokterId,
-      tanggal: new Date(tanggal)
-    });
-
-    if (deleted.deletedCount === 0) {
-      return res.status(404).json({ 
-        message: "Tidak ada jadwal yang ditemukan untuk tanggal tersebut" 
+    if (!dokterId || !mongoose.Types.ObjectId.isValid(dokterId)) {
+      return res.status(400).json({
+        success: false,
+        message: "ID dokter tidak valid"
       });
     }
 
-    res.status(200).json({ 
-      success: true,
-      message: `Berhasil menghapus jadwal pada tanggal ${new Date(tanggal).toLocaleDateString('id-ID')}` 
+    if (!tanggal) {
+      return res.status(400).json({
+        success: false,
+        message: "Parameter tanggal diperlukan dalam format ISO"
+      });
+    }
+
+    let parsedDate;
+    try {
+      parsedDate = new Date(tanggal);
+      if (isNaN(parsedDate.getTime())) {
+        throw new Error("Format tanggal invalid");
+      }
+    } catch (error) {
+      return res.status(400).json({
+        success: false,
+        message: "Format tanggal tidak valid, gunakan format ISO 8601"
+      });
+    }
+
+    const startOfDay = new Date(parsedDate);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(parsedDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const deleted = await Jadwal.deleteOne({
+      dokter: dokterId,
+      tanggal: {
+        $gte: startOfDay,
+        $lte: endOfDay
+      }
     });
+
+    if (deleted.deletedCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `Tidak ditemukan jadwal untuk dokter ${dokterId} pada tanggal ${parsedDate.toLocaleDateString('id-ID')}`,
+        details: {
+          dokterId,
+          tanggal: parsedDate.toISOString()
+        }
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Berhasil menghapus jadwal pada ${parsedDate.toLocaleDateString('id-ID')}`,
+      data: {
+        deletedCount: deleted.deletedCount,
+        dokterId,
+        tanggal: parsedDate.toISOString()
+      }
+    });
+
   } catch (error) {
-    console.error("Gagal hapus jadwal:", error);
-    res.status(500).json({ 
+    console.error("[ERROR] Delete Jadwal:", {
+      error: error.message,
+      stack: error.stack,
+      request: {
+        params: req.params,
+        body: req.body
+      }
+    });
+
+    return res.status(500).json({
       success: false,
-      message: "Terjadi kesalahan server saat menghapus jadwal" 
+      message: "Terjadi kesalahan internal server",
+      error: process.env.NODE_ENV === 'development' ? {
+        message: error.message,
+        stack: error.stack
+      } : undefined
     });
   }
 });
