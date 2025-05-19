@@ -2,7 +2,7 @@ const jwt = require("jsonwebtoken");
 
 const authorizeDokter = (req, res, next) => {
   const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+  if (!authHeader) {
     return res.status(401).json({ message: "Token not provided" });
   }
 
