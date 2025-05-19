@@ -242,6 +242,7 @@ router.post("/login_superadmin", async (req, res) => {
             {
                 id: user._id,
                 username: user.username_superadmin,
+                role: "admin",
             },
             process.env.JWT_SECRET,
             { expiresIn: "1h" }
