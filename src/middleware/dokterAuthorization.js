@@ -1,15 +1,13 @@
 const jwt = require("jsonwebtoken");
 
 const dokterAuthorization = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
+  const token = req.headers.authorization;
+  if (!token) {
     return res.status(401).json({ message: "Token not provided" });
   }
 
-  const token = authHeader.split(" ")[1];
-
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token.split(" ")[1], process.env.JWT_SECRET);
     if (decoded.role !== "dokter") {
       return res.status(403).json({ message: "Unauthorized - not dokter" });
     }

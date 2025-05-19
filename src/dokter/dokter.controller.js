@@ -8,6 +8,7 @@ const mongoose = require("mongoose");
 const { hashString } = require("../utils/hash");
 const multer = require("multer");
 const path = require("path");
+const dokterAuthorization = require("../middleware/dokterAuthorization")
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -415,7 +416,7 @@ function generateSlots(start, end, interval = 30) {
   return slots;
 }
 
-router.post("/jadwal/add/:dokterId", async (req, res) => {
+router.post("/jadwal/add/:dokterId", dokterAuthorization, async (req, res) => {
   try {
     const { dokterId } = req.params;
     const { tanggal, jam_mulai, jam_selesai } = req.body;
@@ -443,7 +444,7 @@ router.post("/jadwal/add/:dokterId", async (req, res) => {
   }
 });
 
-router.patch("/:dokterId/jadwal/update", async (req, res) => {
+router.patch("/:dokterId/jadwal/update", dokterAuthorization, async (req, res) => {
   const { dokterId } = req.params;
   const { tanggal, jam_mulai, jam_selesai, interval = 30 } = req.body;
 
@@ -513,7 +514,7 @@ router.patch("/:dokterId/jadwal/update", async (req, res) => {
   }
 });
 
-router.patch("/jadwal/:dokterId/jam/:jamId", async (req, res) => {
+router.patch("/jadwal/:dokterId/jam/:jamId", dokterAuthorization, async (req, res) => {
   const { dokterId, jamId } = req.params;
   const { tanggal, jam_mulai, jam_selesai } = req.body;
 
@@ -542,7 +543,7 @@ router.patch("/jadwal/:dokterId/jam/:jamId", async (req, res) => {
   }
 });
 
-router.delete("/jadwal/hapus/:dokterId", verifyToken, async (req, res) => {
+router.delete("/jadwal/hapus/:dokterId", dokterAuthorization, async (req, res) => {
   try {
     const { dokterId } = req.params;
     const { tanggal } = req.body;

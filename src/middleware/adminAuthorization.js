@@ -8,7 +8,6 @@ const adminAuthorization = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token.split(" ")[1], process.env.JWT_SECRET);
-    console.log("dekodet : ",decoded)
     if (decoded.role !== "admin") {
       return res.status(403).json({ message: "Unauthorized - not admin" });
     }
