@@ -1,6 +1,6 @@
 const jwt = require("jsonwebtoken");
 
-const authorizeAdmin = (req, res, next) => {
+const adminAuthorization = (req, res, next) => {
   const token = req.headers.authorization;
   console.log("token : ",token)
   if (!token) {
@@ -21,4 +21,4 @@ const authorizeAdmin = (req, res, next) => {
   }
 };
 
-module.exports = authorizeAdmin;
+module.exports = adminAuthorization;
