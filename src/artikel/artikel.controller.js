@@ -1,6 +1,32 @@
 const express = require("express");
 const router = express.Router();
 const artikel = require("./artikel.model");
+const multer = require("multer");
+const path = require("path");
+
+// Konfigurasi tempat penyimpanan file
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "public/images"); // folder tujuan
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + path.extname(file.originalname)); // beri nama unik
+  },
+});
+
+const upload = multer({ storage: storage });
+
+// Endpoint upload file
+router.post("/upload", upload.single("foto"), (req, res) => {
+  try {
+    const filePath = `/images/${req.file.filename}`;
+    res.status(200).json({ message: "Upload berhasil", path: filePath });
+  } catch (error) {
+    res.status(500).json({ message: "Upload gagal", error });
+  }
+});
+
 
 router.post("/create", async (req, res) => {
     try {
@@ -45,16 +71,24 @@ router.patch("/update/:id", async (req, res) => {
     }
 });
 
+const mongoose = require("mongoose");
+
 router.delete("/delete/:id", async (req, res) => {
-    try {
-        const deletedArtikel = await artikel.findByIdAndDelete(req.params.id);
-        if (!deletedArtikel) {
-            return res.status(404).json({ message: "Artikel tidak ditemukan" });
-        }
-        res.status(200).json({ message: "Artikel berhasil dihapus" });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return res.status(400).json({ message: "ID tidak valid" });
+  }
+
+  try {
+    const deletedArtikel = await artikel.findByIdAndDelete(req.params.id);
+    if (!deletedArtikel) {
+      return res.status(404).json({ message: "Artikel tidak ditemukan" });
     }
+    res.status(200).json({ message: "Artikel berhasil dihapus" });
+  } catch (error) {
+    console.error("Gagal hapus artikel:", error);
+    res.status(500).json({ message: error.message });
+  }
 });
+
 
 module.exports = router;
