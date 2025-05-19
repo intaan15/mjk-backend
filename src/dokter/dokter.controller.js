@@ -312,7 +312,7 @@ router.patch("/ubah-password", verifyToken, async (req, res) => {
 });
 
 // jadwal dokter
-router.get("/jadwal/:dokterId", async (req, res) => {
+router.get("/jadwal/:dokterId",verifyToken, async (req, res) => {
   try {
     const { dokterId } = req.params;
     if (!mongoose.Types.ObjectId.isValid(dokterId)) {
