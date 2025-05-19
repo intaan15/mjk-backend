@@ -18,12 +18,12 @@ router.get("/captcha", (req, res) => {
 
   setTimeout(() => {
     delete captchaStore[captchaId];
-  }, 15000); 
+  }, 30000); 
 
   res.json({
     captcha: captchaText, 
     captchaId, 
-    expiresIn: 20, 
+    expiresIn: 30, 
   });
 });
 
