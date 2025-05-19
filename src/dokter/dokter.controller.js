@@ -8,7 +8,8 @@ const mongoose = require("mongoose");
 const { hashString } = require("../utils/hash");
 const multer = require("multer");
 const path = require("path");
-const dokterAuthorization = require("../middleware/dokterAuthorization")
+const dokterAuthorization = require("../middleware/dokterAuthorization");
+const masyarakatAuthorization = require("../middleware/masyarakatAuthorization");
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -514,7 +515,7 @@ router.patch("/:dokterId/jadwal/update", dokterAuthorization, async (req, res) =
   }
 });
 
-router.patch("/jadwal/:dokterId/jam/:jamId", dokterAuthorization, async (req, res) => {
+router.patch("/jadwal/:dokterId/jam/:jamId", masyarakatAuthorization, async (req, res) => {
   const { dokterId, jamId } = req.params;
   const { tanggal, jam_mulai, jam_selesai } = req.body;
 
