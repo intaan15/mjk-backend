@@ -312,7 +312,7 @@ router.patch("/ubah-password", verifyToken, async (req, res) => {
 });
 
 // jadwal dokter
-router.get("/jadwal/:dokterId", async (req, res) => {
+router.get("/jadwal/:dokterId", verifyToken, async (req, res) => {
   try {
     const { dokterId } = req.params;
     if (!mongoose.Types.ObjectId.isValid(dokterId)) {
@@ -548,8 +548,6 @@ router.delete("/jadwal/hapus/:dokterId", dokterAuthorization, async (req, res) =
     const { dokterId } = req.params;
     const { tanggal } = req.body;
 
-    console.log('Received request to delete:', { dokterId, tanggal });
-
     if (!mongoose.Types.ObjectId.isValid(dokterId)) {
       return res.status(400).json({
         success: false,
@@ -578,10 +576,25 @@ router.delete("/jadwal/hapus/:dokterId", dokterAuthorization, async (req, res) =
     const endOfDay = new Date(targetDate);
     endOfDay.setUTCHours(23, 59, 59, 999);
 
-    console.log('Date range for deletion:', {
+    console.log('Rentang tanggal untuk penghapusan:', {
       start: startOfDay.toISOString(),
       end: endOfDay.toISOString()
     });
+
+    const dokter = await Dokter.findOne({
+      _id: dokterId,
+      'jadwal.tanggal': {
+        $gte: startOfDay,
+        $lte: endOfDay
+      }
+    });
+
+    if (!dokter) {
+      return res.status(404).json({
+        success: false,
+        message: `Tidak ada jadwal pada tanggal ${targetDate.toLocaleDateString('id-ID')} untuk dihapus`
+      });
+    }
 
     const result = await Dokter.findByIdAndUpdate(
       dokterId,
@@ -598,20 +611,35 @@ router.delete("/jadwal/hapus/:dokterId", dokterAuthorization, async (req, res) =
       { new: true }
     );
 
-    if (!result) {
+    const jadwalTerhapus = dokter.jadwal.filter(j => {
+      const jadwalDate = new Date(j.tanggal);
+      return jadwalDate >= startOfDay && jadwalDate <= endOfDay;
+    });
+
+    if (jadwalTerhapus.length === 0) {
       return res.status(404).json({
         success: false,
-        message: "Dokter tidak ditemukan"
+        message: `Tidak ada jadwal pada tanggal ${targetDate.toLocaleDateString('id-ID')} untuk dihapus`
       });
     }
 
+    const formattedDate = targetDate.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+
     res.status(200).json({
       success: true,
-      message: `Jadwal pada ${targetDate.toISOString().split('T')[0]} berhasil dihapus`
+      message: `Jadwal pada tanggal ${formattedDate} berhasil dihapus`,
+      data: {
+        deletedCount: jadwalTerhapus.length,
+        deletedSchedules: jadwalTerhapus
+      }
     });
 
   } catch (error) {
-    console.error('Error in deleteJadwal:', error);
+    console.error('Error saat menghapus jadwal:', error);
     res.status(500).json({
       success: false,
       message: "Terjadi kesalahan server",
@@ -619,5 +647,4 @@ router.delete("/jadwal/hapus/:dokterId", dokterAuthorization, async (req, res) =
     });
   }
 });
-
 module.exports = router;
