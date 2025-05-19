@@ -1,16 +1,14 @@
 const jwt = require("jsonwebtoken");
 
 const authorizeAdmin = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  console.log("auth header : ",authHeader)
-  if (!authHeader) {
+  const token = req.headers.authorization;
+  console.log("token : ",token)
+  if (!token) {
     return res.status(401).json({ message: "Token not provided" });
   }
 
-  const token = authHeader.split(" ")[1];
-  console.log("token : ")
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token.split(" ")[1], process.env.JWT_SECRET);
     console.log("dekodet : ",decoded)
     if (decoded.role !== "admin") {
       return res.status(403).json({ message: "Unauthorized - not admin" });
