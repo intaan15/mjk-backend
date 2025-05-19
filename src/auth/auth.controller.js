@@ -159,15 +159,15 @@ router.post("/login_masyarakat", loginLimiter, async (req, res) => {
             id: user._id,
             username: user.username_masyarakat,
             nik: user.nik_masyarakat,
-            role: 'masyarakat'
-        },
-            process.env.JWT_SECRET, { expiresIn: "1h" }
-        );
+            role: user.role
+        }, process.env.JWT_SECRET, { expiresIn: "1h" });
 
         res.status(200).json({
             message: "Login berhasil",
             token,
-            userId: user._id
+            userId: user._id,
+            username: user.username_masyarakat,
+            role: user.role
         });
     } catch (e) {
         res.status(500).json({ error: e.message });
@@ -203,15 +203,15 @@ router.post("/login_dokter", loginLimiter, async (req, res) => {
                 id: user._id,
                 username: user.username_dokter,
                 str: user.str_dokter,
-                role: "dokter",
-            },
-            process.env.JWT_SECRET,
-            { expiresIn: "1h" }
-        );
+                role: user.role,
+            }, process.env.JWT_SECRET, { expiresIn: "1h" });
+
         res.status(200).json({
             message: "Login berhasil",
             token,
-            userId: user._id
+            userId: user._id,
+            username: user.username_masyarakat,
+            role: user.role
         });
     } catch (e) {
         res.status(500).json({ error: e.message });
@@ -242,14 +242,16 @@ router.post("/login_superadmin", async (req, res) => {
             {
                 id: user._id,
                 username: user.username_superadmin,
-                role: "admin",
-            },
-            process.env.JWT_SECRET,
-            { expiresIn: "1h" }
-        );
+                role: user.role,
+            }, process.env.JWT_SECRET, { expiresIn: "1h" });
 
-        res.status(200).json({ message: "Login berhasil", token });
-    } catch (e) {
+            res.status(200).json({
+                message: "Login berhasil",
+                token,
+                userId: user._id,
+                username: user.username_superadmin,
+                role: user.role
+            });    } catch (e) {
         res.status(500).json({ error: e.message });
     }
 });
