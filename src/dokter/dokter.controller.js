@@ -141,7 +141,7 @@ router.get("/getall", verifyToken, async (req, res, next) => {
 });
 
 
-router.get("/getbyid/:id", verifyToken, async (req, res) => {
+router.get("/getbyid/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const user = await Dokter.findById(id).select("-password_dokter");
