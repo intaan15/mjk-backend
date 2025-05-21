@@ -1,8 +1,11 @@
 const express = require("express");
 const router = express.Router();
+const mongoose = require("mongoose");
 const artikel = require("./artikel.model");
 const multer = require("multer");
 const path = require("path");
+const adminAuthorization = require("../middleware/adminAuthorization")
+const verifyToken = require("../middleware/verifyToken")
 
 // Konfigurasi tempat penyimpanan file
 const storage = multer.diskStorage({
@@ -28,7 +31,7 @@ router.post("/upload", upload.single("foto"), (req, res) => {
 });
 
 
-router.post("/create", async (req, res) => {
+router.post("/create", adminAuthorization, async (req, res) => {
     try {
         const newArtikel = new artikel(req.body);
         const savedArtikel = await newArtikel.save();
@@ -38,7 +41,7 @@ router.post("/create", async (req, res) => {
     }
 });
 
-router.get("/getall", async (req, res) => {
+router.get("/getall", verifyToken, async (req, res) => {
     try {
         const artikels = await artikel.find();
         res.status(200).json(artikels);
@@ -47,7 +50,7 @@ router.get("/getall", async (req, res) => {
     }
 });
 
-router.get("/getbyid/:id", async (req, res) => {
+router.get("/getbyid/:id", verifyToken, async (req, res) => {
     try {
         const artikelItem = await artikel.findById(req.params.id);
         if (!artikelItem) {
@@ -59,7 +62,7 @@ router.get("/getbyid/:id", async (req, res) => {
     }
 });
 
-router.patch("/update/:id", async (req, res) => {
+router.patch("/update/:id", adminAuthorization, async (req, res) => {
     try {
         const updatedArtikel = await artikel.findByIdAndUpdate(req.params.id, req.body, { new: true });
         if (!updatedArtikel) {
@@ -71,9 +74,7 @@ router.patch("/update/:id", async (req, res) => {
     }
 });
 
-const mongoose = require("mongoose");
-
-router.delete("/delete/:id", async (req, res) => {
+router.delete("/delete/:id", adminAuthorization, async (req, res) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
     return res.status(400).json({ message: "ID tidak valid" });
   }
