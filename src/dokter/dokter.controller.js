@@ -123,14 +123,23 @@ router.post("/create", adminAuthorization, async (req, res, next) => {
 
 router.get("/getall", verifyToken, async (req, res, next) => {
   try {
-    const dokterList = await Dokter.find().select(
-      "-password_dokter"
-    );
-    res.status(200).json(dokterList);
+    const dokterList = await Dokter.find().select("-password_dokter");
+
+    // Lakukan dekripsi pada tiap objek dokter
+    const decryptedList = dokterList.map((dokter) => {
+      return {
+        ...dokter._doc,
+        email_dokter: decrypt(dokter.email_dokter),
+        notlp_dokter: decrypt(dokter.notlp_dokter),
+      };
+    });
+
+    res.status(200).json(decryptedList);
   } catch (e) {
     next(e);
   }
 });
+
 
 router.get("/getbyid/:id", verifyToken, async (req, res) => {
   try {
