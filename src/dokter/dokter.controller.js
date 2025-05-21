@@ -2,7 +2,6 @@ const express = require("express");
 const bcrypt = require("bcrypt");
 const router = express.Router();
 const Dokter = require("./dokter.model");
-const verifyToken = require("../middleware/verifyToken");
 const { encrypt, decrypt } = require("../utils/encryption");
 const mongoose = require("mongoose");
 const { hashString } = require("../utils/hash");
@@ -10,6 +9,8 @@ const multer = require("multer");
 const path = require("path");
 const dokterAuthorization = require("../middleware/dokterAuthorization");
 const masyarakatAuthorization = require("../middleware/masyarakatAuthorization");
+const adminAuthorization = require("../middleware/adminAuthorization");
+const verifyToken = require("../middleware/verifyToken");
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -54,7 +55,7 @@ router.post("/upload", upload.single("image"), async (req, res) => {
   }
 });
 
-router.post("/create", async (req, res, next) => {
+router.post("/create", adminAuthorization, async (req, res, next) => {
   try {
     const {
       nama_dokter,
@@ -120,7 +121,7 @@ router.post("/create", async (req, res, next) => {
   }
 });
 
-router.get("/getall", async (req, res, next) => {
+router.get("/getall", verifyToken, async (req, res, next) => {
   try {
     const dokterList = await Dokter.find().select(
       "-password_dokter -email_dokter -notlp_dokter"
@@ -131,7 +132,7 @@ router.get("/getall", async (req, res, next) => {
   }
 });
 
-router.get("/getbyid/:id", async (req, res) => {
+router.get("/getbyid/:id", verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
     const user = await Dokter.findById(id).select("-password_dokter");
@@ -150,7 +151,7 @@ router.get("/getbyid/:id", async (req, res) => {
   }
 });
 
-router.get("/getbyname/:doctorName", async (req, res) => {
+router.get("/getbyname/:doctorName", verifyToken, async (req, res) => {
   try {
     const { doctorName } = req.params;
 
@@ -174,7 +175,7 @@ router.get("/getbyname/:doctorName", async (req, res) => {
   }
 });
 
-router.patch("/update/:id", async (req, res, next) => {
+router.patch("/update/:id", verifyToken, async (req, res, next) => {
   try {
     const { id } = req.params;
     const {
@@ -262,7 +263,7 @@ router.patch("/update/:id", async (req, res, next) => {
   }
 });
 
-router.delete("/delete/:id", async (req, res, next) => {
+router.delete("/delete/:id", verifyToken, async (req, res, next) => {
   try {
     const deletedDokter = await Dokter.findByIdAndDelete(req.params.id);
     if (!deletedDokter) {
@@ -274,7 +275,7 @@ router.delete("/delete/:id", async (req, res, next) => {
   }
 });
 
-router.patch("/ubah-password", verifyToken, async (req, res) => {
+router.patch("/ubah-password", dokterAuthorization, async (req, res) => {
   try {
     const { password_lama, password_baru, konfirmasi_password_baru } = req.body;
 
@@ -313,7 +314,7 @@ router.patch("/ubah-password", verifyToken, async (req, res) => {
 });
 
 // jadwal dokter
-router.get("/jadwal/:dokterId",verifyToken, async (req, res) => {
+router.get("/jadwal/:dokterId", verifyToken, async (req, res) => {
   try {
     const { dokterId } = req.params;
     if (!mongoose.Types.ObjectId.isValid(dokterId)) {
@@ -329,31 +330,31 @@ router.get("/jadwal/:dokterId",verifyToken, async (req, res) => {
   }
 });
 
-router.post("/jadwal/:dokterId", async (req, res) => {
-  try {
-    const { dokterId } = req.params;
-    const { tanggal, jam_mulai, jam_selesai } = req.body;
+// router.post("/jadwal/:dokterId", verifyToken, async (req, res) => {
+//   try {
+//     const { dokterId } = req.params;
+//     const { tanggal, jam_mulai, jam_selesai } = req.body;
 
-    if (!mongoose.Types.ObjectId.isValid(dokterId)) {
-      return res.status(400).json({ message: "ID dokter tidak valid" });
-    }
-    const dokter = await Dokter.findById(dokterId);
-    if (!dokter) {
-      return res.status(404).json({ message: "Dokter tidak ditemukan" });
-    }
+//     if (!mongoose.Types.ObjectId.isValid(dokterId)) {
+//       return res.status(400).json({ message: "ID dokter tidak valid" });
+//     }
+//     const dokter = await Dokter.findById(dokterId);
+//     if (!dokter) {
+//       return res.status(404).json({ message: "Dokter tidak ditemukan" });
+//     }
 
-    dokter.jadwal.push({ tanggal, jam_mulai, jam_selesai });
-    await dokter.save();
+//     dokter.jadwal.push({ tanggal, jam_mulai, jam_selesai });
+//     await dokter.save();
 
-    res
-      .status(201)
-      .json({ message: "Jadwal berhasil ditambahkan", jadwal: dokter.jadwal });
-  } catch (e) {
-    res.status(500).json({ message: e.message });
-  }
-});
+//     res
+//       .status(201)
+//       .json({ message: "Jadwal berhasil ditambahkan", jadwal: dokter.jadwal });
+//   } catch (e) {
+//     res.status(500).json({ message: e.message });
+//   }
+// });
 
-router.patch("/jadwal/:dokterId/:jadwalId", async (req, res) => {
+router.patch("/jadwal/:dokterId/:jadwalId", verifyToken, async (req, res) => {
   try {
     const { dokterId, jadwalId } = req.params;
     const { tanggal, jam_mulai, jam_selesai } = req.body;
@@ -378,24 +379,6 @@ router.patch("/jadwal/:dokterId/:jadwalId", async (req, res) => {
     res.status(500).json({ message: e.message });
   }
 });
-
-// router.delete("/jadwal/:dokterId/:jadwalId", async (req, res) => {
-//   try {
-//     const { dokterId, jadwalId } = req.params;
-
-//     const dokter = await Dokter.findById(dokterId);
-//     if (!dokter) {
-//       return res.status(404).json({ message: "Dokter tidak ditemukan" });
-//     }
-
-//     dokter.jadwal = dokter.jadwal.filter((jadwal) => jadwal.id !== jadwalId);
-//     await dokter.save();
-
-//     res.status(200).json({ message: "Jadwal berhasil dihapus" });
-//   } catch (e) {
-//     res.status(500).json({ message: e.message });
-//   }
-// });
 
 function generateSlots(start, end, interval = 30) {
   const slots = [];
