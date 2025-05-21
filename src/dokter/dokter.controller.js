@@ -124,7 +124,7 @@ router.post("/create", adminAuthorization, async (req, res, next) => {
 router.get("/getall", verifyToken, async (req, res, next) => {
   try {
     const dokterList = await Dokter.find().select(
-      "-password_dokter -email_dokter -notlp_dokter"
+      "-password_dokter"
     );
     res.status(200).json(dokterList);
   } catch (e) {
