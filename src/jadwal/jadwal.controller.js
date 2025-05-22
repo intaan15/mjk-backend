@@ -1,8 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const jadwal = require("./jadwal.model");
+const verifyToken = require("../middleware/verifyToken");
 
-router.post("/create", async (req, res) => {
+router.post("/create", verifyToken, async (req, res) => {
   try {
     const newJadwal = new jadwal(req.body);
     const savedJadwal = await newJadwal.save();
@@ -14,7 +15,7 @@ router.post("/create", async (req, res) => {
   }
 });
 
-router.get("/getall", async (req, res) => {
+router.get("/getall", verifyToken, async (req, res) => {
   try {
     const allJadwal = await jadwal
       .find()
@@ -28,7 +29,7 @@ router.get("/getall", async (req, res) => {
   }
 });
 
-router.get("/getbyid/:id", async (req, res) => {
+router.get("/getbyid/:id", verifyToken, async (req, res) => {
   try {
     const oneJadwal = await jadwal
       .findById(req.params.id)
@@ -46,7 +47,7 @@ router.get("/getbyid/:id", async (req, res) => {
   }
 });
 
-router.patch("/update/:id", async (req, res) => {
+router.patch("/update/:id", verifyToken, async (req, res) => {
   try {
     const updated = await jadwal.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -61,7 +62,7 @@ router.patch("/update/:id", async (req, res) => {
   }
 });
 
-router.delete("/delete/:id", async (req, res) => {
+router.delete("/delete/:id", verifyToken, async (req, res) => {
   try {
     const deleted = await jadwal.findByIdAndDelete(req.params.id);
     if (!deleted)
@@ -72,7 +73,7 @@ router.delete("/delete/:id", async (req, res) => {
   }
 });
 
-router.patch("/update/status/:id", async (req, res) => {
+router.patch("/update/status/:id", verifyToken, async (req, res) => {
     try {
       const { status_konsul } = req.body;
       if (!["menunggu", "ditolak", "diterima"].includes(status_konsul)) {
