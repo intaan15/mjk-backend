@@ -160,7 +160,7 @@ router.post("/login_masyarakat", loginLimiter, async (req, res) => {
             username: user.username_masyarakat,
             nik: user.nik_masyarakat,
             role: user.role
-        }, process.env.JWT_SECRET, { expiresIn: "1h" });
+        }, process.env.JWT_SECRET);
 
         res.status(200).json({
             message: "Login berhasil",
@@ -204,7 +204,7 @@ router.post("/login_dokter", loginLimiter, async (req, res) => {
                 username: user.username_dokter,
                 str: user.str_dokter,
                 role: user.role,
-            }, process.env.JWT_SECRET, { expiresIn: "1h" });
+            }, process.env.JWT_SECRET);
 
         res.status(200).json({
             message: "Login berhasil",
@@ -243,7 +243,7 @@ router.post("/login_superadmin", async (req, res) => {
                 id: user._id,
                 username: user.username_superadmin,
                 role: user.role,
-            }, process.env.JWT_SECRET, { expiresIn: "1h" });
+            }, process.env.JWT_SECRET, { expiresIn: "1d" });
 
             res.status(200).json({
                 message: "Login berhasil",
