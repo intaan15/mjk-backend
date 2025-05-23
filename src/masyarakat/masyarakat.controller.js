@@ -7,6 +7,7 @@ const { encrypt, decrypt } = require("../utils/encryption");
 const mongoose = require('mongoose');
 const multer = require("multer");
 const path = require("path");
+const masyarakatAuthorization = require("../middleware/masyarakatAuthorization");
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -36,10 +37,6 @@ router.post("/upload", upload.single("image"), async (req, res) => {
     }
 
     const filePath = `/images/${req.file.filename}`;
-
-    // console.log("📸 URI Gambar yang diunggah:", filePath);
-    // console.log("👤 ID Masyarakat:", masyarakatId);
-
     const updated = await masyarakat.findByIdAndUpdate(masyarakatId, {
       foto_profil_masyarakat: filePath,
     });
@@ -56,7 +53,7 @@ router.post("/upload", upload.single("image"), async (req, res) => {
   }
 });
 
-router.post("/create", async (req, res) => {
+router.post("/create", verifyToken, async (req, res) => {
   try {
     const {
       nama_masyarakat,
@@ -134,7 +131,7 @@ router.post("/create", async (req, res) => {
   }
 });
 
-router.get("/getall", async (req, res) => {
+router.get("/getall", verifyToken, async (req, res) => {
   try {
     const allUsers = await masyarakat.find().select("-password_masyarakat");
 
@@ -157,7 +154,7 @@ router.get("/getall", async (req, res) => {
   }
 });
 
-router.get("/getbyid/:id", async (req, res) => {
+router.get("/getbyid/:id", verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -182,7 +179,7 @@ router.get("/getbyid/:id", async (req, res) => {
   }
 });
 
-router.patch("/update/:id", async (req, res) => {
+router.patch("/update/:id", verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
     const {
@@ -190,18 +187,16 @@ router.patch("/update/:id", async (req, res) => {
       nik_masyarakat,
       email_masyarakat,
       password_masyarakat,
-      alamat_masyarakat, // Tambahkan alamat_masyarakat
-      notlp_masyarakat, // Tambahkan notlp_masyarakat
+      alamat_masyarakat,
+      notlp_masyarakat, 
       ...otherFields
     } = req.body;
 
-    // Validasi apakah user ada
     const userExist = await masyarakat.exists({ _id: id });
     if (!userExist) {
       return res.status(404).json({ message: "Data tidak ditemukan" });
     }
 
-    // Validasi NIK, username, email
     if (nik_masyarakat) {
       const nikExist = await masyarakat.exists({
         nik_masyarakat,
@@ -232,7 +227,6 @@ router.patch("/update/:id", async (req, res) => {
       }
     }
 
-    // Siapkan data yang akan di-update
     const updateData = { ...otherFields };
     if (username_masyarakat)
       updateData.username_masyarakat = username_masyarakat;
@@ -240,9 +234,9 @@ router.patch("/update/:id", async (req, res) => {
     if (email_masyarakat)
       updateData.email_masyarakat = encrypt(email_masyarakat);
     if (alamat_masyarakat)
-      updateData.alamat_masyarakat = encrypt(alamat_masyarakat); // Enkripsi alamat_masyarakat
+      updateData.alamat_masyarakat = encrypt(alamat_masyarakat);
     if (notlp_masyarakat)
-      updateData.notlp_masyarakat = encrypt(notlp_masyarakat); // Enkripsi notlp_masyarakat
+      updateData.notlp_masyarakat = encrypt(notlp_masyarakat); 
     if (password_masyarakat) {
       const salt = await bcrypt.genSalt(10);
       updateData.password_masyarakat = await bcrypt.hash(
@@ -251,7 +245,6 @@ router.patch("/update/:id", async (req, res) => {
       );
     }
 
-    // Update user di database
     const updatedUser = await masyarakat
       .findByIdAndUpdate(id, updateData, { new: true })
       .select("-password_masyarakat");
@@ -267,7 +260,7 @@ router.patch("/update/:id", async (req, res) => {
 
 
 
-router.delete("/delete/:id", async (req, res) => {
+router.delete("/delete/:id", verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -283,7 +276,7 @@ router.delete("/delete/:id", async (req, res) => {
   }
 });
 
-router.patch("/ubah-password", verifyToken, async (req, res) => {
+router.patch("/ubah-password", masyarakatAuthorization, async (req, res) => {
   try {
     const { password_lama, password_baru, konfirmasi_password_baru } = req.body;
 
