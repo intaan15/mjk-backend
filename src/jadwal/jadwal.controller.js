@@ -122,7 +122,8 @@ router.post("/:id/terima", async (req, res) => {
   await Chat.create({
     dari: jadwalData.dokter_id._id,
     ke: jadwalData.masyarakat_id._id,
-    isi: pesanTemplate,
+    text: pesanTemplate, // ✅ ubah dari 'isi' ke 'text'
+    type: "text", // ✅ WAJIB isi karena required
     role: "dokter",
     waktu: new Date(),
   });
