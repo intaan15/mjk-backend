@@ -102,7 +102,7 @@ router.patch("/update/status/:id", verifyToken, async (req, res) => {
   }
 });
 
-router.post("/:id/terima", async (req, res) => {
+router.post("/:id/terima", verifyToken, async (req, res) => {
   const jadwalId = req.params.id;
 
   // Ambil data jadwal dari DB
