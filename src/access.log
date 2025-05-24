@@ -138,3 +138,4 @@
 ::ffff:192.168.100.236 - - [24/May/2025:04:32:26 +0000] "GET /api/jadwal/6825a110ed2ca24123a0372e/terima HTTP/1.1" 404 181 "-" "PostmanRuntime/7.44.0"
 ::ffff:192.168.100.236 - - [24/May/2025:04:44:54 +0000] "POST /api/jadwal/6825a110ed2ca24123a0372e/terima HTTP/1.1" 200 48 "-" "PostmanRuntime/7.44.0"
 ::ffff:192.168.100.236 - - [24/May/2025:04:49:40 +0000] "POST /api/jadwal/6825a110ed2ca24123a0372e/terima HTTP/1.1" 200 48 "-" "PostmanRuntime/7.44.0"
+::ffff:192.168.100.236 - - [24/May/2025:05:03:38 +0000] "POST /api/jadwal/6825a110ed2ca24123a0372e/terima HTTP/1.1" 200 48 "-" "PostmanRuntime/7.44.0"
