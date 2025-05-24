@@ -6,6 +6,7 @@ const verifyToken = require("../middleware/verifyToken");
 // GET /api/chat/history/:user1/:user2
 router.get("/history/:user1/:user2", verifyToken, async (req, res) => {
   const { user1, user2 } = req.params;
+  console.log("Ambil chat history antara:", user1, "dan", user2);
 
   try {
     const messages = await Chat.find({
