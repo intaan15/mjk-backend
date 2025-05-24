@@ -42,7 +42,10 @@ const ratingController = require("./rating/rating.controller");
 const jadwalController = require("./jadwal/jadwal.controller");
 const captchaController = require("./admin/captcha.controller");
 const adminController = require("./admin/admin.controller");
+const chatRoutes = require("./socket/chat.route");
 
+
+app.use("/api/chat", chatRoutes);
 app.use("/api/masyarakat", masyarakatController);
 app.use("/api/auth", authController);
 app.use("/api/dokter", dokterController);
