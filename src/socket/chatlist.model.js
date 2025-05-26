@@ -1,11 +1,22 @@
 const mongoose = require("mongoose");
+const { Schema } = mongoose;
 
-const ChatListSchema = new mongoose.Schema(
+const ChatListSchema = new Schema(
   {
-    participants: {
-      type: [String], // id dari masyarakat atau dokter
-      required: true,
-    },
+    participants: [
+      {
+        user: {
+          type: Schema.Types.ObjectId,
+          required: true,
+          refPath: "participants.role", 
+        },
+        role: {
+          type: String,
+          required: true,
+          enum: ["Masyarakat", "Dokter"], 
+        },
+      },
+    ],
     lastMessage: {
       type: String,
       default: "",
