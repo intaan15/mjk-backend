@@ -23,10 +23,6 @@ const jadwalSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    jumlah_konsul: {
-        type: Number,
-        required: true,
-    },
     status_konsul: {
         type: String,
         enum: ["menunggu", "ditolak", "diterima", "berlangsung", "selesai"],
