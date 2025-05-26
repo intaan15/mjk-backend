@@ -11,56 +11,55 @@ router.get("/:userId", verifyToken, async (req, res) => {
   const { userId } = req.params;
 
   try {
+    // Ambil semua chat di mana user menjadi peserta
     const chatlists = await ChatList.find({
-      participants: userId,
-    }).sort({ lastMessageDate: -1 });
+      "participants.user": userId,
+    })
+      .sort({ lastMessageDate: -1 })
+      .populate("participants.user"); // Populate agar dapat detail user
 
-    const formattedChatlists = await Promise.all(
-      chatlists.map(async (chat) => {
-        // cari ID lawan bicara
-        const otherUserId = chat.participants.find((id) => id !== userId);
+    const formattedChatlists = chatlists.map((chat) => {
+      // Cari peserta selain user yang login
+      const otherParticipant = chat.participants.find(
+        (p) => p.user._id.toString() !== userId
+      );
 
-        // Coba cari ke masyarakat
-        let otherUser = await Masyarakat.findById(otherUserId).select(
-          "_id nama_masyarakat foto_profil_masyarakat"
-        );
+      const selfParticipant = chat.participants.find(
+        (p) => p.user._id.toString() === userId
+      );
 
-        let role = "masyarakat";
-        if (!otherUser) {
-          // Kalau tidak ketemu di masyarakat, cari ke dokter
-          otherUser = await Dokter.findById(otherUserId).select(
-            "_id nama_dokter foto_profil_dokter"
-          );
-          role = "dokter";
-        }
+      let nama = "";
+      let foto_profil = "";
 
-        return {
-          _id: chat._id,
-          lastMessage: chat.lastMessage,
-          lastMessageDate: chat.lastMessageDate,
-          unreadCount: chat.unreadCount.get(userId) || 0,
-          participant: {
-            _id: otherUser?._id || null,
-            nama:
-              role === "masyarakat"
-                ? otherUser?.nama_masyarakat
-                : otherUser?.nama_dokter,
-            foto_profil:
-              role === "masyarakat"
-                ? otherUser?.foto_profil_masyarakat
-                : otherUser?.foto_profil_dokter,
-            role,
-          },
-        };
-      })
-    );
+      if (otherParticipant.role === "Masyarakat") {
+        nama = otherParticipant.user.nama_masyarakat || "Masyarakat";
+        foto_profil = otherParticipant.user.foto_profil_masyarakat || "";
+      } else if (otherParticipant.role === "Dokter") {
+        nama = otherParticipant.user.nama_dokter || "Dokter";
+        foto_profil = otherParticipant.user.foto_profil_dokter || "";
+      }
+
+      return {
+        _id: chat._id,
+        lastMessage: chat.lastMessage,
+        lastMessageDate: chat.lastMessageDate,
+        unreadCount: chat.unreadCount.get(userId) || 0,
+        participant: {
+          _id: otherParticipant.user._id,
+          role: otherParticipant.role.toLowerCase(),
+          nama,
+          foto_profil,
+        },
+      };
+    });
 
     res.status(200).json(formattedChatlists);
   } catch (error) {
-    console.log(error);
+    console.error("Gagal ambil daftar chat:", error);
     res.status(500).json({ message: "Gagal ambil daftar chat" });
   }
 });
+
 
 // router.post("/:id/terima", verifyToken, async (req, res) => {
 //   const jadwalId = req.params.id;
