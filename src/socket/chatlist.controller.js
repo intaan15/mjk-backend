@@ -1,9 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const Chat = require("../socket/chat.model");
-const ChatList = require("../socket/chatlist.model"); // pastikan path-nya sesuai
+const ChatList = require("../socket/chatlist.model"); 
 const verifyToken = require("../middleware/verifyToken");
-const Jadwal = require("../jadwal/jadwal.model"); // pastikan path-nya sesuai
+const Jadwal = require("../jadwal/jadwal.model"); 
 const Masyarakat = require("../masyarakat/masyarakat.model");
 const Dokter = require("../dokter/dokter.model");
 

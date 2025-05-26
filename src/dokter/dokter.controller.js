@@ -30,7 +30,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-router.post("/upload", upload.single("image"), async (req, res) => {
+router.post("/upload", verifyToken, upload.single("image"), async (req, res) => {
   try {
     const dokterId = req.body.id;
 
