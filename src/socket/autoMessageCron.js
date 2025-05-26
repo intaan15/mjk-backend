@@ -1,7 +1,7 @@
 const cron = require("node-cron");
 const Jadwal = require("../jadwal/jadwal.model");
-const Chat = require("./socket/chat.model");
-const ChatList = require("./socket/chatlist.model");
+const Chat = require("./chat.model");
+const ChatList = require("./chatlist.model");
 // tes push 
 
 cron.schedule("*/30 * * * *", async () => {
