@@ -193,3 +193,7 @@
 ::ffff:10.52.170.33 - - [26/May/2025:03:24:20 +0000] "GET /api/chatlist/6833db09a9aa3e34672cdfbf HTTP/1.1" 200 2 "-" "PostmanRuntime/7.44.0"
 ::ffff:10.52.170.33 - - [26/May/2025:03:47:40 +0000] "POST /api/jadwal/6833db38a9aa3e34672cf591/terima HTTP/1.1" 500 35 "-" "PostmanRuntime/7.44.0"
 ::ffff:10.52.170.33 - - [26/May/2025:03:52:14 +0000] "POST /api/jadwal/6833db38a9aa3e34672cf591/terima HTTP/1.1" 200 70 "-" "PostmanRuntime/7.44.0"
+::ffff:10.52.170.33 - - [26/May/2025:03:58:30 +0000] "POST /api/jadwal/6833db15a9aa3e34672ce733/terima HTTP/1.1" 200 70 "-" "PostmanRuntime/7.44.0"
+::ffff:10.52.170.33 - - [26/May/2025:04:33:54 +0000] "GET /api/chat/history/6811a02472c4b02db4843212/6809ea5c3c2cffb1d9816daa HTTP/1.1" 500 43 "-" "PostmanRuntime/7.44.0"
+::ffff:10.52.170.33 - - [26/May/2025:04:35:07 +0000] "GET /api/chat/history/6811a02472c4b02db4843212/6809ea5c3c2cffb1d9816daa HTTP/1.1" 200 2689 "-" "PostmanRuntime/7.44.0"
+::ffff:10.52.170.33 - - [26/May/2025:04:36:42 +0000] "GET /api/chat/history/6809ea5c3c2cffb1d9816daa/6811a02472c4b02db4843212 HTTP/1.1" 200 2689 "-" "PostmanRuntime/7.44.0"
