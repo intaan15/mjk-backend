@@ -186,3 +186,6 @@
 ::ffff:10.52.170.33 - - [26/May/2025:01:44:22 +0000] "PATCH /api/jadwal/update/status/6825a0e4ed2ca24123a03202 HTTP/1.1" 200 20568 "-" "PostmanRuntime/7.44.0"
 ::ffff:10.52.170.33 - - [26/May/2025:01:44:37 +0000] "PATCH /api/jadwal/update/status/68336c6e146fc2bbfe9dbc60 HTTP/1.1" 404 36 "-" "PostmanRuntime/7.44.0"
 ::ffff:10.52.170.33 - - [26/May/2025:01:45:23 +0000] "PATCH /api/jadwal/update/status/6825a0e4ed2ca24123a03202 HTTP/1.1" 200 20568 "-" "PostmanRuntime/7.44.0"
+::ffff:10.52.170.33 - - [26/May/2025:02:49:55 +0000] "POST /api/jadwal/6825a110ed2ca24123a0372e/terima HTTP/1.1" 200 70 "-" "PostmanRuntime/7.44.0"
+::ffff:10.52.170.33 - - [26/May/2025:02:50:58 +0000] "POST /api/jadwal/682ea186cacd5c80922ca80d/terima HTTP/1.1" 200 70 "-" "PostmanRuntime/7.44.0"
+::ffff:10.52.170.33 - - [26/May/2025:02:55:41 +0000] "GET /api/chatlist/6819b1a665c853b444ab1de4 HTTP/1.1" 200 1056 "-" "PostmanRuntime/7.44.0"

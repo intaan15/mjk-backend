@@ -87,155 +87,102 @@ router.delete("/delete/:id", verifyToken, async (req, res) => {
 router.patch("/update/status/:id", verifyToken, async (req, res) => {
   try {
     const { status_konsul } = req.body;
-    const allowedStatus = ["menunggu", "ditolak", "diterima"];
-
-    if (!allowedStatus.includes(status_konsul)) {
+    if (!["menunggu", "ditolak", "diterima"].includes(status_konsul)) {
       return res.status(400).json({ message: "Status tidak valid" });
     }
 
-    // Ambil data jadwal lengkap
-    const jadwal = await Jadwal.findById(req.params.id)
-      .populate("dokter_id")
-      .populate("masyarakat_id");
+    const updated = await Jadwal.findByIdAndUpdate(
+      req.params.id,
+      { status_konsul },
+      { new: true }
+    );
 
-    if (!jadwal) {
+    if (!updated)
       return res.status(404).json({ message: "Jadwal tidak ditemukan" });
-    }
 
-    // Update status
-    jadwal.status_konsul = status_konsul;
-    await jadwal.save();
-
-    // Jika status 'diterima', kirim pesan & update chatlist
-    if (status_konsul === "diterima") {
-      const dokterId = jadwal.dokter_id._id.toString();
-      const masyarakatId = jadwal.masyarakat_id._id.toString();
-      const pesanTemplate = "Halo, ada yang bisa dibantu?";
-
-      // Kirim pesan pertama
-      await Chat.create({
-        senderId: dokterId,
-        receiverId: masyarakatId,
-        text: pesanTemplate,
-        type: "text",
-        role: "dokter",
-        waktu: new Date(),
-      });
-
-      // Buat atau update chatlist
-      let chatlist = await ChatList.findOne({
-        participants: { $all: [dokterId, masyarakatId] },
-      });
-
-      if (!chatlist) {
-        chatlist = await ChatList.create({
-          participants: [dokterId, masyarakatId],
-          lastMessage: pesanTemplate,
-          lastMessageDate: new Date(),
-          unreadCount: {
-            [dokterId]: 0,
-            [masyarakatId]: 1,
-          },
-        });
-      } else {
-        chatlist.lastMessage = pesanTemplate;
-        chatlist.lastMessageDate = new Date();
-        const currentUnread = chatlist.unreadCount.get(masyarakatId) || 0;
-        chatlist.unreadCount.set(masyarakatId, currentUnread + 1);
-        await chatlist.save();
-      }
-    }
-
-    return res.status(200).json({
-      message: `Status berhasil diubah${
-        status_konsul === "diterima"
-          ? ", pesan dikirim dan chatlist diperbarui"
-          : ""
-      }`,
-      data: jadwal,
-    });
+    res
+      .status(200)
+      .json({ message: "Status berhasil diperbarui", data: updated });
   } catch (error) {
-    console.error("Error:", error);
-    return res.status(500).json({ message: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
+// Terima jadwal + kirim pesan template + update chatlist
+router.post("/:id/terima", verifyToken, async (req, res) => {
+  try {
+    const jadwalId = req.params.id;
+    console.log("Menerima jadwal dengan ID:", jadwalId);
 
-// // Terima jadwal + kirim pesan template + update chatlist
-// router.post("/:id/terima", verifyToken, async (req, res) => {
-//   try {
-//     const jadwalId = req.params.id;
-//     console.log("Menerima jadwal dengan ID:", jadwalId);
+    // 1. Ambil data jadwal
+    const jadwalData = await Jadwal.findById(jadwalId)
+      .populate("dokter_id")
+      .populate("masyarakat_id");
 
-//     // 1. Ambil data jadwal
-//     const jadwalData = await Jadwal.findById(jadwalId)
-//       .populate("dokter_id")
-//       .populate("masyarakat_id");
+    if (!jadwalData) {
+      console.log("Jadwal tidak ditemukan");
+      return res.status(404).json({ message: "Jadwal tidak ditemukan" });
+    }
 
-//     if (!jadwalData) {
-//       console.log("Jadwal tidak ditemukan");
-//       return res.status(404).json({ message: "Jadwal tidak ditemukan" });
-//     }
+    console.log("Jadwal ditemukan:", jadwalData);
 
-//     console.log("Jadwal ditemukan:", jadwalData);
+    // 2. Update status jadwal jadi 'diterima'
+    jadwalData.status_konsul = "diterima";
+    await jadwalData.save();
+    console.log("Status jadwal diupdate ke 'diterima'");
 
-//     // 2. Update status jadwal jadi 'diterima'
-//     jadwalData.status_konsul = "diterima";
-//     await jadwalData.save();
-//     console.log("Status jadwal diupdate ke 'diterima'");
+    const dokterId = jadwalData.dokter_id._id.toString();
+    const masyarakatId = jadwalData.masyarakat_id._id.toString();
+    const pesanTemplate = "Halo, ada yang bisa dibantu?";
 
-//     const dokterId = jadwalData.dokter_id._id.toString();
-//     const masyarakatId = jadwalData.masyarakat_id._id.toString();
-//     const pesanTemplate = "Halo, ada yang bisa dibantu?";
+    // 3. Simpan pesan pertama ke koleksi Chat
+    console.log("Menyimpan chat pertama...");
+    await Chat.create({
+      senderId: dokterId,
+      receiverId: masyarakatId,
+      text: pesanTemplate,
+      type: "text",
+      role: "dokter",
+      waktu: new Date(),
+    });
+    console.log("Chat berhasil disimpan");
 
-//     // 3. Simpan pesan pertama ke koleksi Chat
-//     console.log("Menyimpan chat pertama...");
-//     await Chat.create({
-//       senderId: dokterId,
-//       receiverId: masyarakatId,
-//       text: pesanTemplate,
-//       type: "text",
-//       role: "dokter",
-//       waktu: new Date(),
-//     });
-//     console.log("Chat berhasil disimpan");
+    // 4. Buat atau update ChatList
+    console.log("Mencari chatlist antara:", dokterId, masyarakatId);
+    let chatlist = await ChatList.findOne({
+      participants: { $all: [dokterId, masyarakatId] },
+    });
 
-//     // 4. Buat atau update ChatList
-//     console.log("Mencari chatlist antara:", dokterId, masyarakatId);
-//     let chatlist = await ChatList.findOne({
-//       participants: { $all: [dokterId, masyarakatId] },
-//     });
+    if (!chatlist) {
+      console.log("Chatlist belum ada, membuat baru...");
+      chatlist = await ChatList.create({
+        participants: [dokterId, masyarakatId],
+        lastMessage: pesanTemplate,
+        lastMessageDate: new Date(),
+        unreadCount: {
+          [dokterId]: 0,
+          [masyarakatId]: 1,
+        },
+      });
+      console.log("Chatlist baru berhasil dibuat");
+    } else {
+      console.log("Chatlist ditemukan, update lastMessage dan unreadCount");
+      chatlist.lastMessage = pesanTemplate;
+      chatlist.lastMessageDate = new Date();
+      const currentUnread = chatlist.unreadCount.get(masyarakatId) || 0;
+      chatlist.unreadCount.set(masyarakatId, currentUnread + 1);
+      await chatlist.save();
+      console.log("Chatlist berhasil diupdate");
+    }
 
-//     if (!chatlist) {
-//       console.log("Chatlist belum ada, membuat baru...");
-//       chatlist = await ChatList.create({
-//         participants: [dokterId, masyarakatId],
-//         lastMessage: pesanTemplate,
-//         lastMessageDate: new Date(),
-//         unreadCount: {
-//           [dokterId]: 0,
-//           [masyarakatId]: 1,
-//         },
-//       });
-//       console.log("Chatlist baru berhasil dibuat");
-//     } else {
-//       console.log("Chatlist ditemukan, update lastMessage dan unreadCount");
-//       chatlist.lastMessage = pesanTemplate;
-//       chatlist.lastMessageDate = new Date();
-//       const currentUnread = chatlist.unreadCount.get(masyarakatId) || 0;
-//       chatlist.unreadCount.set(masyarakatId, currentUnread + 1);
-//       await chatlist.save();
-//       console.log("Chatlist berhasil diupdate");
-//     }
-
-//     return res.json({
-//       message: "Jadwal diterima, pesan dikirim, dan chatlist diperbarui.",
-//     });
-//   } catch (error) {
-//     console.error("Error terima jadwal:", error);
-//     return res.status(500).json({ message: "Gagal menerima jadwal" });
-//   }
-// });
+    return res.json({
+      message: "Jadwal diterima, pesan dikirim, dan chatlist diperbarui.",
+    });
+  } catch (error) {
+    console.error("Error terima jadwal:", error);
+    return res.status(500).json({ message: "Gagal menerima jadwal" });
+  }
+});
 
 
 module.exports = router;
