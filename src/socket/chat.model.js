@@ -2,8 +2,8 @@
 const mongoose = require("mongoose");
 
 const chatSchema = new mongoose.Schema({
-  dari: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-  ke: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  senderId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  receiverId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   text: { type: String },
   image: { type: String },
   type: { type: String, enum: ["text", "image"], required: true },
