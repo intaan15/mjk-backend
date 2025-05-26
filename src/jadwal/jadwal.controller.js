@@ -114,29 +114,33 @@ router.post("/:id/terima", verifyToken, async (req, res) => {
     const jadwalId = req.params.id;
     console.log("Menerima jadwal dengan ID:", jadwalId);
 
-    // 1. Ambil data jadwal
+    // 1. Ambil data jadwal + populate dokter & masyarakat
     const jadwalData = await Jadwal.findById(jadwalId)
       .populate("dokter_id")
       .populate("masyarakat_id");
 
     if (!jadwalData) {
-      console.log("Jadwal tidak ditemukan");
       return res.status(404).json({ message: "Jadwal tidak ditemukan" });
     }
 
-    console.log("Jadwal ditemukan:", jadwalData);
+    const dokter = jadwalData.dokter_id;
+    const masyarakat = jadwalData.masyarakat_id;
 
-    // 2. Update status jadwal jadi 'diterima'
-    jadwalData.status_konsul = "diterima";
-    await jadwalData.save();
-    console.log("Status jadwal diupdate ke 'diterima'");
+    if (!dokter || !masyarakat) {
+      return res
+        .status(400)
+        .json({ message: "Data dokter atau masyarakat tidak lengkap" });
+    }
 
-    const dokterId = jadwalData.dokter_id._id.toString();
-    const masyarakatId = jadwalData.masyarakat_id._id.toString();
+    const dokterId = dokter._id;
+    const masyarakatId = masyarakat._id;
     const pesanTemplate = "Halo, ada yang bisa dibantu?";
 
-    // 3. Simpan pesan pertama ke koleksi Chat
-    console.log("Menyimpan chat pertama...");
+    // 2. Update status jadwal
+    jadwalData.status_konsul = "diterima";
+    await jadwalData.save();
+
+    // 3. Simpan pesan pertama
     await Chat.create({
       senderId: dokterId,
       receiverId: masyarakatId,
@@ -145,34 +149,37 @@ router.post("/:id/terima", verifyToken, async (req, res) => {
       role: "dokter",
       waktu: new Date(),
     });
-    console.log("Chat berhasil disimpan");
 
     // 4. Buat atau update ChatList
-    console.log("Mencari chatlist antara:", dokterId, masyarakatId);
+    const participantQuery = [
+      { user: dokterId, role: "Dokter" },
+      { user: masyarakatId, role: "Masyarakat" },
+    ];
+
     let chatlist = await ChatList.findOne({
-      participants: { $all: [dokterId, masyarakatId] },
+      "participants.user": { $all: [dokterId, masyarakatId] },
     });
 
     if (!chatlist) {
-      console.log("Chatlist belum ada, membuat baru...");
       chatlist = await ChatList.create({
-        participants: [dokterId, masyarakatId],
+        participants: participantQuery,
         lastMessage: pesanTemplate,
         lastMessageDate: new Date(),
         unreadCount: {
-          [dokterId]: 0,
-          [masyarakatId]: 1,
+          [dokterId.toString()]: 0,
+          [masyarakatId.toString()]: 1,
         },
       });
-      console.log("Chatlist baru berhasil dibuat");
     } else {
-      console.log("Chatlist ditemukan, update lastMessage dan unreadCount");
       chatlist.lastMessage = pesanTemplate;
       chatlist.lastMessageDate = new Date();
-      const currentUnread = chatlist.unreadCount.get(masyarakatId) || 0;
-      chatlist.unreadCount.set(masyarakatId, currentUnread + 1);
+
+      // Update unreadCount
+      const currentUnread =
+        chatlist.unreadCount.get(masyarakatId.toString()) || 0;
+      chatlist.unreadCount.set(masyarakatId.toString(), currentUnread + 1);
+
       await chatlist.save();
-      console.log("Chatlist berhasil diupdate");
     }
 
     return res.json({
@@ -183,6 +190,7 @@ router.post("/:id/terima", verifyToken, async (req, res) => {
     return res.status(500).json({ message: "Gagal menerima jadwal" });
   }
 });
+
 
 
 module.exports = router;
