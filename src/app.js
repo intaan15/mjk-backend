@@ -59,6 +59,9 @@ app.use("/api/admin",adminAuthorization, adminController);
 app.set("trust proxy", 1);
 app.use("/images/", express.static("/public/images"));
 
+require("./socket/autoMessageCron"); // Atau sesuai nama file cron job kamu
+
+
 
 
 module.exports = app;
