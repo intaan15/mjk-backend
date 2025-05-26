@@ -1,5 +1,5 @@
 const cron = require("node-cron");
-const Jadwal = require("./jadwal/jadwal.model");
+const Jadwal = require("../jadwal/jadwal.model");
 const Chat = require("./socket/chat.model");
 const ChatList = require("./socket/chatlist.model");
 
