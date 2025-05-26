@@ -25,39 +25,5 @@ router.get("/chat/history/:senderId/:receiverId", async (req, res) => {
 });
   
 
-router.get("/chatlist/:userId", verifyToken, async (req, res) => {
-  const { userId } = req.params;
-
-  try {
-    // Cari chat yang melibatkan userId
-    const chats = await Chat.find({
-      $or: [{ dari: userId }, { ke: userId }],
-    });
-
-    // Kumpulkan unique lawan chat
-    const kontakSet = new Set();
-    chats.forEach((chat) => {
-      if (chat.dari !== userId) kontakSet.add(chat.dari);
-      if (chat.ke !== userId) kontakSet.add(chat.ke);
-    });
-
-    // Kalau mau lebih lengkap, bisa fetch detail user lawan chat
-    // Contoh fetch nama dan foto user lawan
-    const kontakArray = Array.from(kontakSet);
-
-    // Contoh fetch data user lawan dari DB User collection (misal)
-    // Asumsi ada model User dengan _id, nama, foto
-    const users = await User.find(
-      { _id: { $in: kontakArray } },
-      "_id username_masyarakat foto_profil_masyarakat"
-    );
-
-    res.status(200).json(users);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Gagal ambil daftar chat" });
-  }
-});
-  
 
 module.exports = router;
