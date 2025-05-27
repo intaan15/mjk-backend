@@ -3,6 +3,7 @@ const Jadwal = require("../jadwal/jadwal.model");
 const Chat = require("./chat.model");
 const ChatList = require("./chatlist.model");
 
+console.log("✅ File cron job dimuat");
 cron.schedule("* * * * *", async () => {
   const now = new Date();
   console.log("⏰ [CRON] Cek jadwal pada:", now.toLocaleString());
