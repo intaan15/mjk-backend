@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const Chat = require("./chat.model"); // asumsikan ini sudah benar, pointing ke model Chat
 const verifyToken = require("../middleware/verifyToken");
+const mongoose = require("mongoose");
 const ObjectId = mongoose.Types.ObjectId;
 
 // GET /api/chat/history/:senderId/:receiverId
