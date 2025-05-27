@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const Chat = require("./chat.model"); // asumsikan ini sudah benar, pointing ke model Chat
 const verifyToken = require("../middleware/verifyToken");
+const ObjectId = mongoose.Types.ObjectId;
 
 // GET /api/chat/history/:senderId/:receiverId
 router.get("/history/:senderId/:receiverId", verifyToken, async (req, res) => {
@@ -11,10 +12,10 @@ router.get("/history/:senderId/:receiverId", verifyToken, async (req, res) => {
 
     const messages = await Chat.find({
       $or: [
-        { senderId: senderId, receiverId: receiverId },
-        { senderId: receiverId, receiverId: senderId },
+        { senderId: ObjectId(senderId), receiverId: ObjectId(receiverId) },
+        { senderId: ObjectId(receiverId), receiverId: ObjectId(senderId) },
       ],
-    }).sort({ waktu: 1 }); // urut berdasarkan waktu
+    }).sort({ waktu: 1 });
 
     res.json(messages);
   } catch (error) {
@@ -22,5 +23,6 @@ router.get("/history/:senderId/:receiverId", verifyToken, async (req, res) => {
     res.status(500).json({ error: "Server error ambil riwayat chat" });
   }
 });
+
 
 module.exports = router;
