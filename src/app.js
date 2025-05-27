@@ -29,6 +29,7 @@ app.use(express.json());
 app.use(bodyparser.json());
 app.use(cors());
 createSocketServer(httpServer);
+require("./socket/autoMessageCron"); // Atau sesuai nama file cron job kamu
 
 httpServer.listen(PORT, () => {
   console.log('server port = ' + PORT)
@@ -59,7 +60,6 @@ app.use("/api/admin",adminAuthorization, adminController);
 app.set("trust proxy", 1);
 app.use("/images/", express.static("/public/images"));
 
-require("./socket/autoMessageCron"); // Atau sesuai nama file cron job kamu
 
 
 
