@@ -8,21 +8,22 @@ const ObjectId = mongoose.Types.ObjectId;
 // GET /api/chat/history/:senderId/:receiverId
 router.get("/history/:senderId/:receiverId", verifyToken, async (req, res) => {
   try {
-    const { senderId, receiverId } = req.params;
-    console.log("Fetch chat history:", senderId, receiverId);
+    const sender = ObjectId(senderId);
+    const receiver = ObjectId(receiverId);
 
     const messages = await Chat.find({
       $or: [
-        { senderId: ObjectId(senderId), receiverId: ObjectId(receiverId) },
-        { senderId: ObjectId(receiverId), receiverId: ObjectId(senderId) },
+        { senderId: sender, receiverId: receiver },
+        { senderId: receiver, receiverId: sender },
       ],
     }).sort({ waktu: 1 });
 
     res.json(messages);
   } catch (error) {
-    console.error("Error get chat history:", error);
-    res.status(500).json({ error: "Server error ambil riwayat chat" });
+    console.error("Error casting ObjectId:", error.message);
+    return res.status(400).json({ error: "Invalid ObjectId" });
   }
+  
 });
 
 
