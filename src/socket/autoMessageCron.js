@@ -3,7 +3,7 @@ const Jadwal = require("../jadwal/jadwal.model");
 const Chat = require("./chat.model");
 const ChatList = require("./chatlist.model");
 
-cron.schedule("*/30 * * * *", async () => {
+cron.schedule("* * * * *", async () => {
   const now = new Date();
   console.log("⏰ [CRON] Cek jadwal pada:", now.toLocaleString());
 
