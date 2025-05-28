@@ -1,5 +1,7 @@
 const { Server } = require("socket.io");
 const Chat = require("./chat.model");
+const ChatList = require("./chatlist.model"); // sesuaikan path kamu
+
 
 const createSocketServer = (server) => {
   const io = new Server(server, {
@@ -16,6 +18,42 @@ const createSocketServer = (server) => {
       socket.join(userId);
       console.log(`Socket ${socket.id} joined room: ${userId}`);
     });
+
+    
+    socket.on("resetUnreadCount", async ({ chatId, userId }) => {
+      try {
+        const chat = await ChatList.findById(chatId);
+
+        if (!chat) {
+          console.warn("ChatList tidak ditemukan:", chatId);
+          return;
+        }
+
+        // Reset unread count
+        chat.unreadCount[userId] = 0;
+        await chat.save();
+
+        // Emit ke user terkait agar UI update
+        io.to(userId).emit("unreadCountUpdated", {
+          chatId,
+          unreadCount: chat.unreadCount,
+        });
+
+        // Emit ke peserta lain jika mau
+        const otherUserId = Object.keys(chat.unreadCount).find(
+          (id) => id !== userId
+        );
+        if (otherUserId) {
+          io.to(otherUserId).emit("unreadCountUpdated", {
+            chatId,
+            unreadCount: chat.unreadCount,
+          });
+        }
+      } catch (error) {
+        console.error("Gagal reset unread count:", error.message);
+      }
+    });
+    
 
     socket.on("chat message", async (msg) => {
       try {

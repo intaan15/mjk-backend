@@ -8,9 +8,12 @@ dotenv.config();
 const PORT = process.env.PORT
 const app = express();
 const MONGO_URL = process.env.MONGO_URL;
-const httpServer = require("http").createServer(app);
 const logHistory = require("./middleware/loghistory");
 const adminAuthorization = require("./middleware/adminAuthorization");
+const httpServer = require("http").createServer(app);
+const io = createSocketServer(httpServer); 
+const startCronJob = require("./socket/autoMessageCron");
+startCronJob(io);
 
 app.use(logHistory);
 console.log("Mulai aplikasi..")
@@ -28,8 +31,8 @@ app.use(bodyparser.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(bodyparser.json());
 app.use(cors());
-createSocketServer(httpServer);
-require("./socket/autoMessageCron"); // Atau sesuai nama file cron job kamu
+// createSocketServer(httpServer);
+// require("./socket/autoMessageCron"); // Atau sesuai nama file cron job kamu
 
 httpServer.listen(PORT, () => {
   console.log('server port = ' + PORT)
@@ -45,6 +48,7 @@ const captchaController = require("./admin/captcha.controller");
 const adminController = require("./admin/admin.controller");
 const chatController= require("./socket/chat.controller");
 const chatListController = require("./socket/chatlist.controller");
+const startCronJob = require("./socket/autoMessageCron");
 
 
 app.use("/api/chatlist", chatListController);
@@ -59,9 +63,6 @@ app.use("/api/captcha", captchaController);
 app.use("/api/admin",adminAuthorization, adminController);
 app.set("trust proxy", 1);
 app.use("/images/", express.static("/public/images"));
-
-
-
 
 
 module.exports = app;
