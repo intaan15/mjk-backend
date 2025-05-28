@@ -8,6 +8,13 @@ const ObjectId = mongoose.Types.ObjectId;
 // GET /api/chat/history/:senderId/:receiverId
 router.get("/history/:senderId/:receiverId", verifyToken, async (req, res) => {
   try {
+    const { senderId, receiverId } = req.params;
+
+    // Validasi dulu apakah senderId dan receiverId valid ObjectId MongoDB
+    if (!ObjectId.isValid(senderId) || !ObjectId.isValid(receiverId)) {
+      return res.status(400).json({ error: "Invalid ObjectId" });
+    }
+
     const sender = ObjectId(senderId);
     const receiver = ObjectId(receiverId);
 
@@ -21,10 +28,8 @@ router.get("/history/:senderId/:receiverId", verifyToken, async (req, res) => {
     res.json(messages);
   } catch (error) {
     console.error("Error casting ObjectId:", error.message);
-    return res.status(400).json({ error: "Invalid ObjectId" });
+    return res.status(500).json({ error: "Internal server error" });
   }
-  
 });
-
 
 module.exports = router;
