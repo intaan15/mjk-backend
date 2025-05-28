@@ -10,13 +10,12 @@ router.get("/history/:senderId/:receiverId", verifyToken, async (req, res) => {
   try {
     const { senderId, receiverId } = req.params;
 
-    // Validasi dulu apakah senderId dan receiverId valid ObjectId MongoDB
     if (!ObjectId.isValid(senderId) || !ObjectId.isValid(receiverId)) {
       return res.status(400).json({ error: "Invalid ObjectId" });
     }
 
-    const sender = ObjectId(senderId);
-    const receiver = ObjectId(receiverId);
+    const sender = new ObjectId(senderId);
+    const receiver = new ObjectId(receiverId);
 
     const messages = await Chat.find({
       $or: [
@@ -27,9 +26,11 @@ router.get("/history/:senderId/:receiverId", verifyToken, async (req, res) => {
 
     res.json(messages);
   } catch (error) {
-    console.error("Error casting ObjectId:", error.message);
+    console.error("Catch error in /history/:senderId/:receiverId:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 });
+
+
 
 module.exports = router;

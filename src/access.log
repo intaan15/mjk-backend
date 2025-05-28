@@ -197,3 +197,7 @@
 ::ffff:10.52.170.33 - - [26/May/2025:04:33:54 +0000] "GET /api/chat/history/6811a02472c4b02db4843212/6809ea5c3c2cffb1d9816daa HTTP/1.1" 500 43 "-" "PostmanRuntime/7.44.0"
 ::ffff:10.52.170.33 - - [26/May/2025:04:35:07 +0000] "GET /api/chat/history/6811a02472c4b02db4843212/6809ea5c3c2cffb1d9816daa HTTP/1.1" 200 2689 "-" "PostmanRuntime/7.44.0"
 ::ffff:10.52.170.33 - - [26/May/2025:04:36:42 +0000] "GET /api/chat/history/6809ea5c3c2cffb1d9816daa/6811a02472c4b02db4843212 HTTP/1.1" 200 2689 "-" "PostmanRuntime/7.44.0"
+::ffff:10.52.170.141 - - [28/May/2025:02:11:13 +0000] "GET /68351a0dda597c22efeb246a HTTP/1.1" 404 163 "-" "PostmanRuntime/7.44.0"
+::ffff:10.52.170.141 - - [28/May/2025:02:12:31 +0000] "GET /api/chat/history/6811a02472c4b02db4843212/6826a5fa6c9dc8c7cb2fa34f HTTP/1.1" 500 33 "-" "PostmanRuntime/7.44.0"
+::ffff:10.52.170.141 - - [28/May/2025:02:13:09 +0000] "GET /api/chat/history/6811a02472c4b02db4843212/6826a5fa6c9dc8c7cb2fa34f HTTP/1.1" 500 33 "-" "PostmanRuntime/7.44.0"
+::ffff:10.52.170.141 - - [28/May/2025:02:13:47 +0000] "GET /api/chat/history/6811a02472c4b02db4843212/6826a5fa6c9dc8c7cb2fa34f HTTP/1.1" 200 673 "-" "PostmanRuntime/7.44.0"
