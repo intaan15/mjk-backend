@@ -9,25 +9,16 @@ const createSocketServer = (server) => {
     },
   });
 
-  io.on("connection", async (socket) => {
+  io.on("connection", (socket) => {
     console.log("Client connected:", socket.id);
 
-    socket.emit("connected", { message: "Successfully connected to backend" });
-
-    try {
-      // Ambil 50 pesan terakhir, urut waktu ascending
-      const recentChats = await Chat.find()
-        .sort({ waktu: -1 }) // ambil terbaru dulu
-        .limit(50)
-        .lean(); // lebih ringan
-      socket.emit("chat history", recentChats.reverse()); // tampilkan urut lama ke baru
-    } catch (err) {
-      console.error("Gagal ambil chat history:", err.message);
-    }
+    socket.on("joinRoom", (userId) => {
+      socket.join(userId);
+      console.log(`Socket ${socket.id} joined room: ${userId}`);
+    });
 
     socket.on("chat message", async (msg) => {
       try {
-        // Validasi minimal
         if (!msg.senderId || !msg.receiverId) {
           console.warn("Pesan tidak lengkap:", msg);
           return;
@@ -44,7 +35,10 @@ const createSocketServer = (server) => {
         });
 
         const savedMsg = await newMsg.save();
-        io.emit("chat message", savedMsg); // broadcast ke semua
+
+        // Emit ke receiver dan sender supaya realtime di kedua sisi
+        io.to(savedMsg.receiverId.toString()).emit("chat message", savedMsg);
+        io.to(savedMsg.senderId.toString()).emit("chat message", savedMsg);
       } catch (err) {
         console.error("Error saat simpan pesan:", err.message);
       }
