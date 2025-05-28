@@ -48,7 +48,7 @@ const captchaController = require("./admin/captcha.controller");
 const adminController = require("./admin/admin.controller");
 const chatController= require("./socket/chat.controller");
 const chatListController = require("./socket/chatlist.controller");
-const startCronJob = require("./socket/autoMessageCron");
+// const startCronJob = require("./socket/autoMessageCron");
 
 
 app.use("/api/chatlist", chatListController);
