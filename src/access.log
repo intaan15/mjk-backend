@@ -201,3 +201,5 @@
 ::ffff:10.52.170.141 - - [28/May/2025:02:12:31 +0000] "GET /api/chat/history/6811a02472c4b02db4843212/6826a5fa6c9dc8c7cb2fa34f HTTP/1.1" 500 33 "-" "PostmanRuntime/7.44.0"
 ::ffff:10.52.170.141 - - [28/May/2025:02:13:09 +0000] "GET /api/chat/history/6811a02472c4b02db4843212/6826a5fa6c9dc8c7cb2fa34f HTTP/1.1" 500 33 "-" "PostmanRuntime/7.44.0"
 ::ffff:10.52.170.141 - - [28/May/2025:02:13:47 +0000] "GET /api/chat/history/6811a02472c4b02db4843212/6826a5fa6c9dc8c7cb2fa34f HTTP/1.1" 200 673 "-" "PostmanRuntime/7.44.0"
+::ffff:10.219.8.148 - - [29/May/2025:03:36:57 +0000] "GET /api/dokter/getby/680f2e58be94da35a60c32c8 HTTP/1.1" 404 180 "-" "PostmanRuntime/7.44.0"
+::ffff:10.219.8.148 - - [29/May/2025:03:37:15 +0000] "GET /api/dokter/getbyid/680f2e58be94da35a60c32c8 HTTP/1.1" 200 8676 "-" "PostmanRuntime/7.44.0"

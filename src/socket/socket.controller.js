@@ -69,12 +69,12 @@ const createSocketServer = (server) => {
           receiverId: msg.receiverId,
           image: msg.image || null,
           type: msg.type || "text",
+          role: role,
           waktu: msg.waktu || new Date(),
         });
 
         const savedMsg = await newMsg.save();
 
-        // Emit ke receiver dan sender supaya realtime di kedua sisi
         io.to(savedMsg.receiverId.toString()).emit("chat message", savedMsg);
         io.to(savedMsg.senderId.toString()).emit("chat message", savedMsg);
       } catch (err) {
