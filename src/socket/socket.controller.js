@@ -69,7 +69,7 @@ const createSocketServer = (server) => {
           receiverId: msg.receiverId,
           image: msg.image || null,
           type: msg.type || "text",
-          role: role,
+          role: msg.role || "unknown",
           waktu: msg.waktu || new Date(),
         });
 
