@@ -6,6 +6,7 @@ const ChatList = require("./chatlist.model");
 
 const startCronJob = (io) => {
   console.log("✅ File cron job dimuat");
+  
 
   cron.schedule("* * * * *", async () => {
     const now = new Date();
@@ -37,6 +38,8 @@ const startCronJob = (io) => {
           continue;
         }
 
+        console.log(jadwal._id);
+
         const [hour, minute] = jam_konsul.split(":").map(Number);
         const konsultasiTime = new Date(tgl_konsul);
         konsultasiTime.setHours(hour);
@@ -62,11 +65,14 @@ const startCronJob = (io) => {
           io.to(masyarakatId.toString()).emit("chat message", newChat);
           io.to(dokterId.toString()).emit("chat message", newChat);
           console.log("📡 Pesan otomatis di-emit via socket.io");
+          console.log(jadwal._id);
 
           // Update ChatList
           let chatlist = await ChatList.findOne({
             "participants.user": { $all: [dokterId, masyarakatId] },
           });
+
+          console.log("INI JADWAL ID", jadwal._id);
 
           if (!chatlist) {
             chatlist = await ChatList.create({
@@ -82,6 +88,7 @@ const startCronJob = (io) => {
                 [masyarakatId.toString()]: 1,
               },
             });
+            console.log(jadwal._id);
           } else {
             chatlist.lastMessage = pesanTemplate;
             chatlist.lastMessageDate = now;
@@ -115,7 +122,7 @@ const startCronJob = (io) => {
         if (!chat.jadwal) continue;
   
         const endTime = new Date(chat.jadwal);
-        endTime.setMinutes(endTime.getMinutes() + 30);
+        endTime.setMinutes(endTime.getMinutes() + 3);
   
         if (now >= endTime) {
           chat.status = "selesai";
