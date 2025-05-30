@@ -116,20 +116,39 @@ const startCronJob = (io) => {
 
     // UBAH STATUS OTOMATIS CHATLIST 
     try {
-      const chatLists = await ChatList.find({ status: "berlangsung" });
-  
+      const chatLists = await ChatList.find({ status: "berlangsung" }).populate(
+        "jadwal"
+      );
+
       for (const chat of chatLists) {
         if (!chat.jadwal) continue;
-  
-        const endTime = new Date(chat.jadwal);
-        endTime.setMinutes(endTime.getMinutes() + 3);
-  
+
+        // Asumsikan jadwal punya tgl_konsul dan jam_konsul
+        const { tgl_konsul, jam_konsul } = chat.jadwal;
+
+        if (!tgl_konsul || !jam_konsul) {
+          console.log(
+            `⚠️ Jadwal di ChatList ${chat._id} tidak lengkap, dilewati.`
+          );
+          continue;
+        }
+
+        // Buat Date dari jadwal
+        const [hour, minute] = jam_konsul.split(":").map(Number);
+        const endTime = new Date(tgl_konsul);
+        endTime.setHours(hour);
+        endTime.setMinutes(minute + 3); // +3 menit, sesuaikan durasi sesimu
+        endTime.setSeconds(0);
+
         if (now >= endTime) {
           chat.status = "selesai";
           await chat.save();
-          console.log(`⏹️ ChatList ${chat._id} otomatis ditandai sebagai 'selesai'`);
+          console.log(
+            `⏹️ ChatList ${chat._id} otomatis ditandai sebagai 'selesai'`
+          );
         }
       }
+
     } catch (err) {
       console.error("❌ Gagal mengupdate status chatlist:", err);
     }
