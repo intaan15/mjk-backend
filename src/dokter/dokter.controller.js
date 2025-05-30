@@ -439,7 +439,7 @@ router.post("/jadwal/add/:dokterId", dokterAuthorization, async (req, res) => {
 
 router.patch("/:dokterId/jadwal/update", dokterAuthorization, async (req, res) => {
   const { dokterId } = req.params;
-  const { tanggal, jam_mulai, jam_selesai, interval = 30 } = req.body;
+  const { tanggal, jam_mulai, jam_selesai, interval = 3 } = req.body;
 
   try {
     if (!tanggal || !jam_mulai || !jam_selesai) {
