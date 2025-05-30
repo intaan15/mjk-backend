@@ -132,10 +132,14 @@ const startCronJob = (io) => {
         }
 
         const [hour, minute] = jam_konsul.split(":").map(Number);
-        const endTime = new Date(tgl_konsul);
-        endTime.setHours(hour);
-        endTime.setMinutes(minute + 3); // Konsultasi 30 menit
-        endTime.setSeconds(0);
+        const startTime = new Date(tgl_konsul);
+        startTime.setHours(hour);
+        startTime.setMinutes(minute);
+        startTime.setSeconds(0);
+
+        // waktu berakhir = mulai + 3 menit (atau 30 menit untuk real)
+        const endTime = new Date(startTime.getTime() + 3 * 60 * 1000);
+
 
         if (now >= endTime) {
           chat.status = "selesai";
