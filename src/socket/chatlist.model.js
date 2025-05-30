@@ -8,12 +8,12 @@ const ChatListSchema = new Schema(
         user: {
           type: Schema.Types.ObjectId,
           required: true,
-          refPath: "participants.role", 
+          refPath: "participants.role",
         },
         role: {
           type: String,
           required: true,
-          enum: ["Masyarakat", "Dokter"], 
+          enum: ["Masyarakat", "Dokter"],
         },
       },
     ],
@@ -29,6 +29,15 @@ const ChatListSchema = new Schema(
       type: Map,
       of: Number,
       default: {},
+    },
+    jadwal: {
+      type: Date,
+      required: true,
+    },
+    status: {
+      type: String,
+      enum: ["berlangsung", "selesai"],
+      default: "berlangsung",
     },
   },
   { timestamps: true }
