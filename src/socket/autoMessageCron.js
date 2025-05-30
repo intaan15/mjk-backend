@@ -43,7 +43,7 @@ const startCronJob = (io) => {
         konsultasiTime.setSeconds(0);
 
         const endTime = new Date(konsultasiTime);
-        endTime.setMinutes(endTime.getMinutes() + 3); // Konsultasi 30 menit
+        endTime.setMinutes(endTime.getMinutes() + 1); // Konsultasi 30 menit
 
         if (now >= konsultasiTime && now < endTime) {
           const dokterId = dokter._id;
@@ -116,18 +116,30 @@ const startCronJob = (io) => {
     }
 
     // Ubah status menjadi 'selesai' jika sudah 30 menit lewat
+    // Cek waktu sekarang di awal
+    // const now = new Date();
+    console.log("⏰ Cek sekarang:", now.toISOString());
+
+    /* =========================
+   🔁 UTAMA: ChatList.status = 'berlangsung'
+========================= */
     try {
       const chatLists = await ChatList.find({ status: "berlangsung" }).populate(
         "jadwal"
       );
 
       for (const chat of chatLists) {
-        if (!chat.jadwal) continue;
+        const jadwal = chat.jadwal;
 
-        const { tgl_konsul, jam_konsul } = chat.jadwal;
+        if (!jadwal) {
+          console.log(`⚠️ Jadwal tidak ditemukan untuk ChatList ${chat._id}`);
+          continue;
+        }
 
-        if (!tgl_konsul || !jam_konsul) {
-          console.log(`⚠️ Jadwal di ChatList ${chat._id} tidak lengkap`);
+        const { tgl_konsul, jam_konsul } = jadwal;
+
+        if (!tgl_konsul || !jam_konsul || !jam_konsul.includes(":")) {
+          console.log(`⚠️ Jadwal tidak lengkap/salah format: ${jadwal._id}`);
           continue;
         }
 
@@ -137,33 +149,63 @@ const startCronJob = (io) => {
         startTime.setMinutes(minute);
         startTime.setSeconds(0);
 
-        // waktu berakhir = mulai + 3 menit (atau 30 menit untuk real)
-        const endTime = new Date(startTime.getTime() + 3 * 60 * 1000);
-
+        const endTime = new Date(startTime.getTime() + 1 * 60 * 1000); // ganti ke 30 * 60 * 1000 untuk real
 
         if (now >= endTime) {
           chat.status = "selesai";
           await chat.save();
 
-          // const jadwal = await Jadwal.findById(chat.jadwal._id);
-          const jadwal = chat.jadwal;
-          if (jadwal && jadwal.status_konsul !== "selesai") {
-            await Jadwal.findByIdAndUpdate(jadwal._id, {
-              status_konsul: "selesai",
-            });
+          if (jadwal.status_konsul !== "selesai") {
+            jadwal.status_konsul = "selesai";
+            await jadwal.save();
             console.log(
               `✅ Status Jadwal ${jadwal._id} berhasil diubah ke 'selesai'`
             );
-            
           }
 
           console.log(
-            `⏹️ Jadwal ${jadwal?._id} & ChatList ${chat._id} otomatis jadi 'selesai'`
+            `⏹️ Jadwal ${jadwal._id} & ChatList ${chat._id} otomatis jadi 'selesai'`
           );
         }
       }
     } catch (err) {
-      console.error("❌ Gagal update status selesai:", err);
+      console.error("❌ Gagal update status selesai (ChatList):", err);
+    }
+
+    /* =========================
+   🛡️ FALLBACK: Semua Jadwal.status_konsul = 'berlangsung'
+========================= */
+    try {
+      const allJadwalBerlangsung = await Jadwal.find({
+        status_konsul: "berlangsung",
+      });
+
+      for (const jadwal of allJadwalBerlangsung) {
+        const { tgl_konsul, jam_konsul } = jadwal;
+
+        if (!tgl_konsul || !jam_konsul || !jam_konsul.includes(":")) {
+          console.log(`⚠️ Jadwal tidak lengkap (fallback): ${jadwal._id}`);
+          continue;
+        }
+
+        const [hour, minute] = jam_konsul.split(":").map(Number);
+        const startTime = new Date(tgl_konsul);
+        startTime.setHours(hour);
+        startTime.setMinutes(minute);
+        startTime.setSeconds(0);
+
+        const endTime = new Date(startTime.getTime() + 1 * 60 * 1000);
+
+        if (now >= endTime) {
+          jadwal.status_konsul = "selesai";
+          await jadwal.save();
+          console.log(
+            `⏹️ Jadwal ${jadwal._id} otomatis jadi 'selesai' [fallback]`
+          );
+        }
+      }
+    } catch (err) {
+      console.error("❌ Gagal update status selesai (fallback):", err);
     }
   });
 };
