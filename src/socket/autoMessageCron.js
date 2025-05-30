@@ -148,8 +148,13 @@ const startCronJob = (io) => {
           // const jadwal = await Jadwal.findById(chat.jadwal._id);
           const jadwal = chat.jadwal;
           if (jadwal && jadwal.status_konsul !== "selesai") {
-            jadwal.status_konsul = "selesai";
-            await jadwal.save();
+            await Jadwal.findByIdAndUpdate(jadwal._id, {
+              status_konsul: "selesai",
+            });
+            console.log(
+              `✅ Status Jadwal ${jadwal._id} berhasil diubah ke 'selesai'`
+            );
+            
           }
 
           console.log(
