@@ -31,9 +31,11 @@ const ChatListSchema = new Schema(
       default: {},
     },
     jadwal: {
-      type: Date,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "jadwal",
       required: true,
     },
+    
     status: {
       type: String,
       enum: ["berlangsung", "selesai"],
