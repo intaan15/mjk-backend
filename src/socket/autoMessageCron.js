@@ -74,6 +74,7 @@ const startCronJob = (io) => {
                 { user: dokterId, role: "Dokter" },
                 { user: masyarakatId, role: "Masyarakat" },
               ],
+              jadwal: jadwal._id, // ✅ tambahkan ini
               lastMessage: pesanTemplate,
               lastMessageDate: now,
               unreadCount: {
