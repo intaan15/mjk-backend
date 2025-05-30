@@ -1,4 +1,3 @@
-// cron.js
 const cron = require("node-cron");
 const Jadwal = require("../jadwal/jadwal.model");
 const Chat = require("./chat.model");
@@ -6,13 +5,12 @@ const ChatList = require("./chatlist.model");
 
 const startCronJob = (io) => {
   console.log("✅ File cron job dimuat");
-  
 
   cron.schedule("* * * * *", async () => {
     const now = new Date();
     console.log("⏰ [CRON] Cek jadwal pada:", now.toLocaleString());
 
-  // PESAN OTOMATIS UNTUK JADWAL DITERIMA
+    // Kirim pesan otomatis & set status menjadi 'berlangsung'
     try {
       const jadwals = await Jadwal.find({
         status_konsul: "diterima",
@@ -38,15 +36,16 @@ const startCronJob = (io) => {
           continue;
         }
 
-        console.log(jadwal._id);
-
         const [hour, minute] = jam_konsul.split(":").map(Number);
         const konsultasiTime = new Date(tgl_konsul);
         konsultasiTime.setHours(hour);
         konsultasiTime.setMinutes(minute);
         konsultasiTime.setSeconds(0);
 
-        if (now >= konsultasiTime) {
+        const endTime = new Date(konsultasiTime);
+        endTime.setMinutes(endTime.getMinutes() + 3); // Konsultasi 30 menit
+
+        if (now >= konsultasiTime && now < endTime) {
           const dokterId = dokter._id;
           const masyarakatId = masyarakat._id;
           const pesanTemplate = "Halo, ada yang bisa dibantu?";
@@ -61,18 +60,14 @@ const startCronJob = (io) => {
             waktu: now,
           });
 
-          // Emit pesan ke socket.io (biar realtime)
+          // Emit ke socket.io
           io.to(masyarakatId.toString()).emit("chat message", newChat);
           io.to(dokterId.toString()).emit("chat message", newChat);
-          console.log("📡 Pesan otomatis di-emit via socket.io");
-          console.log(jadwal._id);
 
-          // Update ChatList
+          // Update atau buat ChatList
           let chatlist = await ChatList.findOne({
             "participants.user": { $all: [dokterId, masyarakatId] },
           });
-
-          console.log("INI JADWAL ID", jadwal._id);
 
           if (!chatlist) {
             chatlist = await ChatList.create({
@@ -80,18 +75,19 @@ const startCronJob = (io) => {
                 { user: dokterId, role: "Dokter" },
                 { user: masyarakatId, role: "Masyarakat" },
               ],
-              jadwal: jadwal._id, // ✅ tambahkan ini
+              jadwal: jadwal._id,
               lastMessage: pesanTemplate,
               lastMessageDate: now,
+              status: "berlangsung",
               unreadCount: {
                 [dokterId.toString()]: 0,
                 [masyarakatId.toString()]: 1,
               },
             });
-            console.log(jadwal._id);
           } else {
             chatlist.lastMessage = pesanTemplate;
             chatlist.lastMessageDate = now;
+            chatlist.status = "berlangsung";
             const currentUnread =
               chatlist.unreadCount.get(masyarakatId.toString()) || 0;
             chatlist.unreadCount.set(
@@ -101,20 +97,25 @@ const startCronJob = (io) => {
             await chatlist.save();
           }
 
-          // Tandai bahwa pesan otomatis sudah dikirim
+          // Tandai pesan otomatis sudah dikirim & ubah status konsul
           jadwal.autoMessageSent = true;
+          jadwal.status_konsul = "berlangsung";
           await jadwal.save();
 
-          console.log(`✅ Pesan otomatis dikirim untuk jadwal ${jadwal._id}`);
+          console.log(
+            `✅ Pesan otomatis dikirim & status jadi 'berlangsung' untuk jadwal ${jadwal._id}`
+          );
         } else {
-          console.log(`⏳ Jadwal ${jadwal._id} belum waktunya. Lewatkan.`);
+          console.log(
+            `⏳ Jadwal ${jadwal._id} belum waktunya atau sudah selesai.`
+          );
         }
       }
     } catch (error) {
-      console.error("❌ Error dalam cron job pesan otomatis:", error);
+      console.error("❌ Error kirim pesan otomatis:", error);
     }
 
-    // UBAH STATUS OTOMATIS CHATLIST 
+    // Ubah status menjadi 'selesai' jika sudah 30 menit lewat
     try {
       const chatLists = await ChatList.find({ status: "berlangsung" }).populate(
         "jadwal"
@@ -123,37 +124,37 @@ const startCronJob = (io) => {
       for (const chat of chatLists) {
         if (!chat.jadwal) continue;
 
-        // Asumsikan jadwal punya tgl_konsul dan jam_konsul
         const { tgl_konsul, jam_konsul } = chat.jadwal;
 
         if (!tgl_konsul || !jam_konsul) {
-          console.log(
-            `⚠️ Jadwal di ChatList ${chat._id} tidak lengkap, dilewati.`
-          );
+          console.log(`⚠️ Jadwal di ChatList ${chat._id} tidak lengkap`);
           continue;
         }
 
-        // Buat Date dari jadwal
         const [hour, minute] = jam_konsul.split(":").map(Number);
         const endTime = new Date(tgl_konsul);
         endTime.setHours(hour);
-        endTime.setMinutes(minute + 3); // +3 menit, sesuaikan durasi sesimu
+        endTime.setMinutes(minute + 30); // Konsultasi 30 menit
         endTime.setSeconds(0);
 
         if (now >= endTime) {
           chat.status = "selesai";
           await chat.save();
+
+          const jadwal = await Jadwal.findById(chat.jadwal._id);
+          if (jadwal && jadwal.status_konsul !== "selesai") {
+            jadwal.status_konsul = "selesai";
+            await jadwal.save();
+          }
+
           console.log(
-            `⏹️ ChatList ${chat._id} otomatis ditandai sebagai 'selesai'`
+            `⏹️ Jadwal ${jadwal?._id} & ChatList ${chat._id} otomatis jadi 'selesai'`
           );
         }
       }
-
     } catch (err) {
-      console.error("❌ Gagal mengupdate status chatlist:", err);
+      console.error("❌ Gagal update status selesai:", err);
     }
-
-
   });
 };
 
