@@ -26,7 +26,8 @@ router.get("/getall", verifyToken, async (req, res) => {
       .populate({
         path: "dokter_id",
         select: "nama_dokter rating_dokter spesialis_dokter",
-      });
+      })
+      .sort({ tgl_konsul: -1, jam_konsul: -1 }); // <-- sort descending
 
     res.status(200).json(allJadwal);
   } catch (error) {

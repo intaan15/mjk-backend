@@ -389,7 +389,7 @@ router.patch("/jadwal/:dokterId/:jadwalId", verifyToken, async (req, res) => {
   }
 });
 
-function generateSlots(start, end, interval = 30) {
+function generateSlots(start, end, interval = 3) {
   const slots = [];
   let [hour, minute] = start.split(":").map(Number);
   const [endHour, endMinute] = end.split(":").map(Number);

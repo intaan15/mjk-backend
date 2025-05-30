@@ -11,6 +11,7 @@ const startCronJob = (io) => {
     const now = new Date();
     console.log("⏰ [CRON] Cek jadwal pada:", now.toLocaleString());
 
+  // PESAN OTOMATIS UNTUK JADWAL DITERIMA
     try {
       const jadwals = await Jadwal.find({
         status_konsul: "diterima",
@@ -104,6 +105,28 @@ const startCronJob = (io) => {
     } catch (error) {
       console.error("❌ Error dalam cron job pesan otomatis:", error);
     }
+
+    // UBAH STATUS OTOMATIS CHATLIST 
+    try {
+      const chatLists = await ChatList.find({ status: "berlangsung" });
+  
+      for (const chat of chatLists) {
+        if (!chat.jadwal) continue;
+  
+        const endTime = new Date(chat.jadwal);
+        endTime.setMinutes(endTime.getMinutes() + 30);
+  
+        if (now >= endTime) {
+          chat.status = "selesai";
+          await chat.save();
+          console.log(`⏹️ ChatList ${chat._id} otomatis ditandai sebagai 'selesai'`);
+        }
+      }
+    } catch (err) {
+      console.error("❌ Gagal mengupdate status chatlist:", err);
+    }
+
+
   });
 };
 
