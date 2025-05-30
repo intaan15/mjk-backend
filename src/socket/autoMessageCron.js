@@ -134,7 +134,7 @@ const startCronJob = (io) => {
         const [hour, minute] = jam_konsul.split(":").map(Number);
         const endTime = new Date(tgl_konsul);
         endTime.setHours(hour);
-        endTime.setMinutes(minute + 30); // Konsultasi 30 menit
+        endTime.setMinutes(minute + 3); // Konsultasi 30 menit
         endTime.setSeconds(0);
 
         if (now >= endTime) {
