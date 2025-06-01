@@ -75,12 +75,40 @@ const createSocketServer = (server) => {
 
         const savedMsg = await newMsg.save();
 
+        // Cari chat list terkait
+        const chatList = await ChatList.findOne({
+          "participants.user": { $all: [msg.senderId, msg.receiverId] },
+        });
+
+        if (chatList) {
+          // Update last message dan tanggal
+          chatList.lastMessage =
+            msg.text || (msg.type === "image" ? "📷 Gambar" : "Pesan baru");
+          chatList.lastMessageDate = new Date();
+
+          // Tambah unread untuk penerima
+          const currentUnread = chatList.unreadCount.get(msg.receiverId) || 0;
+          chatList.unreadCount.set(msg.receiverId, currentUnread + 1);
+
+          await chatList.save();
+        }
+
+        console.log("Updated ChatList:", {
+          lastMessage: chatList.lastMessage,
+          unread: chatList.unreadCount,
+        });        
+
+        // Kirim pesan ke dua user
         io.to(savedMsg.receiverId.toString()).emit("chat message", savedMsg);
         io.to(savedMsg.senderId.toString()).emit("chat message", savedMsg);
+
       } catch (err) {
         console.error("Error saat simpan pesan:", err.message);
       }
+
+      
     });
+    
 
     socket.on("disconnect", () => {
       console.log("Client disconnected:", socket.id);
