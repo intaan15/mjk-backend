@@ -25,16 +25,16 @@ const ChatListSchema = new Schema(
       type: Date,
       default: Date.now,
     },
-    // unreadCount: {
-    //   type: Map,
-    //   of: Number,
-    //   default: {},
-    // },
-    lastReadAt: {
+    unreadCount: {
       type: Map,
-      of: Date,
+      of: Number,
       default: {},
     },
+    // lastReadAt: {
+    //   type: Map,
+    //   of: Date,
+    //   default: {},
+    // },
     jadwal: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "jadwal",
