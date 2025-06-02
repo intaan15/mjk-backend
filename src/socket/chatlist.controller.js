@@ -11,21 +11,19 @@ router.get("/:userId", verifyToken, async (req, res) => {
   const { userId } = req.params;
 
   try {
-    // Ambil semua chat di mana user menjadi peserta
     const chatlists = await ChatList.find({
       "participants.user": userId,
     })
       .sort({ lastMessageDate: -1 })
-      .populate("participants.user"); // Populate agar dapat detail user
+      .populate("participants.user");
 
     const formattedChatlists = chatlists.map((chat) => {
-      // Cari peserta selain user yang login
+      // Konversi Map ke Object biasa supaya frontend mudah akses
+      const unreadCountObj = Object.fromEntries(chat.unreadCount);
+
+      // Cari peserta lain selain user login
       const otherParticipant = chat.participants.find(
         (p) => p.user._id.toString() !== userId
-      );
-
-      const selfParticipant = chat.participants.find(
-        (p) => p.user._id.toString() === userId
       );
 
       let nama = "";
@@ -43,8 +41,7 @@ router.get("/:userId", verifyToken, async (req, res) => {
         _id: chat._id,
         lastMessage: chat.lastMessage,
         lastMessageDate: chat.lastMessageDate,
-        unreadCount:
-          chat.unreadCount?.get?.(userId) ?? chat.unreadCount?.[userId] ?? 0,
+        unreadCount: unreadCountObj[userId] ?? 0, // akses dari object biasa
         participant: {
           _id: otherParticipant.user._id,
           role: otherParticipant.role.toLowerCase(),
@@ -54,6 +51,14 @@ router.get("/:userId", verifyToken, async (req, res) => {
         status: chat.status,
       };
     });
+
+    res.status(200).json(formattedChatlists);
+  } catch (error) {
+    console.error("Gagal ambil daftar chat:", error);
+    res.status(500).json({ message: "Gagal ambil daftar chat" });
+  }
+});
+
 
     res.status(200).json(formattedChatlists);
   } catch (error) {
