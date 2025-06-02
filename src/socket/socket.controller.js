@@ -100,8 +100,8 @@ const createSocketServer = (server) => {
 
         // Coba image
         // 🔽 Tambahkan ini untuk bypass database (sementara)
-        io.to(msg.receiverId).emit("chat message", msg);
-        io.to(msg.senderId).emit("chat message", msg);
+        // io.to(msg.receiverId).emit("chat message", msg);
+        // io.to(msg.senderId).emit("chat message", msg);
         // Kirim pesan ke dua user
         // io.to(savedMsg.receiverId.toString()).emit("chat message", savedMsg);
         // io.to(savedMsg.senderId.toString()).emit("chat message", savedMsg);
