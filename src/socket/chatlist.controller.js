@@ -60,11 +60,4 @@ router.get("/:userId", verifyToken, async (req, res) => {
 });
 
 
-    res.status(200).json(formattedChatlists);
-  } catch (error) {
-    console.error("Gagal ambil daftar chat:", error);
-    res.status(500).json({ message: "Gagal ambil daftar chat" });
-  }
-});
-
 module.exports = router;
