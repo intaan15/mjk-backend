@@ -28,10 +28,14 @@ const createSocketServer = (server) => {
           console.warn("ChatList tidak ditemukan:", chatId);
           return;
         }
+        console.log("UnreadCount sebelum reset:", chat.unreadCount);
 
         // Reset unread count
-        chat.unreadCount[userId] = 0;
+        chat.unreadCount.set(userId.toString(), 0);
         await chat.save();
+
+        console.log("UnreadCount sesudah reset:", chat.unreadCount);
+
 
         // Emit ke user terkait agar UI update
         io.to(userId).emit("unreadCountUpdated", {
