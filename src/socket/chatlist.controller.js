@@ -51,6 +51,7 @@ router.get("/:userId", verifyToken, async (req, res) => {
           nama,
           foto_profil,
         },
+        status: chat.status,
       };
     });
 
