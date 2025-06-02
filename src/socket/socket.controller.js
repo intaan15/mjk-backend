@@ -19,7 +19,6 @@ const createSocketServer = (server) => {
       console.log(`Socket ${socket.id} joined room: ${userId}`);
     });
 
-    
     socket.on("resetUnreadCount", async ({ chatId, userId }) => {
       try {
         const chat = await ChatList.findById(chatId);
@@ -35,7 +34,6 @@ const createSocketServer = (server) => {
         await chat.save();
 
         console.log("UnreadCount sesudah reset:", chat.unreadCount);
-
 
         // Emit ke user terkait agar UI update
         io.to(userId).emit("unreadCountUpdated", {
@@ -57,7 +55,6 @@ const createSocketServer = (server) => {
         console.error("Gagal reset unread count:", error.message);
       }
     });
-    
 
     socket.on("chat message", async (msg) => {
       try {
@@ -112,10 +109,34 @@ const createSocketServer = (server) => {
       } catch (err) {
         console.error("Error saat simpan pesan:", err.message);
       }
-
-      
     });
-    
+
+    // Misal ini di file socket.controller.js
+
+    socket.on("readChat", async ({ chatId, userId }) => {
+      try {
+        const chat = await ChatList.findById(chatId);
+        if (!chat) {
+          console.warn("ChatList tidak ditemukan:", chatId);
+          return;
+        }
+
+        // Update waktu terakhir baca untuk user ini
+        chat.lastReadAt.set(userId, new Date());
+        await chat.save();
+
+        // Emit event ke semua peserta chat supaya UI mereka update unread badge atau styling bold
+        chat.participants.forEach((participant) => {
+          io.to(participant.user.toString()).emit("chatReadUpdated", {
+            chatId,
+            userId,
+            lastReadAt: chat.lastReadAt.get(userId),
+          });
+        });
+      } catch (error) {
+        console.error("Gagal update lastReadAt:", error);
+      }
+    });
 
     socket.on("disconnect", () => {
       console.log("Client disconnected:", socket.id);

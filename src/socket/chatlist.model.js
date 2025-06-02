@@ -25,9 +25,9 @@ const ChatListSchema = new Schema(
       type: Date,
       default: Date.now,
     },
-    unreadCount: {
+    lastReadAt: {
       type: Map,
-      of: Number,
+      of: Date,
       default: {},
     },
     jadwal: {
@@ -35,7 +35,7 @@ const ChatListSchema = new Schema(
       ref: "jadwal",
       required: true,
     },
-    
+
     status: {
       type: String,
       enum: ["berlangsung", "selesai"],
