@@ -19,6 +19,7 @@ const createSocketServer = (server) => {
       console.log(`Socket ${socket.id} joined room: ${userId}`);
     });
 
+    
     socket.on("resetUnreadCount", async ({ chatId, userId }) => {
       try {
         const chat = await ChatList.findById(chatId);
@@ -27,13 +28,10 @@ const createSocketServer = (server) => {
           console.warn("ChatList tidak ditemukan:", chatId);
           return;
         }
-        console.log("UnreadCount sebelum reset:", chat.unreadCount);
 
         // Reset unread count
-        chat.unreadCount.set(userId.toString(), 0);
+        chat.unreadCount[userId] = 0;
         await chat.save();
-
-        console.log("UnreadCount sesudah reset:", chat.unreadCount);
 
         // Emit ke user terkait agar UI update
         io.to(userId).emit("unreadCountUpdated", {
@@ -55,6 +53,7 @@ const createSocketServer = (server) => {
         console.error("Gagal reset unread count:", error.message);
       }
     });
+    
 
     socket.on("chat message", async (msg) => {
       try {
@@ -97,46 +96,21 @@ const createSocketServer = (server) => {
         console.log("Updated ChatList:", {
           lastMessage: chatList.lastMessage,
           unread: chatList.unreadCount,
-        });
+        });        
 
-        // Coba image
-        // 🔽 Tambahkan ini untuk bypass database (sementara)
-        // io.to(msg.receiverId).emit("chat message", msg);
-        // io.to(msg.senderId).emit("chat message", msg);
+        // Coba image 
+        
         // Kirim pesan ke dua user
         io.to(savedMsg.receiverId.toString()).emit("chat message", savedMsg);
         io.to(savedMsg.senderId.toString()).emit("chat message", savedMsg);
+
       } catch (err) {
         console.error("Error saat simpan pesan:", err.message);
       }
+
+      
     });
-
-    // Misal ini di file socket.controller.js
-
-    socket.on("readChat", async ({ chatId, userId }) => {
-      try {
-        const chat = await ChatList.findById(chatId);
-        if (!chat) {
-          console.warn("ChatList tidak ditemukan:", chatId);
-          return;
-        }
-
-        // Update waktu terakhir baca untuk user ini
-        chat.lastReadAt.set(userId, new Date());
-        await chat.save();
-
-        // Emit event ke semua peserta chat supaya UI mereka update unread badge atau styling bold
-        chat.participants.forEach((participant) => {
-          io.to(participant.user.toString()).emit("chatReadUpdated", {
-            chatId,
-            userId,
-            lastReadAt: chat.lastReadAt.get(userId),
-          });
-        });
-      } catch (error) {
-        console.error("Gagal update lastReadAt:", error);
-      }
-    });
+    
 
     socket.on("disconnect", () => {
       console.log("Client disconnected:", socket.id);
