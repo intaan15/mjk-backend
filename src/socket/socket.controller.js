@@ -62,6 +62,40 @@ const createSocketServer = (server) => {
           return;
         }
 
+        // Cari chatlist terkait dan populate jadwal
+        const chatList = await ChatList.findOne({
+          "participants.user": { $all: [msg.senderId, msg.receiverId] },
+        }).populate("jadwal");
+
+        if (!chatList) {
+          return socket.emit("errorMessage", {
+            message: "Sesi chat tidak ditemukan.",
+          });
+        }
+
+        // Validasi apakah sesi sudah selesai
+        const jadwal = chatList.jadwal;
+        const [hour, minute] = jadwal.jam_konsul.split(":").map(Number);
+        const startTime = new Date(jadwal.tgl_konsul);
+        startTime.setHours(hour);
+        startTime.setMinutes(minute);
+        startTime.setSeconds(0);
+
+        const endTime = new Date(startTime.getTime() + 3 * 60 * 1000); // 3 menit
+
+        const now = new Date();
+        if (
+          chatList.status === "selesai" ||
+          jadwal.status_konsul === "selesai" ||
+          now > endTime
+        ) {
+          return socket.emit("errorMessage", {
+            message:
+              "⛔ Konsultasi telah selesai. Anda tidak dapat mengirim pesan.",
+          });
+        }
+
+        // Lanjut jika valid
         const newMsg = new Chat({
           text: msg.text || "",
           sender: msg.sender || "User",
@@ -70,47 +104,29 @@ const createSocketServer = (server) => {
           image: msg.image || null,
           type: msg.type || "text",
           role: msg.role || "unknown",
-          waktu: msg.waktu || new Date(),
+          waktu: msg.waktu || now,
         });
 
         const savedMsg = await newMsg.save();
 
-        // Cari chat list terkait
-        const chatList = await ChatList.findOne({
-          "participants.user": { $all: [msg.senderId, msg.receiverId] },
-        });
-
+        // Update chatlist
         if (chatList) {
-          // Update last message dan tanggal
           chatList.lastMessage =
             msg.text || (msg.type === "image" ? "📷 Gambar" : "Pesan baru");
           chatList.lastMessageDate = new Date();
-
-          // Tambah unread untuk penerima
           const currentUnread = chatList.unreadCount.get(msg.receiverId) || 0;
           chatList.unreadCount.set(msg.receiverId, currentUnread + 1);
-
           await chatList.save();
         }
 
-        console.log("Updated ChatList:", {
-          lastMessage: chatList.lastMessage,
-          unread: chatList.unreadCount,
-        });        
-
-        // Coba image 
-        
-        // Kirim pesan ke dua user
+        // Emit ke dua user
         io.to(savedMsg.receiverId.toString()).emit("chat message", savedMsg);
         io.to(savedMsg.senderId.toString()).emit("chat message", savedMsg);
-
       } catch (err) {
         console.error("Error saat simpan pesan:", err.message);
       }
-
-      
     });
-    
+        
 
     socket.on("disconnect", () => {
       console.log("Client disconnected:", socket.id);

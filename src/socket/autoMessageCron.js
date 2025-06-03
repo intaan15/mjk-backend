@@ -149,7 +149,7 @@ const startCronJob = (io) => {
         startTime.setMinutes(minute);
         startTime.setSeconds(0);
 
-        const endTime = new Date(startTime.getTime() + 1 * 60 * 1000); // ganti ke 30 * 60 * 1000 untuk real
+        const endTime = new Date(startTime.getTime() + 3 * 60 * 1000); // ganti ke 30 * 60 * 1000 untuk real
 
         if (now >= endTime) {
           chat.status = "selesai";
@@ -194,7 +194,7 @@ const startCronJob = (io) => {
         startTime.setMinutes(minute);
         startTime.setSeconds(0);
 
-        const endTime = new Date(startTime.getTime() + 1 * 60 * 1000);
+        const endTime = new Date(startTime.getTime() + 3 * 60 * 1000);
 
         if (now >= endTime) {
           jadwal.status_konsul = "selesai";
