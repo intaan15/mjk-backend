@@ -132,7 +132,7 @@ const startCronJob = (io) => {
         const jadwal = chat.jadwal;
 
         if (!jadwal) {
-          console.log(`⚠️ Jadwal tidak ditemukan untuk ChatList ${chat._id}`);
+          // console.log(`⚠️ Jadwal tidak ditemukan untuk ChatList ${chat._id}`);
           continue;
         }
 

@@ -63,9 +63,14 @@ const createSocketServer = (server) => {
         }
 
         // Cari chatlist terkait dan populate jadwal
+        // const chatList = await ChatList.findOne({
+        //   "participants.user": { $all: [msg.senderId, msg.receiverId] },
+        // }).populate("jadwal");
+
         const chatList = await ChatList.findOne({
           "participants.user": { $all: [msg.senderId, msg.receiverId] },
         }).populate("jadwal");
+        
 
         if (!chatList) {
           return socket.emit("errorMessage", {
@@ -85,7 +90,7 @@ const createSocketServer = (server) => {
 
         const now = new Date();
         if (
-          chatList.status === "selesai" ||
+          // chatList.status === "selesai" ||
           jadwal.status_konsul === "selesai" ||
           now > endTime
         ) {
