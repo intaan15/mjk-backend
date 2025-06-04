@@ -67,7 +67,9 @@ const startCronJob = (io) => {
           // Update atau buat ChatList
           let chatlist = await ChatList.findOne({
             "participants.user": { $all: [dokterId, masyarakatId] },
+            jadwal: jadwal._id,
           });
+          
 
           if (!chatlist) {
             chatlist = await ChatList.create({
@@ -192,19 +194,27 @@ const startCronJob = (io) => {
 
         const endTime = new Date(startTime.getTime() + 30 * 60 * 1000); // 30 menit
 
-        if (now >= startTime && now < endTime) {
-          chat.status = "berlangsung";
-          await chat.save();
+        if (startTime <= now && now <= endTime) {
+          // waktunya sedang berlangsung
+          if (chat.status === "selesai") {
+            chat.status = "berlangsung";
+            await chat.save();
 
-          if (jadwal.status_konsul !== "berlangsung") {
-            jadwal.status_konsul = "berlangsung";
-            await jadwal.save();
+            if (jadwal.status_konsul !== "berlangsung") {
+              jadwal.status_konsul = "berlangsung";
+              await jadwal.save();
+            }
+
+            console.log(
+              `✅ ChatList ${chat._id} diubah ke 'berlangsung' karena waktunya tiba`
+            );
           }
-
+        } else {
           console.log(
-            `✅ ChatList ${chat._id} diubah ke 'berlangsung' karena waktunya tiba`
+            `⏳ Jadwal ${jadwal._id} belum waktunya atau sudah selesai.`
           );
         }
+        
       }
     } catch (err) {
       console.error("❌ Gagal update status selesai (ChatList):", err);
