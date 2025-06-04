@@ -192,7 +192,7 @@ const startCronJob = (io) => {
         startTime.setMinutes(minute);
         startTime.setSeconds(0);
 
-        const endTime = new Date(startTime.getTime() + 30 * 60 * 1000); // 30 menit
+        const endTime = new Date(startTime.getTime() + 3 * 60 * 1000); // 30 menit
 
         if (startTime <= now && now <= endTime) {
           // waktunya sedang berlangsung
