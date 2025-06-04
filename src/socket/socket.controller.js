@@ -89,16 +89,13 @@ const createSocketServer = (server) => {
         const endTime = new Date(startTime.getTime() + 3 * 60 * 1000); // 3 menit
 
         const now = new Date();
-        if (
-          // chatList.status === "selesai" ||
-          jadwal.status_konsul === "selesai" ||
-          now > endTime
-        ) {
+        if (jadwal.status_konsul !== "berlangsung" || now > endTime) {
           return socket.emit("errorMessage", {
             message:
               "⛔ Konsultasi telah selesai. Anda tidak dapat mengirim pesan.",
           });
         }
+        
 
         // Lanjut jika valid
         const newMsg = new Chat({
