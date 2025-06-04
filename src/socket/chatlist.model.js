@@ -43,9 +43,10 @@ const ChatListSchema = new Schema(
 
     status: {
       type: String,
-      enum: ["berlangsung", "selesai"],
-      default: "berlangsung",
+      enum: ["menunggu", "berlangsung", "selesai"],
+      default: "menunggu",
     },
+    
   },
   { timestamps: true }
 );

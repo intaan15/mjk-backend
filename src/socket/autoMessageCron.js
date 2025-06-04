@@ -171,6 +171,44 @@ const startCronJob = (io) => {
     } catch (err) {
       console.error("❌ Gagal update status selesai (ChatList):", err);
     }
+    /* =========================
+   🔁 UTAMA: ChatList.status = 'berlangsung'
+========================= */
+    try {
+      // ChatList yang statusnya "selesai", cek apakah waktunya sudah masuk, maka ubah ke "berlangsung"
+      const selesaiChats = await ChatList.find({ status: "selesai" }).populate(
+        "jadwal"
+      );
+
+      for (const chat of selesaiChats) {
+        const jadwal = chat.jadwal;
+        if (!jadwal) continue;
+
+        const [hour, minute] = jadwal.jam_konsul.split(":").map(Number);
+        const startTime = new Date(jadwal.tgl_konsul);
+        startTime.setHours(hour);
+        startTime.setMinutes(minute);
+        startTime.setSeconds(0);
+
+        const endTime = new Date(startTime.getTime() + 30 * 60 * 1000); // 30 menit
+
+        if (now >= startTime && now < endTime) {
+          chat.status = "berlangsung";
+          await chat.save();
+
+          if (jadwal.status_konsul !== "berlangsung") {
+            jadwal.status_konsul = "berlangsung";
+            await jadwal.save();
+          }
+
+          console.log(
+            `✅ ChatList ${chat._id} diubah ke 'berlangsung' karena waktunya tiba`
+          );
+        }
+      }
+    } catch (err) {
+      console.error("❌ Gagal update status selesai (ChatList):", err);
+    }
 
     /* =========================
    🛡️ FALLBACK: Semua Jadwal.status_konsul = 'berlangsung'
