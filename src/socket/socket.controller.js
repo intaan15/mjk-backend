@@ -57,28 +57,19 @@ const createSocketServer = (server) => {
 
     socket.on("chat message", async (msg) => {
       try {
-        if (!msg.senderId || !msg.receiverId) {
-          console.warn("Pesan tidak lengkap:", msg);
-          return;
-        }
+        const { senderId, receiverId, text, role } = msg;
 
-        // Cari chatlist terkait dan populate jadwal
-        // const chatList = await ChatList.findOne({
-        //   "participants.user": { $all: [msg.senderId, msg.receiverId] },
-        // }).populate("jadwal");
-
+        // 1. Cek apakah ChatList masih aktif
         const chatList = await ChatList.findOne({
-          "participants.user": { $all: [msg.senderId, msg.receiverId] },
+          "participants.user": { $all: [senderId, receiverId] },
         }).populate("jadwal");
-        
 
-        if (!chatList) {
+        if (!chatList || !chatList.jadwal) {
           return socket.emit("errorMessage", {
-            message: "Sesi chat tidak ditemukan.",
+            message: "❌ Chat tidak ditemukan atau jadwal tidak valid.",
           });
         }
 
-        // Validasi apakah sesi sudah selesai
         const jadwal = chatList.jadwal;
         const [hour, minute] = jadwal.jam_konsul.split(":").map(Number);
         const startTime = new Date(jadwal.tgl_konsul);
@@ -86,49 +77,44 @@ const createSocketServer = (server) => {
         startTime.setMinutes(minute);
         startTime.setSeconds(0);
 
-        const endTime = new Date(startTime.getTime() + 3 * 60 * 1000); // 3 menit
-
+        const endTime = new Date(startTime.getTime() + 3 * 60 * 1000); // 30 menit normal
         const now = new Date();
-        if (jadwal.status_konsul === "selesai") {
+
+        // 2. Jika sudah lewat waktu atau status selesai, tolak pengiriman
+        if (jadwal.status_konsul === "selesai" || now >= endTime) {
           return socket.emit("errorMessage", {
             message:
               "⛔ Konsultasi telah selesai. Anda tidak dapat mengirim pesan.",
           });
         }
-        
-        
 
-        // Lanjut jika valid
-        const newMsg = new Chat({
-          text: msg.text || "",
-          sender: msg.sender || "User",
-          senderId: msg.senderId,
-          receiverId: msg.receiverId,
-          image: msg.image || null,
-          type: msg.type || "text",
-          role: msg.role || "unknown",
-          waktu: msg.waktu || now,
+        // 3. Kalau masih berlangsung → lanjut simpan & emit pesan
+        const newChat = await Chat.create({
+          senderId,
+          receiverId,
+          text,
+          role,
+          waktu: now,
         });
 
-        const savedMsg = await newMsg.save();
+        io.to(receiverId).emit("chat message", newChat);
+        io.to(senderId).emit("chat message", newChat);
 
-        // Update chatlist
-        if (chatList) {
-          chatList.lastMessage =
-            msg.text || (msg.type === "image" ? "📷 Gambar" : "Pesan baru");
-          chatList.lastMessageDate = new Date();
-          const currentUnread = chatList.unreadCount.get(msg.receiverId) || 0;
-          chatList.unreadCount.set(msg.receiverId, currentUnread + 1);
-          await chatList.save();
-        }
-
-        // Emit ke dua user
-        io.to(savedMsg.receiverId.toString()).emit("chat message", savedMsg);
-        io.to(savedMsg.senderId.toString()).emit("chat message", savedMsg);
-      } catch (err) {
-        console.error("Error saat simpan pesan:", err.message);
+        // Update last message di ChatList
+        chatList.lastMessage = text;
+        chatList.lastMessageDate = now;
+        const currentUnread =
+          chatList.unreadCount.get(receiverId.toString()) || 0;
+        chatList.unreadCount.set(receiverId.toString(), currentUnread + 1);
+        await chatList.save();
+      } catch (error) {
+        console.error("❌ Error saat mengirim pesan:", error);
+        socket.emit("errorMessage", {
+          message: "❌ Terjadi kesalahan saat mengirim pesan.",
+        });
       }
     });
+    
 
     // BESOK LAGI INI 
     // socket.on("chat message", async (msg) => {
