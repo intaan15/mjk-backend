@@ -19,57 +19,67 @@ const jadwalSchema = new mongoose.Schema({
   jam: [jamSchema],
 });
 
-const dokterSchema = new mongoose.Schema({
-  nama_dokter: {
-    type: String,
-    required: true,
+const dokterSchema = new mongoose.Schema(
+  {
+    nama_dokter: {
+      type: String,
+      required: true,
+    },
+    username_dokter: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+    password_dokter: {
+      type: String,
+      required: true,
+    },
+    email_dokter: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+    spesialis_dokter: {
+      type: String,
+      required: true,
+    },
+    notlp_dokter: {
+      type: String,
+      required: true,
+    },
+    str_dokter: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+    rating_dokter: {
+      type: Number,
+      required: true,
+      default: 0,
+      min: 0,
+      max: 5,
+    },
+    total_ratings: {
+      type: Number,
+      required: false,
+      default: 0,
+      min: 0,
+    },
+    foto_profil_dokter: {
+      type: String,
+      required: false,
+      default: "",
+    },
+    role: {
+      type: String,
+      enum: ["admin", "dokter", "masyarakat"],
+      default: "dokter",
+    },
+    jadwal: [jadwalSchema],
   },
-  username_dokter: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-  password_dokter: {
-    type: String,
-    required: true,
-  },
-  email_dokter: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-  spesialis_dokter: {
-    type: String,
-    required: true,
-  },
-  notlp_dokter: {
-    type: String,
-    required: true,
-  },
-  str_dokter: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-  rating_dokter: {
-    type: Number,
-    required: true,
-    min: 0,
-    max: 5,
-  },
-  foto_profil_dokter: {
-    type: String,
-    required: false,
-    default: "",
-  },
-  role: {
-    type: String,
-    enum: ["admin", "dokter", "masyarakat"],
-    default: "dokter",
-  },
-  jadwal: [jadwalSchema],
-}, {
-  timestamps: true,
-});
+  {
+    timestamps: true,
+  }
+);
 
 module.exports = mongoose.model("Dokter", dokterSchema, "dokter");
