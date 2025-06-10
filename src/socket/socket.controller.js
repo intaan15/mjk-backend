@@ -37,8 +37,6 @@ const createSocketServer = (server) => {
 
         console.log("🔍 ChatList ditemukan:", !!chatList);
         console.log("🔍 Jadwal ditemukan:", !!chatList?.jadwal);
-
-
         if (!chatList || !chatList.jadwal) {
           console.log("❌ ChatList atau jadwal tidak ditemukan");
           return socket.emit("errorMessage", {
@@ -92,8 +90,6 @@ const createSocketServer = (server) => {
               );
               jadwal.status_konsul = "selesai";
               await jadwal.save();
-
-
               return socket.emit("errorMessage", {
                 message:
                   "⛔ Waktu konsultasi telah habis. Konsultasi otomatis ditutup.",
@@ -124,10 +120,10 @@ const createSocketServer = (server) => {
         await chatList.save();
         console.log("✅ Pesan berhasil dikirim dan diupdate di ChatList");
       } catch (error) {
-        console.error("❌ Error detail saat mengirim pesan:");
-        console.error("- Message:", error.message);
-        console.error("- Stack:", error.stack);
-        console.error("- Data pesan:", msg);
+        console.log("❌ Error detail saat mengirim pesan:");
+        console.log("- Message:", error.message);
+        console.log("- Stack:", error.stack);
+        console.log("- Data pesan:", msg);
         socket.emit("errorMessage", {
           message: "❌ Terjadi kesalahan saat mengirim pesan: " + error.message,
         });
@@ -147,8 +143,7 @@ const createSocketServer = (server) => {
 
         jadwal.status_konsul = "berlangsung";
         await jadwal.save();
-
-
+        
         let chatList = await ChatList.findOne({
           "participants.user": { $all: [senderId, receiverId] },
         });
