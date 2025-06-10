@@ -222,32 +222,6 @@ const createSocketServer = (server) => {
       }
     });
     
-    socket.on('konsultasiSelesai', async ({ jadwal_id, dokter_id }) => {
-      try {
-        const token = await SecureStore.getItemAsync("token");
-
-        const response = await axios.get(`${BASE_URL}/rating/getbyid/${jadwal_id}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        const hasRated = response.data?.data?.hasRating;
-
-        if (hasRated) {
-          alert("Anda sudah memberikan rating untuk konsultasi ini.");
-        } else {
-          setShowRatingModal(true);
-          setSelectedJadwal(jadwal_id);
-          setSelectedDokter(dokter_id);
-        }
-
-      } catch (error) {
-        console.error("Gagal memeriksa rating:", error.response?.data || error.message);
-      }
-    });
-
-
     socket.on("disconnect", () => {
       console.log("Client disconnected:", socket.id);
     });
