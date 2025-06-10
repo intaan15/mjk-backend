@@ -1,7 +1,6 @@
 const { Server } = require("socket.io");
 const Chat = require("./chat.model");
-const ChatList = require("./chatlist.model"); // sesuaikan path kamu
-
+const ChatList = require("./chatlist.model");
 
 const createSocketServer = (server) => {
   const io = new Server(server, {
@@ -23,72 +22,214 @@ const createSocketServer = (server) => {
       try {
         const { senderId, receiverId, text, role } = msg;
 
-        // 1. Cek apakah ChatList masih aktif
+        console.log("📩 Menerima pesan dari:", senderId, "ke:", receiverId, "pesan:", text);
+
+        // 1. Cari ChatList dengan jadwal terdapat yang sedang berlangsung
         const chatList = await ChatList.findOne({
           "participants.user": { $all: [senderId, receiverId] },
-        }).populate("jadwal");
+        }).populate("jadwal").sort({ "jadwal.tgl_konsul": -1 }); // Ambil jadwal terbaru
+
+        console.log("🔍 ChatList ditemukan:", !!chatList);
+        console.log("🔍 Jadwal ditemukan:", !!chatList?.jadwal);
 
         if (!chatList || !chatList.jadwal) {
+          console.log("❌ ChatList atau jadwal tidak ditemukan");
           return socket.emit("errorMessage", {
-            message: "❌ Chat tidak ditemukan atau jadwal tidak valid.",
+            message: "❌ Tidak ada sesi konsultasi aktif. Silakan buat jadwal konsultasi baru.",
           });
         }
 
         const jadwal = chatList.jadwal;
-        console.log("Jadwal:", jadwal);
+        console.log("📅 Status jadwal:", jadwal.status_konsul);
+        console.log("📅 Tanggal konsul:", jadwal.tgl_konsul);
+        console.log("📅 Jam konsul:", jadwal.jam_konsul);
 
-        const [hour, minute] = jadwal.jam_konsul.split(":").map(Number);
-        if (isNaN(hour) || isNaN(minute)) {
-          throw new Error("jam_konsul tidak valid: " + jadwal.jam_konsul);
-        }
-
-        const startTime = new Date(jadwal.tgl_konsul);
-        startTime.setHours(hour);
-        startTime.setMinutes(minute);
-        startTime.setSeconds(0);
-
-        console.log("Start Time:", startTime.toISOString());
-        console.log("Now:", new Date().toISOString());
-
-
-        const endTime = new Date(startTime.getTime() + 3 * 60 * 1000); // 30 menit
-        const now = new Date();
-
-        // 2. Jika sudah lewat waktu atau status selesai, tolak pengiriman
-        if (jadwal.status_konsul === "selesai" || now >= endTime) {
+        // 2. Cek status konsultasi terlebih dahulu (paling penting)
+        if (jadwal.status_konsul === "selesai") {
+          console.log("⛔ Status konsultasi: selesai");
           return socket.emit("errorMessage", {
-            message:
-              "⛔ Konsultasi telah selesai. Anda tidak dapat mengirim pesan.",
+            message: "⛔ Konsultasi telah selesai. Silakan buat jadwal konsultasi baru untuk melanjutkan.",
           });
         }
 
-        // 3. Simpan & emit pesan
+        // 3. Cek apakah status konsultasi berlangsung
+        if (jadwal.status_konsul !== "berlangsung" && jadwal.status_konsul !== "aktif") {
+          console.log("⏳ Status konsultasi:", jadwal.status_konsul, "- tidak berlangsung");
+          return socket.emit("errorMessage", {
+            message: `⏳ Konsultasi belum dimulai. Status saat ini: ${jadwal.status_konsul}`,
+          });
+        }
+
+        // 4. Validasi waktu (opsional, bisa dinonaktifkan jika tidak diperlukan)
+        try {
+          const [hour, minute] = jadwal.jam_konsul.split(":").map(Number);
+          if (!isNaN(hour) && !isNaN(minute)) {
+            const startTime = new Date(jadwal.tgl_konsul);
+            startTime.setHours(hour, minute, 0, 0);
+            const endTime = new Date(startTime.getTime() + 30 * 60 * 1000);
+            const now = new Date();
+
+            console.log("⏰ Start Time:", startTime.toISOString());
+            console.log("⏰ End Time:", endTime.toISOString());
+            console.log("⏰ Now:", now.toISOString());
+
+            // Auto-update status jika waktu habis
+            if (now >= endTime) {
+              console.log("⏰ Waktu konsultasi habis, mengupdate status ke selesai");
+              jadwal.status_konsul = "selesai";
+              await jadwal.save();
+              
+              return socket.emit("errorMessage", {
+                message: "⛔ Waktu konsultasi telah habis. Konsultasi otomatis ditutup.",
+              });
+            }
+          }
+        } catch (timeError) {
+          console.log("⚠️ Error validasi waktu (diabaikan):", timeError.message);
+          // Jangan block pengiriman pesan jika ada error waktu
+        }
+
+        // 5. Simpan & emit pesan
+        console.log("💾 Menyimpan pesan ke database...");
         const newChat = await Chat.create({
           senderId,
           receiverId,
           text,
           role,
-          waktu: now,
+          waktu: new Date(),
         });
 
+        console.log("✅ Pesan berhasil disimpan:", newChat._id);
+
+        // Emit pesan ke semua participant
         io.to(receiverId).emit("chat message", newChat);
         io.to(senderId).emit("chat message", newChat);
 
-        // Update last message
+        // Update last message di ChatList
         chatList.lastMessage = text;
-        chatList.lastMessageDate = now;
+        chatList.lastMessageDate = new Date();
         await chatList.save();
+
+        console.log("✅ Pesan berhasil dikirim dan diupdate di ChatList");
+
       } catch (error) {
-        console.error(
-          "❌ Error saat mengirim pesan:",
-          error.message,
-          error.stack
-        );
+        console.error("❌ Error detail saat mengirim pesan:");
+        console.error("- Message:", error.message);
+        console.error("- Stack:", error.stack);
+        console.error("- Data pesan:", msg);
+        
         socket.emit("errorMessage", {
-          message: "❌ Terjadi kesalahan saat mengirim pesan.",
+          message: "❌ Terjadi kesalahan saat mengirim pesan: " + error.message,
         });
       }
     });
+
+    // Event untuk memulai konsultasi (update status menjadi berlangsung)
+    socket.on("startConsultation", async (data) => {
+      try {
+        const { senderId, receiverId, jadwalId } = data;
+        
+        // Cari dan update jadwal menjadi berlangsung
+        const Jadwal = require("./jadwal.model"); // Sesuaikan dengan model jadwal Anda
+        const jadwal = await Jadwal.findById(jadwalId);
+        
+        if (!jadwal) {
+          return socket.emit("errorMessage", {
+            message: "❌ Jadwal konsultasi tidak ditemukan.",
+          });
+        }
+
+        // Update status menjadi berlangsung
+        jadwal.status_konsul = "berlangsung";
+        await jadwal.save();
+
+        // Update atau buat ChatList
+        let chatList = await ChatList.findOne({
+          "participants.user": { $all: [senderId, receiverId] },
+        });
+
+        if (chatList) {
+          // Update jadwal yang ada
+          chatList.jadwal = jadwalId;
+          await chatList.save();
+        } else {
+          // Buat ChatList baru jika belum ada
+          chatList = await ChatList.create({
+            participants: [
+              { user: senderId },
+              { user: receiverId }
+            ],
+            jadwal: jadwalId,
+            lastMessage: "",
+            lastMessageDate: new Date(),
+          });
+        }
+
+        // Emit ke semua participant bahwa konsultasi sudah dimulai
+        io.to(senderId).emit("consultationStarted", {
+          message: "✅ Konsultasi dimulai! Anda sekarang bisa mengirim pesan.",
+          chatListId: chatList._id
+        });
+        
+        io.to(receiverId).emit("consultationStarted", {
+          message: "✅ Konsultasi dimulai! Anda sekarang bisa mengirim pesan.",
+          chatListId: chatList._id
+        });
+
+      } catch (error) {
+        console.error("❌ Error saat memulai konsultasi:", error.message);
+        socket.emit("errorMessage", {
+          message: "❌ Gagal memulai konsultasi.",
+        });
+      }
+    });
+
+    // Event untuk mengakhiri konsultasi manual
+    socket.on("endConsultation", async (data) => {
+      try {
+        const { jadwalId, endedBy } = data;
+        
+        const Jadwal = require("./jadwal.model");
+        const jadwal = await Jadwal.findById(jadwalId);
+        
+        if (!jadwal) {
+          return socket.emit("errorMessage", {
+            message: "❌ Jadwal konsultasi tidak ditemukan.",
+          });
+        }
+
+        jadwal.status_konsul = "selesai";
+        await jadwal.save();
+
+        // Emit ke semua participant bahwa konsultasi selesai
+        const chatList = await ChatList.findOne({ jadwal: jadwalId }).populate("participants.user");
+        
+        if (chatList) {
+          chatList.participants.forEach(participant => {
+            io.to(participant.user._id.toString()).emit("consultationEnded", {
+              message: "⛔ Konsultasi telah selesai.",
+              endedBy: endedBy
+            });
+          });
+        }
+
+      } catch (error) {
+        console.error("❌ Error saat mengakhiri konsultasi:", error.message);
+        socket.emit("errorMessage", {
+          message: "❌ Gagal mengakhiri konsultasi.",
+        });
+      }
+    });
+
+    socket.on("disconnect", () => {
+      console.log("Client disconnected:", socket.id);
+    });
+  });
+
+  return io;
+};
+
+module.exports = createSocketServer;
 
     
     // socket.on("resetUnreadCount", async ({ chatId, userId }) => {
@@ -204,12 +345,12 @@ const createSocketServer = (server) => {
     // });
         
 
-    socket.on("disconnect", () => {
-      console.log("Client disconnected:", socket.id);
-    });
-  });
+//     socket.on("disconnect", () => {
+//       console.log("Client disconnected:", socket.id);
+//     });
+//   });
 
-  return io;
-};
+//   return io;
+// };
 
-module.exports = createSocketServer;
+// module.exports = createSocketServer;
