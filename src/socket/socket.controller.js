@@ -11,22 +11,15 @@ const createSocketServer = (server) => {
    },
  });
 
-
  io.on("connection", (socket) => {
    console.log("Client connected:", socket.id);
-
-
    socket.on("joinRoom", (userId) => {
      socket.join(userId);
      console.log(`Socket ${socket.id} joined room: ${userId}`);
    });
-
-
    socket.on("chat message", async (msg) => {
      try {
        const { senderId, receiverId, text, role, type } = msg;
-
-
        console.log(
          "📩 Menerima pesan dari:",
          senderId,
@@ -36,13 +29,11 @@ const createSocketServer = (server) => {
          text
        );
 
-
        const chatList = await ChatList.findOne({
          "participants.user": { $all: [senderId, receiverId] },
        })
          .populate("jadwal")
          .sort({ "jadwal.tgl_konsul": -1 });
-
 
        console.log("🔍 ChatList ditemukan:", !!chatList);
        console.log("🔍 Jadwal ditemukan:", !!chatList?.jadwal);
@@ -56,12 +47,10 @@ const createSocketServer = (server) => {
          });
        }
 
-
        const jadwal = chatList.jadwal;
        console.log("📅 Status jadwal:", jadwal.status_konsul);
        console.log("📅 Tanggal konsul:", jadwal.tgl_konsul);
        console.log("📅 Jam konsul:", jadwal.jam_konsul);
-
 
        if (jadwal.status_konsul === "selesai") {
          console.log("⛔ Status konsultasi: selesai");
@@ -70,7 +59,6 @@ const createSocketServer = (server) => {
              "⛔ Konsultasi telah selesai. Silakan buat jadwal konsultasi baru untuk melanjutkan.",
          });
        }
-
 
        if (
          jadwal.status_konsul !== "berlangsung" &&
@@ -86,7 +74,6 @@ const createSocketServer = (server) => {
          });
        }
 
-
        try {
          const [hour, minute] = jadwal.jam_konsul.split(":").map(Number);
          if (!isNaN(hour) && !isNaN(minute)) {
@@ -95,11 +82,9 @@ const createSocketServer = (server) => {
            const endTime = new Date(startTime.getTime() + 30 * 60 * 1000);
            const now = new Date();
 
-
            console.log("⏰ Start Time:", startTime.toISOString());
            console.log("⏰ End Time:", endTime.toISOString());
            console.log("⏰ Now:", now.toISOString());
-
 
            if (now >= endTime) {
              console.log(
@@ -122,7 +107,6 @@ const createSocketServer = (server) => {
          );
        }
 
-
        console.log("💾 Menyimpan pesan ke database...");
        const newChat = await Chat.create({
          senderId,
@@ -132,49 +116,34 @@ const createSocketServer = (server) => {
          type: type || "text",
          waktu: new Date(),
        });
-
-
        console.log("✅ Pesan berhasil disimpan:", newChat._id);
-
-
        io.to(receiverId).emit("chat message", newChat);
        io.to(senderId).emit("chat message", newChat);
-
-
        chatList.lastMessage = text;
        chatList.lastMessageDate = new Date();
        await chatList.save();
-
-
        console.log("✅ Pesan berhasil dikirim dan diupdate di ChatList");
      } catch (error) {
        console.error("❌ Error detail saat mengirim pesan:");
        console.error("- Message:", error.message);
        console.error("- Stack:", error.stack);
        console.error("- Data pesan:", msg);
-
-
        socket.emit("errorMessage", {
          message: "❌ Terjadi kesalahan saat mengirim pesan: " + error.message,
        });
      }
    });
 
-
    socket.on("startConsultation", async (data) => {
      try {
        const { senderId, receiverId, jadwalId } = data;
-
-
        const jadwal = await Jadwal.findById(jadwalId);
-
 
        if (!jadwal) {
          return socket.emit("errorMessage", {
            message: "❌ Jadwal konsultasi tidak ditemukan.",
          });
        }
-
 
        jadwal.status_konsul = "berlangsung";
        await jadwal.save();
@@ -183,7 +152,6 @@ const createSocketServer = (server) => {
        let chatList = await ChatList.findOne({
          "participants.user": { $all: [senderId, receiverId] },
        });
-
 
        if (chatList) {
          chatList.jadwal = jadwalId;
@@ -197,12 +165,10 @@ const createSocketServer = (server) => {
          });
        }
 
-
        io.to(senderId).emit("consultationStarted", {
          message: "✅ Konsultasi dimulai! Anda sekarang bisa mengirim pesan.",
          chatListId: chatList._id,
        });
-
 
        io.to(receiverId).emit("consultationStarted", {
          message: "✅ Konsultasi dimulai! Anda sekarang bisa mengirim pesan.",
@@ -216,62 +182,54 @@ const createSocketServer = (server) => {
      }
    });
 
-
    socket.on("endConsultation", async (data) => {
-     try {
-       const { jadwalId, endedBy } = data;
+    try {
+      const { jadwalId, endedBy } = data;
+      const jadwal = await Jadwal.findById(jadwalId);
 
+      if (!jadwal) {
+        console.log("❌ Jadwal tidak ditemukan untuk ID:", jadwalId);
+        return socket.emit("errorMessage", {
+          message: "❌ Jadwal konsultasi tidak ditemukan.",
+        });
+      }
 
-       const Jadwal = require("./jadwal.model");
-       const jadwal = await Jadwal.findById(jadwalId);
+      jadwal.status_konsul = "selesai";
+      await jadwal.save();
+      console.log("✅ Jadwal status updated to selesai for ID:", jadwalId);
 
+      const chatList = await ChatList.findOne({ jadwal: jadwalId }).populate(
+        "participants.user"
+      );
 
-       if (!jadwal) {
-         return socket.emit("errorMessage", {
-           message: "❌ Jadwal konsultasi tidak ditemukan.",
-         });
-       }
-
-
-       jadwal.status_konsul = "selesai";
-       await jadwal.save();
-
-
-       const chatList = await ChatList.findOne({ jadwal: jadwalId }).populate(
-         "participants.user"
-       );
-
-
-       if (chatList) {
-         chatList.participants.forEach((participant) => {
-           io.to(participant.user._id.toString()).emit("consultationEnded", {
-             message: "⛔ Konsultasi telah selesai.",
-             endedBy: endedBy,
-             jadwalId: jadwalId,
-           });
-         });
-       }
-     } catch (error) {
-       console.error("❌ Error saat mengakhiri konsultasi:", error.message);
-       socket.emit("errorMessage", {
-         message: "❌ Gagal mengakhiri konsultasi.",
-       });
-     }
-   });
-
+      if (chatList) {
+        console.log("📢 Emitting consultationEnded to participants:", chatList.participants.map(p => p.user._id.toString()));
+        chatList.participants.forEach((participant) => {
+          io.to(participant.user._id.toString()).emit("consultationEnded", {
+            message: "⛔ Konsultasi telah selesai.",
+            endedBy: endedBy,
+            jadwalId: jadwalId,
+          });
+        });
+      } else {
+        console.log("❌ ChatList tidak ditemukan untuk jadwal ID:", jadwalId);
+      }
+    } catch (error) {
+      console.error("❌ Error saat mengakhiri konsultasi:", error.message);
+      socket.emit("errorMessage", {
+        message: "❌ Gagal mengakhiri konsultasi.",
+      });
+    }
+  });
 
    socket.on("disconnect", () => {
      console.log("Client disconnected:", socket.id);
    });
  });
-
-
  return io;
 };
 
-
 module.exports = createSocketServer;
-
 
 // socket.on("resetUnreadCount", async ({ chatId, userId }) => {
 //   try {
