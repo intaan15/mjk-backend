@@ -67,7 +67,7 @@ const startCronJob = (io) => {
           // Update atau buat ChatList
           let chatlist = await ChatList.findOne({
             "participants.user": { $all: [dokterId, masyarakatId] },
-            jadwal: jadwal._id,
+            // jadwal: jadwal._id,
           });
           
 
@@ -90,6 +90,7 @@ const startCronJob = (io) => {
             chatlist.lastMessage = pesanTemplate;
             chatlist.lastMessageDate = now;
             chatlist.status = "berlangsung";
+            chatlist.jadwal = jadwal._id;
             const currentUnread =
               chatlist.unreadCount.get(masyarakatId.toString()) || 0;
             chatlist.unreadCount.set(
