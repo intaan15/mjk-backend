@@ -175,7 +175,7 @@ const createSocketServer = (server) => {
           chatListId: chatList._id,
         });
       } catch (error) {
-        console.error("❌ Error saat memulai konsultasi:", error.message);
+        console.log("❌ Error saat memulai konsultasi:", error.message);
         socket.emit("errorMessage", {
           message: "❌ Gagal memulai konsultasi.",
         });
@@ -221,7 +221,7 @@ const createSocketServer = (server) => {
         });
       }
     });
-    
+
     socket.on("disconnect", () => {
       console.log("Client disconnected:", socket.id);
     });
