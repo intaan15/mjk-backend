@@ -103,7 +103,7 @@ const startCronJob = (io) => {
         konsultasiTime.setSeconds(0);
 
         const endTime = new Date(konsultasiTime);
-        endTime.setMinutes(endTime.getMinutes() + 30); // Konsultasi 30 menit
+        endTime.setMinutes(endTime.getMinutes() + 1); // Konsultasi 1 menit
 
         if (now >= konsultasiTime && now < endTime) {
           const dokterId = dokter._id;
@@ -167,7 +167,7 @@ const startCronJob = (io) => {
     }
 
     /* =========================
-    ⏹️ AUTO SELESAI: ChatList yang sudah lewat 30 menit
+    ⏹️ AUTO SELESAI: ChatList yang sudah lewat 1 menit
     ========================= */
     try {
       const chatLists = await ChatList.find({ status: "berlangsung" }).populate(
@@ -194,7 +194,7 @@ const startCronJob = (io) => {
         startTime.setMinutes(minute);
         startTime.setSeconds(0);
 
-        const endTime = new Date(startTime.getTime() + 30 * 60 * 1000); // 30 menit
+        const endTime = new Date(startTime.getTime() + 1 * 60 * 1000); // 1 menit
 
         if (now >= endTime) {
           chat.status = "selesai";
@@ -247,7 +247,7 @@ const startCronJob = (io) => {
         startTime.setMinutes(minute);
         startTime.setSeconds(0);
 
-        const endTime = new Date(startTime.getTime() + 30 * 60 * 1000); // 30 menit
+        const endTime = new Date(startTime.getTime() + 1 * 60 * 1000); // 1 menit
 
         if (
           startTime <= now &&
@@ -296,7 +296,7 @@ const startCronJob = (io) => {
         startTime.setMinutes(minute);
         startTime.setSeconds(0);
 
-        const endTime = new Date(startTime.getTime() + 30 * 60 * 1000); // 30 menit
+        const endTime = new Date(startTime.getTime() + 1 * 60 * 1000); // 1 menit
 
         if (now >= endTime) {
           jadwal.status_konsul = "selesai";
