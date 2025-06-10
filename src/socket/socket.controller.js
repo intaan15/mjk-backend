@@ -35,11 +35,21 @@ const createSocketServer = (server) => {
         }
 
         const jadwal = chatList.jadwal;
+        console.log("Jadwal:", jadwal);
+
         const [hour, minute] = jadwal.jam_konsul.split(":").map(Number);
+        if (isNaN(hour) || isNaN(minute)) {
+          throw new Error("jam_konsul tidak valid: " + jadwal.jam_konsul);
+        }
+
         const startTime = new Date(jadwal.tgl_konsul);
         startTime.setHours(hour);
         startTime.setMinutes(minute);
         startTime.setSeconds(0);
+
+        console.log("Start Time:", startTime.toISOString());
+        console.log("Now:", new Date().toISOString());
+
 
         const endTime = new Date(startTime.getTime() + 3 * 60 * 1000); // 30 menit
         const now = new Date();
