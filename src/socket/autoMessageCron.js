@@ -81,22 +81,22 @@ const startCronJob = (io) => {
               lastMessage: pesanTemplate,
               lastMessageDate: now,
               status: "berlangsung",
-              unreadCount: {
-                [dokterId.toString()]: 0,
-                [masyarakatId.toString()]: 1,
-              },
+              // unreadCount: {
+              //   [dokterId.toString()]: 0,
+              //   [masyarakatId.toString()]: 1,
+              // },
             });
           } else {
             chatlist.lastMessage = pesanTemplate;
             chatlist.lastMessageDate = now;
             chatlist.status = "berlangsung";
             chatlist.jadwal = jadwal._id;
-            const currentUnread =
-              chatlist.unreadCount.get(masyarakatId.toString()) || 0;
-            chatlist.unreadCount.set(
-              masyarakatId.toString(),
-              currentUnread + 1
-            );
+            // const currentUnread =
+            //   chatlist.unreadCount.get(masyarakatId.toString()) || 0;
+            // chatlist.unreadCount.set(
+            //   masyarakatId.toString(),
+            //   currentUnread + 1
+            // );
             await chatlist.save();
           }
 
