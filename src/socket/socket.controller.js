@@ -19,42 +19,6 @@ const createSocketServer = (server) => {
       console.log(`Socket ${socket.id} joined room: ${userId}`);
     });
 
-    
-    socket.on("resetUnreadCount", async ({ chatId, userId }) => {
-      try {
-        const chat = await ChatList.findById(chatId);
-
-        if (!chat) {
-          console.warn("ChatList tidak ditemukan:", chatId);
-          return;
-        }
-
-        // Reset unread count
-        chat.unreadCount[userId] = 0;
-        await chat.save();
-
-        // Emit ke user terkait agar UI update
-        io.to(userId).emit("unreadCountUpdated", {
-          chatId,
-          unreadCount: chat.unreadCount,
-        });
-
-        // Emit ke peserta lain jika mau
-        const otherUserId = Object.keys(chat.unreadCount).find(
-          (id) => id !== userId
-        );
-        if (otherUserId) {
-          io.to(otherUserId).emit("unreadCountUpdated", {
-            chatId,
-            unreadCount: chat.unreadCount,
-          });
-        }
-      } catch (error) {
-        console.error("Gagal reset unread count:", error.message);
-      }
-    });
-    
-
     socket.on("chat message", async (msg) => {
       try {
         const { senderId, receiverId, text, role } = msg;
@@ -77,7 +41,7 @@ const createSocketServer = (server) => {
         startTime.setMinutes(minute);
         startTime.setSeconds(0);
 
-        const endTime = new Date(startTime.getTime() + 3 * 60 * 1000); // 30 menit normal
+        const endTime = new Date(startTime.getTime() + 3 * 60 * 1000); // 30 menit
         const now = new Date();
 
         // 2. Jika sudah lewat waktu atau status selesai, tolak pengiriman
@@ -88,7 +52,7 @@ const createSocketServer = (server) => {
           });
         }
 
-        // 3. Kalau masih berlangsung → lanjut simpan & emit pesan
+        // 3. Simpan & emit pesan
         const newChat = await Chat.create({
           senderId,
           receiverId,
@@ -100,20 +64,60 @@ const createSocketServer = (server) => {
         io.to(receiverId).emit("chat message", newChat);
         io.to(senderId).emit("chat message", newChat);
 
-        // Update last message di ChatList
+        // Update last message
         chatList.lastMessage = text;
         chatList.lastMessageDate = now;
-        const currentUnread =
-          chatList.unreadCount.get(receiverId.toString()) || 0;
-        chatList.unreadCount.set(receiverId.toString(), currentUnread + 1);
         await chatList.save();
       } catch (error) {
-        console.error("❌ Error saat mengirim pesan:", error);
+        console.error(
+          "❌ Error saat mengirim pesan:",
+          error.message,
+          error.stack
+        );
         socket.emit("errorMessage", {
           message: "❌ Terjadi kesalahan saat mengirim pesan.",
         });
       }
     });
+
+    
+    // socket.on("resetUnreadCount", async ({ chatId, userId }) => {
+    //   try {
+    //     const chat = await ChatList.findById(chatId);
+
+    //     if (!chat) {
+    //       console.warn("ChatList tidak ditemukan:", chatId);
+    //       return;
+    //     }
+
+    //     // Reset unread count
+    //     chat.unreadCount[userId] = 0;
+    //     await chat.save();
+
+    //     // Emit ke user terkait agar UI update
+    //     io.to(userId).emit("unreadCountUpdated", {
+    //       chatId,
+    //       unreadCount: chat.unreadCount,
+    //     });
+
+    //     // Emit ke peserta lain jika mau
+    //     const otherUserId = Object.keys(chat.unreadCount).find(
+    //       (id) => id !== userId
+    //     );
+    //     if (otherUserId) {
+    //       io.to(otherUserId).emit("unreadCountUpdated", {
+    //         chatId,
+    //         unreadCount: chat.unreadCount,
+    //       });
+    //     }
+    //   } catch (error) {
+    //     console.error("Gagal reset unread count:", error.message);
+    //   }
+    // });
+    
+
+    
+    
     
 
     // BESOK LAGI INI 

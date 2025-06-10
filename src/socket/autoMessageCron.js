@@ -69,7 +69,7 @@ const startCronJob = (io) => {
             "participants.user": { $all: [dokterId, masyarakatId] },
             // jadwal: jadwal._id,
           });
-
+          
 
           if (!chatlist) {
             chatlist = await ChatList.create({
@@ -161,20 +161,14 @@ const startCronJob = (io) => {
           if (jadwal.status_konsul !== "selesai") {
             jadwal.status_konsul = "selesai";
             await jadwal.save();
-            console.log(`✅ Status Jadwal ${ jadwal._id } berhasil diubah ke selesai`);
-
-            // Kirim notifikasi ke frontend via socket.io
-            io.to(chat.participants[0].user.toString()).emit("consultationStatus", {
-              jadwalId: jadwal._id,
-              status: "selesai",
-            });
-            io.to(chat.participants[1].user.toString()).emit("consultationStatus", {
-              jadwalId: jadwal._id,
-              status: "selesai",
-            });
+            console.log(
+              `✅ Status Jadwal ${jadwal._id} berhasil diubah ke 'selesai'`
+            );
           }
 
-          console.log(`⏹ Jadwal ${ jadwal._id } & ChatList ${ chat._id } otomatis jadi selesai`);
+          console.log(
+            `⏹️ Jadwal ${jadwal._id} & ChatList ${chat._id} otomatis jadi 'selesai'`
+          );
         }
       }
     } catch (err) {
@@ -221,7 +215,7 @@ const startCronJob = (io) => {
             `⏳ Jadwal ${jadwal._id} belum waktunya atau sudah selesai.`
           );
         }
-
+        
       }
     } catch (err) {
       console.error("❌ Gagal update status selesai (ChatList):", err);
