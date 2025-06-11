@@ -14,7 +14,7 @@ const verifyToken = require("../middleware/verifyToken");
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "public/images/");
+    cb(null, "public/imagesdokter/");
   },
   filename: function (req, file, cb) {
     const originalName = file.originalname;
@@ -38,7 +38,7 @@ router.post("/upload", verifyToken, upload.single("image"), async (req, res) => 
       return res.status(400).json({ error: "File tidak ditemukan" });
     }
 
-    const filePath = `/images/${req.file.filename}`;
+    const filePath = `/imagesdokter/${req.file.filename}`;
 
     const updated = await Dokter.findByIdAndUpdate(dokterId, {
       foto_profil_dokter: filePath,

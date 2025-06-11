@@ -28,7 +28,7 @@ const startCronJob = (io) => {
         const { tgl_konsul, jam_konsul } = jadwal;
 
         if (!tgl_konsul || !jam_konsul || !jam_konsul.includes(":")) {
-          console.log(`⚠️ Jadwal tidak lengkap, dilewati: ${jadwal._id}`);
+          // console.log(`⚠️ Jadwal tidak lengkap, dilewati: ${jadwal._id}`);
           continue;
         }
 
@@ -92,7 +92,7 @@ const startCronJob = (io) => {
         } = jadwal;
 
         if (!dokter || !masyarakat || !jam_konsul) {
-          console.log("⚠️ Jadwal tidak lengkap, dilewati:", jadwal._id);
+          // console.log("⚠️ Jadwal tidak lengkap, dilewati:", jadwal._id);
           continue;
         }
 
@@ -184,7 +184,7 @@ const startCronJob = (io) => {
         const { tgl_konsul, jam_konsul } = jadwal;
 
         if (!tgl_konsul || !jam_konsul || !jam_konsul.includes(":")) {
-          console.log(`⚠️ Jadwal tidak lengkap/salah format: ${jadwal._id}`);
+          // console.log(`⚠️ Jadwal tidak lengkap/salah format: ${jadwal._id}`);
           continue;
         }
 
@@ -286,7 +286,7 @@ const startCronJob = (io) => {
         const { tgl_konsul, jam_konsul } = jadwal;
 
         if (!tgl_konsul || !jam_konsul || !jam_konsul.includes(":")) {
-          console.log(`⚠️ Jadwal tidak lengkap (fallback): ${jadwal._id}`);
+          // console.log(`⚠️ Jadwal tidak lengkap (fallback): ${jadwal._id}`);
           continue;
         }
 
