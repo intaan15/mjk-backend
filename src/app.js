@@ -26,36 +26,43 @@ console.log("Mulai aplikasi..");
 // console.log("  __dirname:", __dirname);
 // console.log("  process.cwd():", process.cwd());
 
-// Coba beberapa kemungkinan path untuk static files
-const possiblePaths = [
-  path.join(__dirname, "public/imagesdokter"), // ./src/public/imagesdokter
-  path.join(__dirname, "../public/imagesdokter"), // ./public/imagesdokter (jika src di subfolder)
-  path.join(process.cwd(), "public/imagesdokter"), // dari root project
-  path.join(process.cwd(), "src/public/imagesdokter"), // dari root dengan src folder
-];
+// Function untuk setup static folder
+function setupStaticFolder(folderName) {
+  const possiblePaths = [
+    path.join(__dirname, `public/${folderName}`), // ./src/public/[folder]
+    path.join(__dirname, `../public/${folderName}`), // ./public/[folder] (jika src di subfolder)
+    path.join(process.cwd(), `public/${folderName}`), // dari root project
+    path.join(process.cwd(), `src/public/${folderName}`), // dari root dengan src folder
+  ];
 
-let staticPath = null;
+  let staticPath = null;
 
-// Cek path mana yang exist
-for (const testPath of possiblePaths) {
-  // console.log(
-  //   `  Testing path: ${testPath} - Exists: ${fs.existsSync(testPath)}`
-  // );
-  if (fs.existsSync(testPath)) {
-    staticPath = testPath;
-    break;
+  // Cek path mana yang exist
+  for (const testPath of possiblePaths) {
+    // console.log(
+    //   `  Testing path: ${testPath} - Exists: ${fs.existsSync(testPath)}`
+    // );
+    if (fs.existsSync(testPath)) {
+      staticPath = testPath;
+      break;
+    }
   }
+
+  // Jika tidak ada yang exist, buat folder
+  if (!staticPath) {
+    const defaultPath = path.join(__dirname, `public/${folderName}`);
+    console.log(`  📁 Creating default folder: ${defaultPath}`);
+    fs.mkdirSync(defaultPath, { recursive: true });
+    staticPath = defaultPath;
+  }
+
+  console.log(`✅ Static files path for ${folderName}:`, staticPath);
+  return staticPath;
 }
 
-// Jika tidak ada yang exist, buat folder
-if (!staticPath) {
-  const defaultPath = path.join(__dirname, "public/imagesdokter");
-  console.log("  📁 Creating default folder:", defaultPath);
-  fs.mkdirSync(defaultPath, { recursive: true });
-  staticPath = defaultPath;
-}
-
-// console.log("✅ Static files path:", staticPath);
+// Setup static folders
+const imagesdokterPath = setupStaticFolder("imagesdokter");
+const imagesmasyarakatPath = setupStaticFolder("imagesmasyarakat");
 
 mongoose
   .connect(MONGO_URL)
@@ -70,17 +77,66 @@ app.use(bodyparser.json());
 app.use(cors());
 
 // STATIC FILES CONFIGURATION
-app.use("/imagesdokter", express.static(staticPath));
+app.use("/imagesdokter", express.static(imagesdokterPath));
+app.use("/imagesmasyarakat", express.static(imagesmasyarakatPath));
 
-// Debug route untuk test akses file
+// Debug route untuk test akses file imagesdokter
 app.get("/debug/imagesdokter", (req, res) => {
   try {
-    const files = fs.readdirSync(staticPath);
+    const files = fs.readdirSync(imagesdokterPath);
     res.json({
-      staticPath: staticPath,
+      staticPath: imagesdokterPath,
       files: files,
       totalFiles: files.length,
-      sampleAccess: files.length > 0 ? `/imagesdokter/${files[0]}` : "No files yet",
+      sampleAccess:
+        files.length > 0 ? `/imagesdokter/${files[0]}` : "No files yet",
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Debug route untuk test akses file imagesmasyarakat
+app.get("/debug/imagesmasyarakat", (req, res) => {
+  try {
+    const files = fs.readdirSync(imagesmasyarakatPath);
+    res.json({
+      staticPath: imagesmasyarakatPath,
+      files: files,
+      totalFiles: files.length,
+      sampleAccess:
+        files.length > 0 ? `/imagesmasyarakat/${files[0]}` : "No files yet",
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Debug route untuk semua static folders
+app.get("/debug/static", (req, res) => {
+  try {
+    const dokterFiles = fs.readdirSync(imagesdokterPath);
+    const masyarakatFiles = fs.readdirSync(imagesmasyarakatPath);
+
+    res.json({
+      imagesdokter: {
+        path: imagesdokterPath,
+        files: dokterFiles,
+        totalFiles: dokterFiles.length,
+        sampleAccess:
+          dokterFiles.length > 0
+            ? `/imagesdokter/${dokterFiles[0]}`
+            : "No files yet",
+      },
+      imagesmasyarakat: {
+        path: imagesmasyarakatPath,
+        files: masyarakatFiles,
+        totalFiles: masyarakatFiles.length,
+        sampleAccess:
+          masyarakatFiles.length > 0
+            ? `/imagesmasyarakat/${masyarakatFiles[0]}`
+            : "No files yet",
+      },
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -121,8 +177,22 @@ app.set("trust proxy", 1);
 httpServer.listen(PORT, () => {
   console.log("server port = " + PORT);
   console.log(`🌐 Server running at: http://localhost:${PORT}`);
-  // console.log(`📷 Images accessible at: http://localhost:${PORT}/images/`);
-  // console.log(`🔍 Debug images at: http://localhost:${PORT}/debug/images`);
+  console.log(
+    `👨‍⚕️ Images dokter accessible at: http://localhost:${PORT}/imagesdokter/`
+  );
+  console.log(
+    `👥 Images masyarakat accessible at: http://localhost:${PORT}/imagesmasyarakat/`
+  );
+  console.log(
+    `🔍 Debug dokter images at: http://localhost:${PORT}/debug/imagesdokter`
+  );
+  console.log(
+    `🔍 Debug masyarakat images at: http://localhost:${PORT}/debug/imagesmasyarakat`
+  );
+  console.log(
+    `🔍 Debug all static files at: http://localhost:${PORT}/debug/static`
+  );
 });
 
 module.exports = app;
+ 

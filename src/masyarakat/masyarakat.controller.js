@@ -11,7 +11,7 @@ const masyarakatAuthorization = require("../middleware/masyarakatAuthorization")
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "public/images/");
+    cb(null, "public/imagesmasyarakat/");
   },
   filename: function (req, file, cb) {
     const originalName = file.originalname;
@@ -36,7 +36,7 @@ router.post("/upload", upload.single("image"), async (req, res) => {
       return res.status(400).json({ error: "File tidak ditemukan" });
     }
 
-    const filePath = `/images/${req.file.filename}`;
+    const filePath = `/imagesmasyarakat/${req.file.filename}`;
     const updated = await masyarakat.findByIdAndUpdate(masyarakatId, {
       foto_profil_masyarakat: filePath,
     });
