@@ -1,6 +1,6 @@
 node_modules/
 .env
-access.log
-public/imagesdokter
-public/imagesmasyarakat
+src/access.log
+# public/imagesdokter
+# public/imagesmasyarakat
 # public/imageschat
