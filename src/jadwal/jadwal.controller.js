@@ -22,12 +22,28 @@ router.post("/create", verifyToken, async (req, res) => {
 router.get("/getall", verifyToken, async (req, res) => {
   try {
     const allJadwal = await Jadwal.find()
-      .populate({ path: "masyarakat_id", select: "nama_masyarakat" })
+      .populate({
+        path: "masyarakat_id",
+        select: "nama_masyarakat foto_profil_masyarakat", // ✅ TAMBAHKAN foto_profil_masyarakat
+      })
       .populate({
         path: "dokter_id",
         select: "nama_dokter rating_dokter spesialis_dokter",
       })
       .sort({ createdAt: -1 });
+
+    // 🔍 DEBUG: Log data untuk memastikan foto_profil ada
+    // console.log(
+    //   "📊 Sample jadwal data:",
+    //   JSON.stringify(allJadwal[0], null, 2)
+    // );
+    if (allJadwal.length > 0 && allJadwal[0].masyarakat_id) {
+      // console.log("👤 Masyarakat data:", allJadwal[0].masyarakat_id);
+      // console.log(
+      //   "📷 Foto profil:",
+      //   allJadwal[0].masyarakat_id.foto_profil_masyarakat
+      // );
+    }
 
     res.status(200).json(allJadwal);
   } catch (error) {
@@ -40,7 +56,10 @@ router.get("/getall", verifyToken, async (req, res) => {
 router.get("/getbyid/:id", verifyToken, async (req, res) => {
   try {
     const oneJadwal = await Jadwal.findById(req.params.id)
-      .populate({ path: "masyarakat_id", select: "nama_masyarakat" })
+      .populate({
+        path: "masyarakat_id",
+        select: "nama_masyarakat foto_profil_masyarakat", // ✅ TAMBAHKAN foto_profil_masyarakat
+      })
       .populate({
         path: "dokter_id",
         select: "nama_dokter rating_dokter spesialis_dokter",
@@ -191,7 +210,5 @@ router.post("/:id/terima", verifyToken, async (req, res) => {
     return res.status(500).json({ message: "Gagal menerima jadwal" });
   }
 });
-
-
 
 module.exports = router;

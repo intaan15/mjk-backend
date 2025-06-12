@@ -145,7 +145,7 @@ const createSocketServer = (server) => {
           if (!isNaN(hour) && !isNaN(minute)) {
             const startTime = new Date(jadwal.tgl_konsul);
             startTime.setHours(hour, minute, 0, 0);
-            const endTime = new Date(startTime.getTime() + 30 * 60 * 1000);
+            const endTime = new Date(startTime.getTime() + 120 * 60 * 1000);
             const now = new Date();
 
             if (now >= endTime) {
