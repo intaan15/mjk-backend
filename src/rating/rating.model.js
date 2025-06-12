@@ -2,17 +2,18 @@ const mongoose = require("mongoose");
 
 const ratingSchema = new mongoose.Schema({
   jadwal: {
-    type: mongoose.Schema.Types.ObjectId, 
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "jadwal",
     required: true,
   },
   masyarakat_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Masyarakat", 
+    ref: "Masyarakat",
     required: true,
   },
   dokter_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Dokter", 
+    ref: "Dokter",
     required: true,
   },
   rating: {
@@ -27,11 +28,11 @@ ratingSchema.index({ jadwal: 1, masyarakat_id: 1 }, { unique: true });
 
 ratingSchema.pre("save", async function (next) {
   try {
-    const dokter = await mongoose.model("Dokter").findOne({
-      _id: this.dokter_id,
-      "jadwal._id": this.jadwal,
+    const jadwal = await mongoose.model("jadwal").findOne({
+      _id: this.jadwal,
+      dokter_id: this.dokter_id, 
     });
-    if (!dokter) {
+    if (!jadwal) {
       throw new Error("Jadwal atau dokter tidak valid");
     }
     next();
