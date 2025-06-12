@@ -28,7 +28,7 @@ router.get("/getall", verifyToken, async (req, res) => {
       })
       .populate({
         path: "dokter_id",
-        select: "nama_dokter rating_dokter spesialis_dokter",
+        select: "nama_dokter rating_dokter spesialis_dokter foto_profil_dokter", // ✅ TAMBAHKAN foto_profil_dokter
       })
       .sort({ createdAt: -1 });
 
@@ -37,12 +37,21 @@ router.get("/getall", verifyToken, async (req, res) => {
     //   "📊 Sample jadwal data:",
     //   JSON.stringify(allJadwal[0], null, 2)
     // );
-    if (allJadwal.length > 0 && allJadwal[0].masyarakat_id) {
-      // console.log("👤 Masyarakat data:", allJadwal[0].masyarakat_id);
-      // console.log(
-      //   "📷 Foto profil:",
-      //   allJadwal[0].masyarakat_id.foto_profil_masyarakat
-      // );
+    if (allJadwal.length > 0) {
+      if (allJadwal[0].masyarakat_id) {
+        // console.log("👤 Masyarakat data:", allJadwal[0].masyarakat_id);
+        // console.log(
+        //   "📷 Foto profil masyarakat:",
+        //   allJadwal[0].masyarakat_id.foto_profil_masyarakat
+        // );
+      }
+      if (allJadwal[0].dokter_id) {
+        // console.log("👨‍⚕️ Dokter data:", allJadwal[0].dokter_id);
+        // console.log(
+        //   "📷 Foto profil dokter:",
+        //   allJadwal[0].dokter_id.foto_profil_dokter
+        // );
+      }
     }
 
     res.status(200).json(allJadwal);
@@ -62,7 +71,7 @@ router.get("/getbyid/:id", verifyToken, async (req, res) => {
       })
       .populate({
         path: "dokter_id",
-        select: "nama_dokter rating_dokter spesialis_dokter",
+        select: "nama_dokter rating_dokter spesialis_dokter foto_profil_dokter", // ✅ TAMBAHKAN foto_profil_dokter
       });
 
     if (!oneJadwal)
