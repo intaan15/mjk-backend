@@ -57,7 +57,7 @@ router.post("/upload", verifyToken, upload.single("image"), async (req, res) => 
 
 router.post("/upload/admin", verifyToken, upload.single("foto"), (req, res) => {
   try {
-    const filePath = `/images/${req.file.filename}`;
+    const filePath = `/imagesdokter/${req.file.filename}`;
     res.status(200).json({ message: "Upload berhasil", path: filePath });
   } catch (error) {
     res.status(500).json({ message: "Upload gagal", error });
