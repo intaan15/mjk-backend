@@ -295,7 +295,8 @@ function setupStaticFolder(folderName) {
 // Setup static folders
 const imagesdokterPath = setupStaticFolder("imagesdokter");
 const imagesmasyarakatPath = setupStaticFolder("imagesmasyarakat");
-const imageartikelPath = setupStaticFolder("imageartikel");
+const imagesartikelPath = setupStaticFolder("imagesartikel");
+const imageschatPath = setupStaticFolder("imageschat");
 
 mongoose
   .connect(MONGO_URL)
@@ -312,7 +313,8 @@ app.use(cors());
 // STATIC FILES CONFIGURATION
 app.use("/imagesdokter", express.static(imagesdokterPath));
 app.use("/imagesmasyarakat", express.static(imagesmasyarakatPath));
-app.use("/imageartikel", express.static(imageartikelPath));
+app.use("/imagesartikel", express.static(imagesartikelPath));
+app.use("/imageschat", express.static(imageschatPath));
 
 // Test route
 app.get("/api/test", (req, res) => {
@@ -355,7 +357,10 @@ httpServer.listen(PORT, () => {
     `👥 Images masyarakat accessible at: http://localhost:${PORT}/imagesmasyarakat/`
   );
   console.log(
-    `📄 Images artikel accessible at: http://localhost:${PORT}/imageartikel/`
+    `📄 Images artikel accessible at: http://localhost:${PORT}/imagesartikel/`
+  );
+  console.log(
+    `📠 Images artikel accessible at: http://localhost:${PORT}/imageschat/`
   );
 });
 
