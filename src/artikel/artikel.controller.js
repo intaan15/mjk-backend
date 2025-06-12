@@ -10,11 +10,11 @@ const verifyToken = require("../middleware/verifyToken")
 // Konfigurasi tempat penyimpanan file
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "public/images"); // folder tujuan
+    cb(null, "public/imagesartikel"); 
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + path.extname(file.originalname)); // beri nama unik
+    cb(null, uniqueSuffix + path.extname(file.originalname));
   },
 });
 
@@ -23,7 +23,7 @@ const upload = multer({ storage: storage });
 // Endpoint upload file
 router.post("/upload", verifyToken, upload.single("foto"), (req, res) => {
   try {
-    const filePath = `/images/${req.file.filename}`;
+    const filePath = `/imagesartikel/${req.file.filename}`;
     res.status(200).json({ message: "Upload berhasil", path: filePath });
   } catch (error) {
     res.status(500).json({ message: "Upload gagal", error });
