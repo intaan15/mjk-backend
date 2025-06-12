@@ -26,19 +26,4 @@ const ratingSchema = new mongoose.Schema({
 
 ratingSchema.index({ jadwal: 1, masyarakat_id: 1 }, { unique: true });
 
-ratingSchema.pre("save", async function (next) {
-  try {
-    const jadwal = await mongoose.model("jadwal").findOne({
-      _id: this.jadwal,
-      dokter_id: this.dokter_id, 
-    });
-    if (!jadwal) {
-      throw new Error("Jadwal atau dokter tidak valid");
-    }
-    next();
-  } catch (error) {
-    next(error);
-  }
-});
-
 module.exports = mongoose.model("Rating", ratingSchema, "rating");
