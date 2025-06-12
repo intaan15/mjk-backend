@@ -23,16 +23,28 @@ const createSocketServer = (server) => {
   // Fungsi untuk menyimpan gambar
   const saveImageToFile = (imageData, filename) => {
     try {
+      console.log("💾 Mulai menyimpan gambar:");
+      console.log("- Filename:", filename);
+      console.log("- ImageData length:", imageData.length);
+      console.log("- ImageData preview:", imageData.substring(0, 50) + "...");
+
       // Hapus header data:image/jpeg;base64, atau data:image/png;base64,
       const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, "");
+      console.log(
+        "- Base64 data length after header removal:",
+        base64Data.length
+      );
 
       const filePath = path.join(imagesDir, filename);
+      console.log("- Full file path:", filePath);
+
       fs.writeFileSync(filePath, base64Data, "base64");
 
       console.log("✅ Gambar berhasil disimpan:", filePath);
       return `/imageschat/${filename}`; // Return relative path untuk URL
     } catch (error) {
       console.error("❌ Error menyimpan gambar:", error.message);
+      console.error("❌ Error stack:", error.stack);
       throw error;
     }
   };
@@ -56,6 +68,22 @@ const createSocketServer = (server) => {
     socket.on("chat message", async (msg) => {
       try {
         const { senderId, receiverId, text, role, type, image } = msg;
+
+        // DEBUG: Log seluruh data yang diterima
+        console.log("🔍 DEBUG - Data lengkap yang diterima:");
+        console.log("- senderId:", senderId);
+        console.log("- receiverId:", receiverId);
+        console.log("- type:", type);
+        console.log("- text:", text);
+        console.log("- role:", role);
+        console.log("- hasImage:", !!image);
+        console.log("- imageLength:", image ? image.length : 0);
+        console.log("- imageType:", image ? typeof image : "undefined");
+
+        if (image) {
+          console.log("- imagePreview:", image.substring(0, 50) + "...");
+        }
+
         console.log(
           "📩 Menerima pesan dari:",
           senderId,
@@ -150,25 +178,56 @@ const createSocketServer = (server) => {
           waktu: new Date(),
         };
 
+        // DEBUG: Log sebelum memproses
+        console.log("🔍 DEBUG - Sebelum memproses:");
+        console.log("- Kondisi type === 'image':", type === "image");
+        console.log("- Kondisi !!image:", !!image);
+        console.log("- Gabungan kondisi:", type === "image" && !!image);
+
         // Tambahkan field berdasarkan type
-        if (type === "image" && image) {
+        if (type === "image" && image && image.trim() !== "") {
+          console.log("🖼️ Memproses gambar...");
+
+          // Validasi format base64
+          if (!image.startsWith("data:image/")) {
+            throw new Error(
+              "Format gambar tidak valid. Harus berupa base64 dengan header data:image/"
+            );
+          }
+
           // Deteksi format gambar dari base64 header
           const imageFormat = image.match(/^data:image\/([a-z]+);base64,/);
           const fileExtension = imageFormat ? imageFormat[1] : "jpg";
 
+          console.log("📝 Format gambar terdeteksi:", fileExtension);
+
           // Generate nama file unik
           const filename = generateImageFilename(senderId, fileExtension);
+          console.log("📝 Nama file yang akan dibuat:", filename);
 
           // Simpan gambar ke file
           const imagePath = saveImageToFile(image, filename);
 
           chatData.image = imagePath; // Simpan path relatif
-          chatData.text = null; // Set text null untuk image
+          chatData.text = text || null; // Tetap simpan text jika ada
 
-          console.log("📷 Gambar disimpan dengan path:", imagePath);
-        } else {
+          console.log("✅ Gambar berhasil disimpan dengan path:", imagePath);
+        } else if (type === "text" || !type) {
+          console.log("📝 Memproses text...");
           chatData.text = text;
           chatData.image = null; // Set image null untuk text
+        } else {
+          console.log("⚠️ Kondisi tidak terpenuhi untuk menyimpan gambar:");
+          console.log("- type:", type);
+          console.log("- image exists:", !!image);
+          console.log(
+            "- image empty:",
+            image === "" || image === null || image === undefined
+          );
+
+          // Default ke text jika kondisi tidak jelas
+          chatData.text = text;
+          chatData.image = null;
         }
 
         const newChat = await Chat.create(chatData);
