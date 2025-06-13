@@ -12,6 +12,7 @@ const masyarakatAuthorization = require("../middleware/masyarakatAuthorization")
 const adminAuthorization = require("../middleware/adminAuthorization");
 const verifyToken = require("../middleware/verifyToken");
 
+// Konfigurasi tempat penyimpanan file
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, "public/imagesdokter/");
@@ -22,46 +23,144 @@ const storage = multer.diskStorage({
       .toLowerCase()
       .replace(/\s+/g, "-")
       .replace(/[^a-z0-9.\-]/g, "");
-
+    
     const uniqueName = Date.now() + "-" + sanitized;
     cb(null, uniqueName);
   },
 });
 
-const upload = multer({ storage });
+// Konfigurasi multer dengan validasi ukuran file dan tipe file
+const upload = multer({ 
+  storage: storage,
+  limits: {
+    fileSize: 2 * 1024 * 1024, // 2MB dalam bytes
+  },
+  fileFilter: function (req, file, cb) {
+    // Validasi tipe file - hanya menerima gambar
+    const allowedTypes = /jpeg|jpg|png|gif|webp/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
 
-router.post("/upload", verifyToken, upload.single("image"), async (req, res) => {
-  try {
-    const dokterId = req.body.id;
-
-    if (!req.file) {
-      return res.status(400).json({ error: "File tidak ditemukan" });
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Hanya file gambar (JPEG, JPG, PNG, GIF, WEBP) yang diizinkan!'));
     }
-
-    const filePath = `/imagesdokter/${req.file.filename}`;
-
-    const updated = await Dokter.findByIdAndUpdate(dokterId, {
-      foto_profil_dokter: filePath,
-    });
-
-    if (!updated) {
-      return res.status(404).json({ error: "Dokter tidak ditemukan" });
-    }
-
-    res.status(200).json({ message: "Upload berhasil", path: filePath });
-  } catch (err) {
-    console.error("Upload error:", err);
-    res.status(500).json({ error: "Upload gagal" });
   }
 });
 
-router.post("/upload/admin", verifyToken, upload.single("foto"), (req, res) => {
-  try {
-    const filePath = `/imagesdokter/${req.file.filename}`;
-    res.status(200).json({ message: "Upload berhasil", path: filePath });
-  } catch (error) {
-    res.status(500).json({ message: "Upload gagal", error });
-  }
+// Endpoint upload file dengan update ke database dokter
+router.post("/upload", verifyToken, (req, res) => {
+  upload.single("image")(req, res, async function (err) {
+    if (err instanceof multer.MulterError) {
+      // Error dari multer
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ 
+          message: "Ukuran file terlalu besar. Maksimal 2MB diizinkan.",
+          error: "FILE_TOO_LARGE"
+        });
+      }
+      return res.status(400).json({ 
+        message: "Error upload file", 
+        error: err.message 
+      });
+    } else if (err) {
+      // Error custom dari fileFilter
+      return res.status(400).json({ 
+        message: err.message,
+        error: "INVALID_FILE_TYPE"
+      });
+    }
+
+    // Jika tidak ada file yang diupload
+    if (!req.file) {
+      return res.status(400).json({ 
+        message: "File tidak ditemukan",
+        error: "NO_FILE"
+      });
+    }
+
+    try {
+      const dokterId = req.body.id;
+      
+      if (!dokterId) {
+        return res.status(400).json({ 
+          message: "ID dokter tidak ditemukan",
+          error: "NO_DOCTOR_ID"
+        });
+      }
+
+      const filePath = `/imagesdokter/${req.file.filename}`;
+
+      const updated = await Dokter.findByIdAndUpdate(dokterId, {
+        foto_profil_dokter: filePath,
+      });
+
+      if (!updated) {
+        return res.status(404).json({ 
+          message: "Dokter tidak ditemukan",
+          error: "DOCTOR_NOT_FOUND"
+        });
+      }
+
+      res.status(200).json({ 
+        message: "Upload berhasil", 
+        path: filePath,
+        filename: req.file.filename,
+        size: req.file.size,
+        originalname: req.file.originalname
+      });
+    } catch (error) {
+      console.error("Upload error:", error);
+      res.status(500).json({ message: "Upload gagal", error: error.message });
+    }
+  });
+});
+
+// Endpoint upload file untuk admin (tanpa update database)
+router.post("/upload/admin", verifyToken, (req, res) => {
+  upload.single("foto")(req, res, function (err) {
+    if (err instanceof multer.MulterError) {
+      // Error dari multer
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ 
+          message: "Ukuran file terlalu besar. Maksimal 2MB diizinkan.",
+          error: "FILE_TOO_LARGE"
+        });
+      }
+      return res.status(400).json({ 
+        message: "Error upload file", 
+        error: err.message 
+      });
+    } else if (err) {
+      // Error custom dari fileFilter
+      return res.status(400).json({ 
+        message: err.message,
+        error: "INVALID_FILE_TYPE"
+      });
+    }
+
+    // Jika tidak ada file yang diupload
+    if (!req.file) {
+      return res.status(400).json({ 
+        message: "File tidak ditemukan",
+        error: "NO_FILE"
+      });
+    }
+
+    try {
+      const filePath = `/imagesdokter/${req.file.filename}`;
+      res.status(200).json({ 
+        message: "Upload berhasil", 
+        path: filePath,
+        filename: req.file.filename,
+        size: req.file.size,
+        originalname: req.file.originalname
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Upload gagal", error: error.message });
+    }
+  });
 });
 
 router.post("/create", adminAuthorization, async (req, res, next) => {
