@@ -312,11 +312,11 @@ app.use(bodyparser.json());
 app.use(cors());
 
 // STATIC FILES CONFIGURATION
-app.use("/imagesdokter", express.static(imagesdokterPath));
-app.use("/imagesmasyarakat", express.static(imagesmasyarakatPath));
-app.use("/imagesartikel", express.static(imagesartikelPath));
-app.use("/imageschat", express.static(imageschatPath));
-app.use("/images", express.static(imagesPath));
+app.use("/api/imagesdokter", express.static(imagesdokterPath));
+app.use("/api/imagesmasyarakat", express.static(imagesmasyarakatPath));
+app.use("/api/imagesartikel", express.static(imagesartikelPath));
+app.use("/api/imageschat", express.static(imageschatPath));
+app.use("/api/images", express.static(imagesPath));
 
 // Test route
 app.get("/api/test", (req, res) => {
