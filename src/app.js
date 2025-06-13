@@ -297,7 +297,7 @@ const imagesdokterPath = setupStaticFolder("imagesdokter");
 const imagesmasyarakatPath = setupStaticFolder("imagesmasyarakat");
 const imagesartikelPath = setupStaticFolder("imagesartikel");
 const imageschatPath = setupStaticFolder("imageschat");
-const imagesPath = setupStaticFolder("images");
+const imagesPath = setupStaticFolder("images-be");
 
 mongoose
   .connect(MONGO_URL)
