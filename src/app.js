@@ -250,7 +250,7 @@ const io = createSocketServer(httpServer);
 const startCronJob = require("./socket/autoMessageCron");
 startCronJob(io);
 
-app.use(logHistory);
+// app.use(logHistory);
 console.log("Mulai aplikasi..");
 
 // Debug path information
@@ -316,7 +316,7 @@ app.use("/imagesdokter", express.static(imagesdokterPath));
 app.use("/imagesmasyarakat", express.static(imagesmasyarakatPath));
 app.use("/imagesartikel", express.static(imagesartikelPath));
 app.use("/imageschat", express.static(imageschatPath));
-app.use("/images", express.static(imagesPath));
+app.use("/images-be", express.static(imagesPath));
 
 // Test route
 app.get("/api/test", (req, res) => {
