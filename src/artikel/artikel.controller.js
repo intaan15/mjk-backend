@@ -158,16 +158,6 @@ router.post("/create", createArtikelLimiter, adminAuthorization, async (req, res
     }
 });
 
-// router.post("/create", adminAuthorization, async (req, res) => {
-//   try {
-//     const newArtikel = new artikel(req.body);
-//     const savedArtikel = await newArtikel.save();
-//     res.status(201).json(savedArtikel);
-//   } catch (error) {
-//     res.status(400).json({ message: error.message });
-//   }
-// });
-
 router.get("/getall", verifyToken, async (req, res) => {
   try {
     const artikels = await artikel.find();

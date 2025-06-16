@@ -6,7 +6,6 @@ const bodyparser = require("body-parser");
 const path = require("path");
 const fs = require("fs");
 const createSocketServer = require("./socket/socket.controller");
-
 dotenv.config();
 const PORT = process.env.PORT;
 const app = express();
@@ -104,6 +103,7 @@ app.use("/api/rating", ratingController);
 app.use("/api/jadwal", jadwalController);
 app.use("/api/captcha", captchaController);
 app.use("/api/admin", adminAuthorization, adminController);
+app.disable('x-powered-by');
 
 app.set("trust proxy", 1);
 
