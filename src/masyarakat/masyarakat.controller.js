@@ -8,6 +8,7 @@ const mongoose = require('mongoose');
 const multer = require("multer");
 const path = require("path");
 const masyarakatAuthorization = require("../middleware/masyarakatAuthorization");
+const createLimiter = require("../middleware/ratelimiter"); 
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -53,7 +54,7 @@ router.post("/upload", upload.single("image"), async (req, res) => {
   }
 });
 
-router.post("/create", verifyToken, async (req, res) => {
+router.post("/create", createLimiter, verifyToken, async (req, res) => {
   try {
     const {
       nama_masyarakat,

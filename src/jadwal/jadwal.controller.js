@@ -1,12 +1,13 @@
 const express = require("express");
 const router = express.Router();
-const Jadwal = require("./jadwal.model"); // model Jadwal
+const Jadwal = require("./jadwal.model"); 
 const verifyToken = require("../middleware/verifyToken");
 const Chat = require("../socket/chat.model");
-const ChatList = require("../socket/chatlist.model"); // import model ChatList
+const ChatList = require("../socket/chatlist.model");
+const createLimiter = require("../middleware/ratelimiter"); 
 
 // Create jadwal baru
-router.post("/create", verifyToken, async (req, res) => {
+router.post("/create", createLimiter, verifyToken, async (req, res) => {
   try {
     const newJadwal = new Jadwal(req.body);
     const savedJadwal = await newJadwal.save();

@@ -11,6 +11,7 @@ const dokterAuthorization = require("../middleware/dokterAuthorization");
 const masyarakatAuthorization = require("../middleware/masyarakatAuthorization");
 const adminAuthorization = require("../middleware/adminAuthorization");
 const verifyToken = require("../middleware/verifyToken");
+const createLimiter = require("../middleware/ratelimiter"); 
 
 // Konfigurasi tempat penyimpanan file
 const storage = multer.diskStorage({
@@ -163,7 +164,7 @@ router.post("/upload/admin", verifyToken, (req, res) => {
   });
 });
 
-router.post("/create", adminAuthorization, async (req, res, next) => {
+router.post("/create", createLimiter, adminAuthorization, async (req, res, next) => {
   try {
     const {
       nama_dokter,

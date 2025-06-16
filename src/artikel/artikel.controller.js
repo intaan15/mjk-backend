@@ -6,7 +6,7 @@ const multer = require("multer");
 const path = require("path");
 const adminAuthorization = require("../middleware/adminAuthorization");
 const verifyToken = require("../middleware/verifyToken");
-const rateLimit = require("express-rate-limit");
+const createLimiter = require("../middleware/ratelimiter"); 
 
 // Konfigurasi tempat penyimpanan file
 const storage = multer.diskStorage({
@@ -106,18 +106,7 @@ const lockManager = {
     }
 };
 
-const createArtikelLimiter = rateLimit({
-    windowMs: 60 * 1000, // 1 menit
-    max: 1, // Maksimal 5 request per menit per IP
-    message: {
-        message: "Terlalu banyak permintaan, coba lagi nanti",
-        error: "RATE_LIMIT_EXCEEDED"
-    },
-    standardHeaders: true,
-    legacyHeaders: false,
-});
-
-router.post("/create", createArtikelLimiter, adminAuthorization, async (req, res) => {
+router.post("/create", createLimiter, adminAuthorization, async (req, res) => {
     const lockKey = `artikel_${req.body.nama_artikel}_${req.body.kategori_artikel}`;
     
     try {
