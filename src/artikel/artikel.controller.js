@@ -7,6 +7,26 @@ const path = require("path");
 const adminAuthorization = require("../middleware/adminAuthorization");
 const verifyToken = require("../middleware/verifyToken");
 const createLimiter = require("../middleware/ratelimiter"); 
+const rateLimit = require('express-rate-limit');
+
+const uploadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 menit
+  max: 2, // maksimal 2 upload per 1 menit per IP
+  message: {
+    message: "Terlalu banyak request upload. Coba lagi dalam 1 menit.",
+    error: "UPLOAD_RATE_LIMIT_EXCEEDED",
+    retryAfter: Math.ceil(1 * 60)
+  },
+  standardHeaders: true,
+  legacyHeaders: false, // menonaktifkan headers `X-RateLimit-*`
+
+  keyGenerator: (req) => {
+    return req.user?.id || req.ip;
+  },
+  skip: (req) => {
+    return false;
+  }
+});
 
 // Konfigurasi tempat penyimpanan file
 const storage = multer.diskStorage({
@@ -45,8 +65,8 @@ const upload = multer({
   },
 });
 
-// Endpoint upload file dengan error handling untuk validasi
-router.post("/upload", verifyToken, (req, res) => {
+// Endpoint upload file dengan rate limiting dan error handling
+router.post("/upload", uploadLimiter, verifyToken, (req, res) => {
   upload.single("foto")(req, res, function (err) {
     if (err instanceof multer.MulterError) {
       // Error dari multer
