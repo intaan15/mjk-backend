@@ -4,13 +4,9 @@ const artikelSchema = new mongoose.Schema({
     nama_artikel: {
         type: String,
         required: true,
+        unique: true,
+        trim: true,
     },
-    // tgl_terbit_artikel: {
-    //     type: Date,
-    //     required: true,
-    //     unique: true,
-    // },
-    
     detail_artikel: {
         type: String,
         required: true,

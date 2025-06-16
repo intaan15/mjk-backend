@@ -6,6 +6,7 @@ const multer = require("multer");
 const path = require("path");
 const adminAuthorization = require("../middleware/adminAuthorization");
 const verifyToken = require("../middleware/verifyToken");
+const rateLimit = require("express-rate-limit");
 
 // Konfigurasi tempat penyimpanan file
 const storage = multer.diskStorage({
@@ -90,15 +91,82 @@ router.post("/upload", verifyToken, (req, res) => {
   });
 });
 
-router.post("/create", adminAuthorization, async (req, res) => {
-  try {
-    const newArtikel = new artikel(req.body);
-    const savedArtikel = await newArtikel.save();
-    res.status(201).json(savedArtikel);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
+const lockManager = {
+    locks: new Set(),
+    
+    async acquireLock(key) {
+        while (this.locks.has(key)) {
+            await new Promise(resolve => setTimeout(resolve, 10));
+        }
+        this.locks.add(key);
+    },
+    
+    releaseLock(key) {
+        this.locks.delete(key);
+    }
+};
+
+const createArtikelLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 menit
+    max: 5, // Maksimal 5 request per menit per IP
+    message: {
+        message: "Terlalu banyak permintaan, coba lagi nanti",
+        error: "RATE_LIMIT_EXCEEDED"
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
 });
+
+router.post("/create", createArtikelLimiter, adminAuthorization, async (req, res) => {
+    const lockKey = `artikel_${req.body.nama_artikel}_${req.body.kategori_artikel}`;
+    
+    try {
+        await lockManager.acquireLock(lockKey);
+
+        const existingArtikel = await artikel.findOne({
+            nama_artikel: req.body.nama_artikel
+        });
+        
+        if (existingArtikel) {
+            return res.status(409).json({
+                message: "Artikel dengan nama tersebut sudah ada",
+                error: "DUPLICATE_ARTIKEL"
+            });
+        }
+        
+        const newArtikel = new artikel(req.body);
+        const savedArtikel = await newArtikel.save();
+        
+        res.status(201).json(savedArtikel);
+        
+    } catch (error) {
+        if (error.code === 11000) {
+            const field = Object.keys(error.keyValue)[0];
+            return res.status(409).json({
+                message: `Artikel dengan ${field} tersebut sudah ada`,
+                error: "DUPLICATE_KEY",
+                field: field
+            });
+        }
+        
+        res.status(400).json({ 
+            message: error.message,
+            error: "CREATE_FAILED"
+        });
+    } finally {
+        lockManager.releaseLock(lockKey);
+    }
+});
+
+// router.post("/create", adminAuthorization, async (req, res) => {
+//   try {
+//     const newArtikel = new artikel(req.body);
+//     const savedArtikel = await newArtikel.save();
+//     res.status(201).json(savedArtikel);
+//   } catch (error) {
+//     res.status(400).json({ message: error.message });
+//   }
+// });
 
 router.get("/getall", verifyToken, async (req, res) => {
   try {
