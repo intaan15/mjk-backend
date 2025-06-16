@@ -300,7 +300,7 @@ router.patch("/update/:id", verifyToken, async (req, res, next) => {
       username_dokter,
       email_dokter,
       str_dokter,
-      password_dokter,
+      // password_dokter,
       rating_dokter,
       notlp_dokter,
     } = req.body;
@@ -362,9 +362,9 @@ router.patch("/update/:id", verifyToken, async (req, res, next) => {
       req.body.notlp_dokter = encrypt(notlp_dokter);
     }
 
-    if (password_dokter) {
-      req.body.password_dokter = await bcrypt.hash(password_dokter, 10);
-    }
+    // if (password_dokter) {
+    //   req.body.password_dokter = await bcrypt.hash(password_dokter, 10);
+    // }
 
     if (rating_dokter !== undefined) {
       req.body.rating_dokter =
