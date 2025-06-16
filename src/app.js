@@ -243,14 +243,12 @@ dotenv.config();
 const PORT = process.env.PORT;
 const app = express();
 const MONGO_URL = process.env.MONGO_URL;
-const logHistory = require("./middleware/loghistory");
 const adminAuthorization = require("./middleware/adminAuthorization");
 const httpServer = require("http").createServer(app);
 const io = createSocketServer(httpServer);
 const startCronJob = require("./socket/autoMessageCron");
 startCronJob(io);
 
-// app.use(logHistory);
 console.log("Mulai aplikasi..");
 
 // Debug path information
