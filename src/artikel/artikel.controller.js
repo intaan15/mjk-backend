@@ -108,7 +108,7 @@ const lockManager = {
 
 const createArtikelLimiter = rateLimit({
     windowMs: 60 * 1000, // 1 menit
-    max: 5, // Maksimal 5 request per menit per IP
+    max: 1, // Maksimal 5 request per menit per IP
     message: {
         message: "Terlalu banyak permintaan, coba lagi nanti",
         error: "RATE_LIMIT_EXCEEDED"
