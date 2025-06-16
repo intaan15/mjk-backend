@@ -7,13 +7,11 @@ const superadmin = require("../admin/admin.model");
 const { encrypt, decrypt } = require("../utils/encryption");
 const router = express.Router();
 const loginLimiter = require("../middleware/ratelimiter");
-// const dokterAuthorization = require('./middleware/dokterAuthorization')
 const multer = require("multer");
-
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-      cb(null, "public/images"); 
+      cb(null, "public/images-be"); 
     },
     filename: function (req, file, cb) {
       const uniqueName = Date.now() + "-" + file.originalname;

@@ -10,7 +10,7 @@ const createLimiter = require("../middleware/ratelimiter");
 const rateLimit = require('express-rate-limit');
 
 const uploadLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 menit
+  windowMs: 60 * 1000, // 1 menit
   max: 2, // maksimal 2 upload per 1 menit per IP
   message: {
     message: "Terlalu banyak request upload. Coba lagi dalam 1 menit.",
