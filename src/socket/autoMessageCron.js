@@ -33,13 +33,22 @@ const startCronJob = (io) => {
         }
 
         const [hour, minute] = jam_konsul.split(":").map(Number);
+        
+        // ✅ PERBAIKAN: Buat objek Date yang tepat dengan timezone
         const konsultasiTime = new Date(tgl_konsul);
-        konsultasiTime.setHours(hour);
-        konsultasiTime.setMinutes(minute);
-        konsultasiTime.setSeconds(0);
+        konsultasiTime.setHours(hour, minute, 0, 0); // Set jam, menit, detik, milidetik
+        
+        // ✅ PERBAIKAN: Tambahkan buffer waktu (misalnya 5 menit) agar tidak langsung ditolak
+        const bufferTime = new Date(konsultasiTime.getTime() - 5 * 60 * 1000); // 5 menit sebelum jadwal
 
-        // Jika waktu konsultasi sudah lewat dan masih status menunggu
+        // ✅ PERBAIKAN: Bandingkan dengan waktu sekarang yang sudah melewati buffer
+        // Hanya tolak jika waktu sekarang sudah melewati waktu konsultasi (bukan hanya jam)
         if (now > konsultasiTime) {
+          console.log(`⏰ Evaluasi jadwal ${jadwal._id}:`);
+          console.log(`   Waktu sekarang: ${now.toLocaleString('id-ID')}`);
+          console.log(`   Waktu konsultasi: ${konsultasiTime.toLocaleString('id-ID')}`);
+          console.log(`   Selisih: ${Math.round((now - konsultasiTime) / (1000 * 60))} menit`);
+          
           // Auto reject jadwal
           jadwal.status_konsul = "ditolak";
           jadwal.alasan_tolak =
@@ -47,7 +56,7 @@ const startCronJob = (io) => {
           await jadwal.save();
 
           console.log(
-            `❌ Jadwal ${jadwal._id} otomatis ditolak karena dokter tidak merespons sebelum jam ${jam_konsul}`
+            `❌ Jadwal ${jadwal._id} otomatis ditolak karena dokter tidak merespons sebelum ${konsultasiTime.toLocaleString('id-ID')}`
           );
 
           // Opsional: Kirim notifikasi ke masyarakat bahwa jadwalnya ditolak
@@ -57,10 +66,16 @@ const startCronJob = (io) => {
               message:
                 "Maaf, jadwal konsultasi Anda otomatis dibatalkan karena dokter tidak merespons sebelum waktu konsultasi.",
               alasan: jadwal.alasan_tolak,
-              waktu_konsul: `${tgl_konsul.toLocaleDateString(
+              waktu_konsul: `${konsultasiTime.toLocaleDateString(
                 "id-ID"
               )} ${jam_konsul}`,
             });
+          }
+        } else {
+          // ✅ TAMBAHAN: Log untuk debugging
+          const minutesUntil = Math.round((konsultasiTime - now) / (1000 * 60));
+          if (minutesUntil < 60) { // Log hanya jika kurang dari 1 jam
+            console.log(`⏳ Jadwal ${jadwal._id} masih ${minutesUntil} menit lagi (${konsultasiTime.toLocaleString('id-ID')})`);
           }
         }
       }
@@ -97,13 +112,13 @@ const startCronJob = (io) => {
         }
 
         const [hour, minute] = jam_konsul.split(":").map(Number);
+        
+        // ✅ PERBAIKAN: Konsisten dengan pembuatan waktu
         const konsultasiTime = new Date(tgl_konsul);
-        konsultasiTime.setHours(hour);
-        konsultasiTime.setMinutes(minute);
-        konsultasiTime.setSeconds(0);
+        konsultasiTime.setHours(hour, minute, 0, 0);
 
         const endTime = new Date(konsultasiTime);
-        endTime.setMinutes(endTime.getMinutes() + 3); // Konsultasi 1 menit
+        endTime.setMinutes(endTime.getMinutes() + 3); // Konsultasi 3 menit
 
         if (now >= konsultasiTime && now < endTime) {
           const dokterId = dokter._id;
@@ -154,12 +169,15 @@ const startCronJob = (io) => {
           await jadwal.save();
 
           console.log(
-            `✅ Pesan otomatis dikirim & status jadi 'berlangsung' untuk jadwal ${jadwal._id}`
+            `✅ Pesan otomatis dikirim & status jadi 'berlangsung' untuk jadwal ${jadwal._id} pada ${konsultasiTime.toLocaleString('id-ID')}`
           );
         } else {
-          console.log(
-            `⏳ Jadwal ${jadwal._id} belum waktunya atau sudah selesai.`
-          );
+          const minutesUntil = Math.round((konsultasiTime - now) / (1000 * 60));
+          if (Math.abs(minutesUntil) < 60) { // Log jika dekat dengan waktu konsultasi
+            console.log(
+              `⏳ Jadwal ${jadwal._id}: ${minutesUntil > 0 ? `${minutesUntil} menit lagi` : `sudah lewat ${Math.abs(minutesUntil)} menit`} (${konsultasiTime.toLocaleString('id-ID')})`
+            );
+          }
         }
       }
     } catch (error) {
@@ -167,7 +185,7 @@ const startCronJob = (io) => {
     }
 
     /* =========================
-    ⏹️ AUTO SELESAI: ChatList yang sudah lewat 1 menit
+    ⏹️ AUTO SELESAI: ChatList yang sudah lewat 3 menit
     ========================= */
     try {
       const chatLists = await ChatList.find({ status: "berlangsung" }).populate(
@@ -189,12 +207,12 @@ const startCronJob = (io) => {
         }
 
         const [hour, minute] = jam_konsul.split(":").map(Number);
+        
+        // ✅ PERBAIKAN: Konsisten dengan pembuatan waktu
         const startTime = new Date(tgl_konsul);
-        startTime.setHours(hour);
-        startTime.setMinutes(minute);
-        startTime.setSeconds(0);
+        startTime.setHours(hour, minute, 0, 0);
 
-        const endTime = new Date(startTime.getTime() + 3 * 60 * 1000); // 1 menit
+        const endTime = new Date(startTime.getTime() + 3 * 60 * 1000); // 3 menit
 
         if (now >= endTime) {
           chat.status = "selesai";
@@ -204,7 +222,7 @@ const startCronJob = (io) => {
             jadwal.status_konsul = "selesai";
             await jadwal.save();
             console.log(
-              `✅ Status Jadwal ${jadwal._id} berhasil diubah ke 'selesai'`
+              `✅ Status Jadwal ${jadwal._id} berhasil diubah ke 'selesai' pada ${now.toLocaleString('id-ID')}`
             );
           }
 
@@ -218,7 +236,7 @@ const startCronJob = (io) => {
           });
 
           console.log(
-            `⏹️ Jadwal ${jadwal._id} & ChatList ${chat._id} otomatis jadi 'selesai'`
+            `⏹️ Jadwal ${jadwal._id} & ChatList ${chat._id} otomatis jadi 'selesai' setelah ${endTime.toLocaleString('id-ID')}`
           );
         }
       }
@@ -242,12 +260,12 @@ const startCronJob = (io) => {
         if (jadwal.status_konsul === "ditolak") continue;
 
         const [hour, minute] = jadwal.jam_konsul.split(":").map(Number);
+        
+        // ✅ PERBAIKAN: Konsisten dengan pembuatan waktu
         const startTime = new Date(jadwal.tgl_konsul);
-        startTime.setHours(hour);
-        startTime.setMinutes(minute);
-        startTime.setSeconds(0);
+        startTime.setHours(hour, minute, 0, 0);
 
-        const endTime = new Date(startTime.getTime() + 3 * 60 * 1000); // 1 menit
+        const endTime = new Date(startTime.getTime() + 3 * 60 * 1000); // 3 menit
 
         if (
           startTime <= now &&
@@ -265,7 +283,7 @@ const startCronJob = (io) => {
             }
 
             console.log(
-              `✅ ChatList ${chat._id} diubah ke 'berlangsung' karena waktunya tiba`
+              `✅ ChatList ${chat._id} diubah ke 'berlangsung' karena waktunya tiba (${startTime.toLocaleString('id-ID')})`
             );
           }
         }
@@ -291,18 +309,18 @@ const startCronJob = (io) => {
         }
 
         const [hour, minute] = jam_konsul.split(":").map(Number);
+        
+        // ✅ PERBAIKAN: Konsisten dengan pembuatan waktu
         const startTime = new Date(tgl_konsul);
-        startTime.setHours(hour);
-        startTime.setMinutes(minute);
-        startTime.setSeconds(0);
+        startTime.setHours(hour, minute, 0, 0);
 
-        const endTime = new Date(startTime.getTime() + 3 * 60 * 1000); // 1 menit
+        const endTime = new Date(startTime.getTime() + 3 * 60 * 1000); // 3 menit
 
         if (now >= endTime) {
           jadwal.status_konsul = "selesai";
           await jadwal.save();
           console.log(
-            `⏹️ Jadwal ${jadwal._id} otomatis jadi 'selesai' [fallback]`
+            `⏹️ Jadwal ${jadwal._id} otomatis jadi 'selesai' [fallback] setelah ${endTime.toLocaleString('id-ID')}`
           );
         }
       }
