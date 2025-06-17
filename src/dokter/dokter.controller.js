@@ -416,14 +416,24 @@ router.patch("/ubah-password", dokterAuthorization, async (req, res) => {
   try {
     const { password_lama, password_baru, konfirmasi_password_baru } = req.body;
 
+    // --- field wajib ---
     if (!password_lama || !password_baru || !konfirmasi_password_baru) {
       return res.status(400).json({ message: "Semua field harus diisi" });
     }
 
+    // --- konfirmasi password ---
     if (password_baru !== konfirmasi_password_baru) {
       return res
         .status(400)
         .json({ message: "Konfirmasi password tidak cocok" });
+    }
+        const passwordRegex =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&/#^()[\]{}<>]).{8,}$/;
+    if (!passwordRegex.test(password_baru)) {
+      return res.status(400).json({
+        message:
+          "Password harus minimal 8 karakter, mengandung huruf besar, huruf kecil, angka, dan simbol",
+      });
     }
 
     const user = await Dokter.findById(req.user.id);
@@ -444,11 +454,12 @@ router.patch("/ubah-password", dokterAuthorization, async (req, res) => {
 
     user.password_dokter = hashedPassword;
     await user.save();
-    res.status(200).json({ message: "Password berhasil diubah" });
+    return res.status(200).json({ message: "Password berhasil diubah" });
   } catch (e) {
-    res.status(500).json({ message: e.message });
+    return res.status(500).json({ message: e.message });
   }
 });
+
 
 // jadwal dokter
 router.get("/jadwal/:dokterId", verifyToken, async (req, res) => {
