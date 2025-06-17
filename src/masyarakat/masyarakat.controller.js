@@ -2,13 +2,33 @@ const express = require("express");
 const bcrypt = require("bcrypt");
 const router = express.Router();
 const masyarakat = require("./masyarakat.model");
-const verifyToken = require("../middleware/verifyToken"); 
+const verifyToken = require("../middleware/verifyToken");
 const { encrypt, decrypt } = require("../utils/encryption");
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 const multer = require("multer");
 const path = require("path");
 const masyarakatAuthorization = require("../middleware/masyarakatAuthorization");
-const createLimiter = require("../middleware/ratelimiter"); 
+const createLimiter = require("../middleware/ratelimiter");
+const rateLimit = require("express-rate-limit");
+
+const uploadLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 menit
+  max: 2, // maksimal 2 upload per 1 menit per IP
+  message: {
+    message: "Terlalu banyak request upload. Coba lagi dalam 1 menit.",
+    error: "UPLOAD_RATE_LIMIT_EXCEEDED",
+    retryAfter: Math.ceil(1 * 60),
+  },
+  standardHeaders: true,
+  legacyHeaders: false, // menonaktifkan headers `X-RateLimit-*`
+
+  keyGenerator: (req) => {
+    return req.user?.id || req.ip;
+  },
+  skip: (req) => {
+    return false;
+  },
+});
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -28,7 +48,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-router.post("/upload", upload.single("image"), async (req, res) => {
+router.post("/upload", uploadLimiter, upload.single("image"), async (req, res) => {
   try {
     const masyarakatId = req.body.id;
 
@@ -189,7 +209,7 @@ router.patch("/update/:id", verifyToken, async (req, res) => {
       email_masyarakat,
       password_masyarakat,
       alamat_masyarakat,
-      notlp_masyarakat, 
+      notlp_masyarakat,
       ...otherFields
     } = req.body;
 
@@ -237,7 +257,7 @@ router.patch("/update/:id", verifyToken, async (req, res) => {
     if (alamat_masyarakat)
       updateData.alamat_masyarakat = encrypt(alamat_masyarakat);
     if (notlp_masyarakat)
-      updateData.notlp_masyarakat = encrypt(notlp_masyarakat); 
+      updateData.notlp_masyarakat = encrypt(notlp_masyarakat);
     if (password_masyarakat) {
       const salt = await bcrypt.genSalt(10);
       updateData.password_masyarakat = await bcrypt.hash(
@@ -258,8 +278,6 @@ router.patch("/update/:id", verifyToken, async (req, res) => {
       .json({ message: "Terjadi kesalahan saat memperbarui data" });
   }
 });
-
-
 
 router.delete("/delete/:id", verifyToken, async (req, res) => {
   try {
@@ -286,7 +304,9 @@ router.patch("/ubah-password", masyarakatAuthorization, async (req, res) => {
     }
 
     if (password_baru !== konfirmasi_password_baru) {
-      return res.status(400).json({ message: "Konfirmasi password tidak cocok" });
+      return res
+        .status(400)
+        .json({ message: "Konfirmasi password tidak cocok" });
     }
 
     const user = await masyarakat.findById(req.user.id);
@@ -294,7 +314,10 @@ router.patch("/ubah-password", masyarakatAuthorization, async (req, res) => {
       return res.status(404).json({ message: "User tidak ditemukan" });
     }
 
-    const validPassword = await bcrypt.compare(password_lama, user.password_masyarakat);
+    const validPassword = await bcrypt.compare(
+      password_lama,
+      user.password_masyarakat
+    );
     if (!validPassword) {
       return res.status(400).json({ message: "Password lama salah" });
     }
@@ -305,7 +328,6 @@ router.patch("/ubah-password", masyarakatAuthorization, async (req, res) => {
     user.password_masyarakat = hashedPassword;
     await user.save();
     res.status(200).json({ message: "Password berhasil diubah" });
-
   } catch (e) {
     res.status(500).json({ message: e.message });
   }

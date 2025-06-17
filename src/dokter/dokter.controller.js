@@ -12,7 +12,26 @@ const masyarakatAuthorization = require("../middleware/masyarakatAuthorization")
 const adminAuthorization = require("../middleware/adminAuthorization");
 const verifyToken = require("../middleware/verifyToken");
 const createLimiter = require("../middleware/ratelimiter"); 
+const rateLimit = require('express-rate-limit');
 
+const uploadLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 menit
+  max: 2, // maksimal 2 upload per 1 menit per IP
+  message: {
+    message: "Terlalu banyak request upload. Coba lagi dalam 1 menit.",
+    error: "UPLOAD_RATE_LIMIT_EXCEEDED",
+    retryAfter: Math.ceil(1 * 60)
+  },
+  standardHeaders: true,
+  legacyHeaders: false, // menonaktifkan headers `X-RateLimit-*`
+
+  keyGenerator: (req) => {
+    return req.user?.id || req.ip;
+  },
+  skip: (req) => {
+    return false;
+  }
+});
 // Konfigurasi tempat penyimpanan file
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -51,7 +70,7 @@ const upload = multer({
 });
 
 // Endpoint upload file dengan update ke database dokter
-router.post("/upload", verifyToken, (req, res) => {
+router.post("/upload", uploadLimiter, verifyToken, (req, res) => {
   upload.single("image")(req, res, async function (err) {
     if (err instanceof multer.MulterError) {
       // Error dari multer
@@ -119,7 +138,7 @@ router.post("/upload", verifyToken, (req, res) => {
 });
 
 // Endpoint upload file untuk admin (tanpa update database)
-router.post("/upload/admin", verifyToken, (req, res) => {
+router.post("/upload/admin", uploadLimiter, verifyToken, (req, res) => {
   upload.single("foto")(req, res, function (err) {
     if (err instanceof multer.MulterError) {
       // Error dari multer

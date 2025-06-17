@@ -68,11 +68,11 @@ router.get("/getbyid/:id", verifyToken, async (req, res) => {
     const oneJadwal = await Jadwal.findById(req.params.id)
       .populate({
         path: "masyarakat_id",
-        select: "nama_masyarakat foto_profil_masyarakat", // ✅ TAMBAHKAN foto_profil_masyarakat
+        select: "nama_masyarakat foto_profil_masyarakat",
       })
       .populate({
         path: "dokter_id",
-        select: "nama_dokter rating_dokter spesialis_dokter foto_profil_dokter", // ✅ TAMBAHKAN foto_profil_dokter
+        select: "nama_dokter rating_dokter spesialis_dokter foto_profil_dokter",
       });
 
     if (!oneJadwal)
