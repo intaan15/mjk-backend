@@ -101,6 +101,17 @@ const storage = multer.diskStorage({
         if (nikExist) {
           return res.status(400).json({ message: "NIK sudah terdaftar" });
         }
+
+        const passwordRegex =
+          /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&/#^()[\]{}<>]).{8,}$/;
+
+        if (!passwordRegex.test(password_masyarakat)) {
+          return res.status(400).json({
+            message:
+              "Password harus minimal 8 karakter, mengandung huruf besar, huruf kecil, angka, dan simbol",
+          });
+        }
+
   
         const hashedPassword = await bcrypt.hash(password_masyarakat, 10);
   
