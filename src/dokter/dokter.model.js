@@ -52,19 +52,6 @@ const dokterSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
-    rating_dokter: {
-      type: Number,
-      required: true,
-      default: 0,
-      min: 0,
-      max: 5,
-    },
-    total_ratings: {
-      type: Number,
-      required: false,
-      default: 0,
-      min: 0,
-    },
     foto_profil_dokter: {
       type: String,
       required: false,
