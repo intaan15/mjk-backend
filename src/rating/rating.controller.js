@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const rating = require("./rating.model");
 const dokter = require("../dokter/dokter.model");
 const verifyToken = require("../middleware/verifyToken");
+const masyarakatAuthorization = require("../middleware/masyarakatAuthorization");
 
 router.post('/create', masyarakatAuthorization, async (req, res) => {
    try {
