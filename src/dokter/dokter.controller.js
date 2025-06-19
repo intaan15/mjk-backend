@@ -249,7 +249,7 @@ router.post("/create", createLimiter, adminAuthorization, async (req, res, next)
   }
 });
 
-router.get("/getall", verifyToken, async (req, res, next) => {
+router.get("/getall", adminAuthorization, masyarakatAuthorization, async (req, res, next) => {
   try {
     const dokterList = await Dokter.find().select("-password_dokter");
 
@@ -269,7 +269,7 @@ router.get("/getall", verifyToken, async (req, res, next) => {
 });
 
 
-router.get("/getbyid/:id", async (req, res) => {
+router.get("/getbyid/:id", verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
     const user = await Dokter.findById(id).select("-password_dokter");
@@ -312,7 +312,7 @@ router.get("/getbyname/:doctorName", verifyToken, async (req, res) => {
   }
 });
 
-router.patch("/update/:id", verifyToken, async (req, res, next) => {
+router.patch("/update/:id", adminAuthorization, dokterAuthorization, async (req, res, next) => {
   try {
     const { id } = req.params;
     const {
@@ -400,7 +400,7 @@ router.patch("/update/:id", verifyToken, async (req, res, next) => {
   }
 });
 
-router.delete("/delete/:id", verifyToken, async (req, res, next) => {
+router.delete("/delete/:id", adminAuthorization, dokterAuthorization, async (req, res, next) => {
   try {
     const deletedDokter = await Dokter.findByIdAndDelete(req.params.id);
     if (!deletedDokter) {
@@ -477,30 +477,6 @@ router.get("/jadwal/:dokterId", verifyToken, async (req, res) => {
     res.status(500).json({ message: e.message });
   }
 });
-
-// router.post("/jadwal/:dokterId", verifyToken, async (req, res) => {
-//   try {
-//     const { dokterId } = req.params;
-//     const { tanggal, jam_mulai, jam_selesai } = req.body;
-
-//     if (!mongoose.Types.ObjectId.isValid(dokterId)) {
-//       return res.status(400).json({ message: "ID dokter tidak valid" });
-//     }
-//     const dokter = await Dokter.findById(dokterId);
-//     if (!dokter) {
-//       return res.status(404).json({ message: "Dokter tidak ditemukan" });
-//     }
-
-//     dokter.jadwal.push({ tanggal, jam_mulai, jam_selesai });
-//     await dokter.save();
-
-//     res
-//       .status(201)
-//       .json({ message: "Jadwal berhasil ditambahkan", jadwal: dokter.jadwal });
-//   } catch (e) {
-//     res.status(500).json({ message: e.message });
-//   }
-// });
 
 router.patch("/jadwal/:dokterId/:jadwalId", verifyToken, async (req, res) => {
   try {

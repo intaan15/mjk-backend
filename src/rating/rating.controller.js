@@ -5,7 +5,7 @@ const rating = require("./rating.model");
 const dokter = require("../dokter/dokter.model");
 const verifyToken = require("../middleware/verifyToken");
 
-router.post('/create', verifyToken, async (req, res) => {
+router.post('/create', masyarakatAuthorization, async (req, res) => {
    try {
      const {
        jadwal,

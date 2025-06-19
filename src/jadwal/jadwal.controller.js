@@ -5,9 +5,11 @@ const verifyToken = require("../middleware/verifyToken");
 const Chat = require("../socket/chat.model");
 const ChatList = require("../socket/chatlist.model");
 const createLimiter = require("../middleware/ratelimiter"); 
+const masyarakatAuthorization = require("../middleware/masyarakatAuthorization");
+const dokterAuthorization = require("../middleware/dokterAuthorization");
 
 // Create jadwal baru
-router.post("/create", createLimiter, verifyToken, async (req, res) => {
+router.post("/create", createLimiter, masyarakatAuthorization, async (req, res) => {
   try {
     const newJadwal = new Jadwal(req.body);
     const savedJadwal = await newJadwal.save();
@@ -32,26 +34,10 @@ router.get("/getall", verifyToken, async (req, res) => {
         select: "nama_dokter rating_dokter spesialis_dokter foto_profil_dokter", // ✅ TAMBAHKAN foto_profil_dokter
       })
       .sort({ createdAt: -1 });
-
-    // 🔍 DEBUG: Log data untuk memastikan foto_profil ada
-    // console.log(
-    //   "📊 Sample jadwal data:",
-    //   JSON.stringify(allJadwal[0], null, 2)
-    // );
     if (allJadwal.length > 0) {
       if (allJadwal[0].masyarakat_id) {
-        // console.log("👤 Masyarakat data:", allJadwal[0].masyarakat_id);
-        // console.log(
-        //   "📷 Foto profil masyarakat:",
-        //   allJadwal[0].masyarakat_id.foto_profil_masyarakat
-        // );
       }
       if (allJadwal[0].dokter_id) {
-        // console.log("👨‍⚕️ Dokter data:", allJadwal[0].dokter_id);
-        // console.log(
-        //   "📷 Foto profil dokter:",
-        //   allJadwal[0].dokter_id.foto_profil_dokter
-        // );
       }
     }
 
@@ -114,7 +100,7 @@ router.delete("/delete/:id", verifyToken, async (req, res) => {
 });
 
 // Update status jadwal by ID (validasi status)
-router.patch("/update/status/:id", verifyToken, async (req, res) => {
+router.patch("/update/status/:id", dokterAuthorization, async (req, res) => {
   try {
     const { status_konsul } = req.body;
     if (!["menunggu", "ditolak", "diterima"].includes(status_konsul)) {
@@ -139,7 +125,7 @@ router.patch("/update/status/:id", verifyToken, async (req, res) => {
 });
 
 // Terima jadwal + kirim pesan template + update chatlist
-router.post("/:id/terima", verifyToken, async (req, res) => {
+router.post("/:id/terima", dokterAuthorization, async (req, res) => {
   try {
     const jadwalId = req.params.id;
     console.log("Menerima jadwal dengan ID:", jadwalId);

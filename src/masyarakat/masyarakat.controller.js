@@ -154,7 +154,7 @@ router.post("/create", createLimiter, verifyToken, async (req, res) => {
   }
 });
 
-router.get("/getall", verifyToken, async (req, res) => {
+router.get("/getall", adminAuthorization, dokterAuthorization, async (req, res) => {
   try {
     const allUsers = await masyarakat.find().select("-password_masyarakat");
 
@@ -202,7 +202,7 @@ router.get("/getbyid/:id", verifyToken, async (req, res) => {
   }
 });
 
-router.patch("/update/:id", verifyToken, async (req, res) => {
+router.patch("/update/:id", adminAuthorization, masyarakatAuthorization, async (req, res) => {
   try {
     const { id } = req.params;
     const {
@@ -281,7 +281,7 @@ router.patch("/update/:id", verifyToken, async (req, res) => {
   }
 });
 
-router.delete("/delete/:id", verifyToken, async (req, res) => {
+router.delete("/delete/:id", adminAuthorization, masyarakatAuthorization, async (req, res) => {
   try {
     const { id } = req.params;
 
