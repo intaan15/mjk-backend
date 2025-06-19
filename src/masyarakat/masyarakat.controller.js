@@ -12,6 +12,7 @@ const dokterAuthorization = require("../middleware/dokterAuthorization");
 const adminAuthorization = require("../middleware/adminAuthorization");
 const createLimiter = require("../middleware/ratelimiter");
 const rateLimit = require("express-rate-limit");
+const roleAuthorization = require("../middleware/roleAuthorization");
 
 const uploadLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 menit
@@ -154,7 +155,7 @@ router.post("/create", createLimiter, verifyToken, async (req, res) => {
   }
 });
 
-router.get("/getall", adminAuthorization, dokterAuthorization, async (req, res) => {
+router.get("/getall", roleAuthorization(['dokter', 'admin']), async (req, res) => {
   try {
     const allUsers = await masyarakat.find().select("-password_masyarakat");
 
@@ -202,7 +203,7 @@ router.get("/getbyid/:id", verifyToken, async (req, res) => {
   }
 });
 
-router.patch("/update/:id", adminAuthorization, masyarakatAuthorization, async (req, res) => {
+router.patch("/update/:id", roleAuthorization(['masyarakat', 'admin']), async (req, res) => {
   try {
     const { id } = req.params;
     const {
@@ -281,7 +282,7 @@ router.patch("/update/:id", adminAuthorization, masyarakatAuthorization, async (
   }
 });
 
-router.delete("/delete/:id", adminAuthorization, masyarakatAuthorization, async (req, res) => {
+router.delete("/delete/:id", roleAuthorization(['masyarakat', 'admin']), async (req, res) => {
   try {
     const { id } = req.params;
 

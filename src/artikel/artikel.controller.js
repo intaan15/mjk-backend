@@ -9,6 +9,7 @@ const verifyToken = require("../middleware/verifyToken");
 const createLimiter = require("../middleware/ratelimiter"); 
 const rateLimit = require('express-rate-limit');
 const masyarakatAuthorization = require("../middleware/masyarakatAuthorization");
+const roleAuthorization = require("../middleware/roleAuthorization");
 
 const uploadLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 menit
@@ -168,7 +169,7 @@ router.post("/create", createLimiter, adminAuthorization, async (req, res) => {
     }
 });
 
-router.get("/getall", adminAuthorization, masyarakatAuthorization, async (req, res) => {
+router.get("/getall", roleAuthorization(['masyarakat', 'admin']), async (req, res) => {
   try {
     const artikels = await artikel.find();
     res.status(200).json(artikels);
@@ -177,7 +178,7 @@ router.get("/getall", adminAuthorization, masyarakatAuthorization, async (req, r
   }
 });
 
-router.get("/getbyid/:id", adminAuthorization, masyarakatAuthorization, async (req, res) => {
+router.get("/getbyid/:id", roleAuthorization(['masyarakat', 'admin']), async (req, res) => {
   try {
     const artikelItem = await artikel.findById(req.params.id);
     if (!artikelItem) {
