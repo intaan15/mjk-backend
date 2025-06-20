@@ -47,6 +47,24 @@ const storage = multer.diskStorage({
           req.files["foto_ktp_masyarakat"]?.[0]?.filename;
         const selfie_ktp_masyarakat =
           req.files["selfie_ktp_masyarakat"]?.[0]?.filename;
+
+        // DEBUG: Log parsed data
+        console.debug("=== DEBUG: PARSED DATA ===");
+        console.debug("Nama:", nama_masyarakat);
+        console.debug("Username:", username_masyarakat);
+        console.debug(
+          "Password:",
+          password_masyarakat ? "[HIDDEN]" : "undefined"
+        );
+        console.debug("Email:", email_masyarakat);
+        console.debug("NIK:", nik_masyarakat);
+        console.debug("Alamat:", alamat_masyarakat);
+        console.debug("No. Telepon:", notlp_masyarakat);
+        console.debug("Jenis Kelamin:", jeniskelamin_masyarakat);
+        console.debug("Tanggal Lahir:", tgl_lahir_masyarakat);
+        console.debug("Foto KTP:", foto_ktp_masyarakat || "undefined");
+        console.debug("Selfie KTP:", selfie_ktp_masyarakat || "undefined");
+
   
         // Cek data wajib
         if (
@@ -80,6 +98,11 @@ const storage = multer.diskStorage({
         const usernameExist = await masyarakat.exists({ username_masyarakat });
         if (usernameExist) {
           return res.status(400).json({ message: "Username sudah digunakan" });
+        }
+
+        const nameExist = await masyarakat.exists({ nama_masyarakat });
+        if (nameExist) {
+          return res.status(400).json({ message: "Nama sudah digunakan" });
         }
   
         const allUsers = await masyarakat.find();
