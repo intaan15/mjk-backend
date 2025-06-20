@@ -17,40 +17,54 @@ router.get("/:userId", verifyToken, async (req, res) => {
       .sort({ lastMessageDate: -1 })
       .populate("participants.user");
 
-    const formattedChatlists = chatlists.map((chat) => {
-      const otherParticipant = chat.participants.find(
-        (p) => p.user._id.toString() !== userId
-      );
+    const formattedChatlists = chatlists
+      .map((chat) => {
+        try {
+          // Find other participant with null check
+          const otherParticipant = chat.participants.find(
+            (p) => p.user && p.user._id && p.user._id.toString() !== userId
+          );
 
-      let nama = "";
-      let foto_profil = "";
+          // If no valid other participant found, skip this chat
+          if (!otherParticipant || !otherParticipant.user) {
+            console.warn('[WARN] Skipping chat with missing participant data:', chat._id);
+            return null;
+          }
 
-      if (otherParticipant.role === "Masyarakat") {
-        nama = otherParticipant.user.nama_masyarakat || "Masyarakat";
-        foto_profil = otherParticipant.user.foto_profil_masyarakat || "";
-      } else if (otherParticipant.role === "Dokter") {
-        nama = otherParticipant.user.nama_dokter || "Dokter";
-        foto_profil = otherParticipant.user.foto_profil_dokter || "";
-      }
+          let nama = "";
+          let foto_profil = "";
 
-      // Cek apakah ada pesan baru dengan bandingkan lastMessageDate dan lastReadAt user
-      const lastReadAt = chat.lastReadAt?.get(userId) || new Date(0);
-      const hasNewMessage = chat.lastMessageDate > lastReadAt;
+          if (otherParticipant.role === "Masyarakat") {
+            nama = otherParticipant.user.nama_masyarakat || "Masyarakat";
+            foto_profil = otherParticipant.user.foto_profil_masyarakat || "";
+          } else if (otherParticipant.role === "Dokter") {
+            nama = otherParticipant.user.nama_dokter || "Dokter";
+            foto_profil = otherParticipant.user.foto_profil_dokter || "";
+          }
 
-      return {
-        _id: chat._id,
-        lastMessage: chat.lastMessage,
-        lastMessageDate: chat.lastMessageDate,
-        hasNewMessage, // true/false untuk frontend styling bold
-        participant: {
-          _id: otherParticipant.user._id,
-          role: otherParticipant.role.toLowerCase(),
-          nama,
-          foto_profil,
-        },
-        status: chat.status,
-      };
-    });
+          // Cek apakah ada pesan baru dengan bandingkan lastMessageDate dan lastReadAt user
+          const lastReadAt = chat.lastReadAt?.get(userId) || new Date(0);
+          const hasNewMessage = chat.lastMessageDate > lastReadAt;
+
+          return {
+            _id: chat._id,
+            lastMessage: chat.lastMessage,
+            lastMessageDate: chat.lastMessageDate,
+            hasNewMessage, // true/false untuk frontend styling bold
+            participant: {
+              _id: otherParticipant.user._id,
+              role: otherParticipant.role.toLowerCase(),
+              nama,
+              foto_profil,
+            },
+            status: chat.status,
+          };
+        } catch (error) {
+          console.error('[ERROR] Error processing chat:', chat._id, error);
+          return null;
+        }
+      })
+      .filter(Boolean); // Remove null entries
 
     res.status(200).json(formattedChatlists);
   } catch (error) {
@@ -58,48 +72,5 @@ router.get("/:userId", verifyToken, async (req, res) => {
     res.status(500).json({ message: "Gagal ambil daftar chat" });
   }
 });
-
-// router.patch("/:chatId/read", verifyToken, async (req, res) => {
-//   const { chatId } = req.params;
-//   const userId = req.user.id;
-
-//   try {
-//     const chat = await ChatList.findById(chatId);
-//     if (!chat) return res.status(404).json({ error: "Chat not found" });
-
-//     // Update lastReadAt[userId]
-//     chat.lastReadAt.set(userId, new Date());
-//     await chat.save();
-
-//     res.json({ success: true, updatedAt: chat.lastReadAt.get(userId) });
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// });
-
-// // POST /api/chats/:chatId/message
-// router.post("/:chatId/message", async (req, res) => {
-//   const { chatId } = req.params;
-//   const { message } = req.body;
-
-//   try {
-//     const now = new Date();
-//     const chat = await ChatList.findByIdAndUpdate(
-//       chatId,
-//       {
-//         $set: {
-//           lastMessage: message,
-//           lastMessageDate: now,
-//         },
-//       },
-//       { new: true }
-//     );
-
-//     res.json({ success: true, chat });
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// });
-
 
 module.exports = router;
