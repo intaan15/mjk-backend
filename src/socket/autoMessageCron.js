@@ -9,7 +9,9 @@ const startCronJob = (io) => {
 
   cron.schedule("* * * * *", async () => {
     const now = new Date();
-    console.log("⏰ [CRON] Cek jadwal pada:", now.toLocaleString());
+    const jakartaOffset = 7 * 60; // 7 hours in minutes
+    const jakartaTime = new Date(now.getTime() + jakartaOffset * 60 * 1000);
+    console.log("⏰ [CRON] Cek jadwal pada:", jakartaTime.toLocaleString());
 
     /* =========================
        ⏰ AUTO DISABLE AVAILABLE: Jam yang sudah lewat waktu
@@ -17,8 +19,6 @@ const startCronJob = (io) => {
     try {
       const doctors = await Dokter.find({});
       let totalUpdatedSlots = 0;
-      const jakartaOffset = 7 * 60; // 7 hours in minutes
-      const jakartaTime = new Date(now.getTime() + jakartaOffset * 60 * 1000);
       for (const doctor of doctors) {
         let doctorUpdated = false;
         for (const jadwalItem of doctor.jadwal) {
@@ -36,9 +36,9 @@ const startCronJob = (io) => {
             jadwalJakartaDate.getMonth(),
             jadwalJakartaDate.getDate()
           );
-          console.log(
-            `📅 Checking jadwal: ${jadwalDay.toDateString()} vs today: ${todayJakarta.toDateString()}`
-          );
+          //console.log(
+            //`📅 Checking jadwal: ${jadwalDay.toDateString()} vs today: ${todayJakarta.toDateString()}`
+          //);
           for (const jamItem of jadwalItem.jam) {
             if (
               jamItem.available &&
@@ -49,11 +49,11 @@ const startCronJob = (io) => {
               const appointmentDateTime = new Date(jadwalDay);
               appointmentDateTime.setHours(hour, minute, 0, 0);
 
-              console.log(
-                `🕐 Comparing appointment: ${appointmentDateTime.toLocaleString(
-                  "id-ID"
-                )} vs now: ${jakartaTime.toLocaleString("id-ID")}`
-              );
+              // console.log(
+              //   `🕐 Comparing appointment: ${appointmentDateTime.toLocaleString(
+              //     "id-ID"
+              //   )} vs now: ${jakartaTime.toLocaleString("id-ID")}`
+              // );
 
               if (jakartaTime >= appointmentDateTime) {
                 jamItem.available = false;
@@ -119,7 +119,7 @@ const startCronJob = (io) => {
         konsultasiTime.setSeconds(0);
 
         // Hanya tolak jika waktu sekarang sudah melewati waktu konsultasi (bukan hanya jam)
-        if (now > konsultasiTime) {
+        if (jakartaTime > konsultasiTime) {
           // Auto reject jadwal
           jadwal.status_konsul = "ditolak";
           jadwal.alasan_tolak =
@@ -186,7 +186,7 @@ const startCronJob = (io) => {
         const endTime = new Date(konsultasiTime);
         endTime.setMinutes(endTime.getMinutes() + 3); // Konsultasi 3 menit
 
-        if (now >= konsultasiTime && now < endTime) {
+        if (jakartaTime >= konsultasiTime && jakartaTime < endTime) {
           const dokterId = dokter._id;
           const masyarakatId = masyarakat._id;
           const pesanTemplate = "Halo, ada yang bisa dibantu?";
@@ -198,7 +198,7 @@ const startCronJob = (io) => {
             text: pesanTemplate,
             type: "text",
             role: "dokter",
-            waktu: now,
+            waktu: jakartaTime,
           });
 
           // Emit ke socket.io
@@ -218,12 +218,12 @@ const startCronJob = (io) => {
               ],
               jadwal: jadwal._id,
               lastMessage: pesanTemplate,
-              lastMessageDate: now,
+              lastMessageDate: jakartaTime,
               status: "berlangsung",
             });
           } else {
             chatlist.lastMessage = pesanTemplate;
-            chatlist.lastMessageDate = now;
+            chatlist.lastMessageDate = jakartaTime;
             chatlist.status = "berlangsung";
             chatlist.jadwal = jadwal._id;
             await chatlist.save();
@@ -278,7 +278,7 @@ const startCronJob = (io) => {
         startTime.setSeconds(0);
         const endTime = new Date(startTime.getTime() + 3 * 60 * 1000); // 3 menit
 
-        if (now >= endTime) {
+        if (jakartaTime >= endTime) {
           chat.status = "selesai";
           await chat.save();
 
@@ -333,8 +333,8 @@ const startCronJob = (io) => {
         const endTime = new Date(startTime.getTime() + 3 * 60 * 1000); // 3 menit
 
         if (
-          startTime <= now &&
-          now <= endTime &&
+          startTime <= jakartaTime &&
+          jakartaTime <= endTime &&
           jadwal.status_konsul === "diterima"
         ) {
           // waktunya sedang berlangsung dan jadwal diterima
@@ -382,7 +382,7 @@ const startCronJob = (io) => {
         startTime.setSeconds(0);
         const endTime = new Date(startTime.getTime() + 3 * 60 * 1000); // 3 menit
 
-        if (now >= endTime) {
+        if (jakartaTime >= endTime) {
           jadwal.status_konsul = "selesai";
           await jadwal.save();
           console.log(
