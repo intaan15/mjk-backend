@@ -68,6 +68,7 @@ const createSocketServer = (server) => {
     return `${senderId}_${timestamp}_${random}.${type}`;
   };
 
+  console.log("tesss")
   io.on("connection", (socket) => {
     console.log("Client connected:", socket.id);
 
