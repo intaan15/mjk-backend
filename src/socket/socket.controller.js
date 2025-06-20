@@ -8,44 +8,9 @@ const path = require("path");
 const createSocketServer = (server) => {
   const io = new Server(server, {
     cors: {
-      origin: "*", // Untuk production, ganti dengan domain spesifik
+      origin: "*",
       methods: ["GET", "POST"],
-      credentials: true
     },
-    // Konfigurasi khusus untuk Cloudflare
-    transports: ['websocket', 'polling'], // Pastikan polling enabled
-    allowEIO3: true, // Backward compatibility
-    pingTimeout: 60000, // 60 detik
-    pingInterval: 25000, // 25 detik
-    upgradeTimeout: 30000, // 30 detik
-    maxHttpBufferSize: 1e8, // 100MB untuk file upload
-    // Cookie configuration untuk Cloudflare
-    cookie: {
-      name: "io",
-      httpOnly: true,
-      sameSite: "none", // Penting untuk cross-origin
-      secure: true // Wajib true untuk HTTPS
-    },
-  });
-
-  // Middleware untuk debugging connection
-  io.use((socket, next) => {
-    console.log("🔌 Socket middleware - Client attempting to connect:");
-    console.log("- Socket ID:", socket.id);
-    console.log("- Headers:", socket.handshake.headers);
-    console.log("- Origin:", socket.handshake.headers.origin);
-    console.log("- User-Agent:", socket.handshake.headers['user-agent']);
-    console.log("- Transport:", socket.conn.transport.name);
-    next();
-  });
-
-  // Enhanced connection logging
-  io.engine.on("connection_error", (err) => {
-    console.log("❌ Connection Error:");
-    console.log("- Code:", err.code);
-    console.log("- Message:", err.message);
-    console.log("- Context:", err.context);
-    console.log("- Type:", err.type);
   });
 
   // Membuat folder public/imageschat jika belum ada
@@ -58,6 +23,7 @@ const createSocketServer = (server) => {
   // Fungsi untuk mendapatkan waktu Jakarta
   const getJakartaTime = () => {
     const now = new Date();
+    // Konversi ke Jakarta timezone (UTC+7)
     const jakartaTime = new Date(
       now.toLocaleString("en-US", {
         timeZone: "Asia/Jakarta",
@@ -72,15 +38,25 @@ const createSocketServer = (server) => {
       console.log("💾 Mulai menyimpan gambar:");
       console.log("- Filename:", filename);
       console.log("- ImageData length:", imageData.length);
+      console.log("- ImageData preview:", imageData.substring(0, 50) + "...");
 
+      // Hapus header data:image/jpeg;base64, atau data:image/png;base64,
       const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, "");
+      console.log(
+        "- Base64 data length after header removal:",
+        base64Data.length
+      );
+
       const filePath = path.join(imagesDir, filename);
-      
+      console.log("- Full file path:", filePath);
+
       fs.writeFileSync(filePath, base64Data, "base64");
+
       console.log("✅ Gambar berhasil disimpan:", filePath);
-      return `/imageschat/${filename}`;
+      return `/imageschat/${filename}`; // Return relative path untuk URL
     } catch (error) {
       console.error("❌ Error menyimpan gambar:", error.message);
+      console.error("❌ Error stack:", error.stack);
       throw error;
     }
   };
@@ -92,58 +68,13 @@ const createSocketServer = (server) => {
     return `${senderId}_${timestamp}_${random}.${type}`;
   };
 
-  console.log("🚀 Socket.IO Server initialized with Cloudflare-compatible settings");
-
+  console.log("tesss")
   io.on("connection", (socket) => {
-    console.log("✅ Client connected successfully:");
-    console.log("- Socket ID:", socket.id);
-    console.log("- Transport:", socket.conn.transport.name);
-    console.log("- IP Address:", socket.handshake.address);
-    console.log("- Headers:", JSON.stringify(socket.handshake.headers, null, 2));
-    
-    // Emit welcome message untuk konfirmasi koneksi
-    socket.emit("connectionConfirmed", {
-      message: "✅ Connected to server successfully",
-      socketId: socket.id,
-      timestamp: getJakartaTime()
-    });
-
-    // Enhanced transport monitoring
-    socket.conn.on("upgrade", () => {
-      console.log("⬆️ Transport upgraded to:", socket.conn.transport.name);
-    });
-
-    socket.conn.on("upgradeError", (err) => {
-      console.log("❌ Transport upgrade error:", err);
-    });
+    console.log("Client connected:", socket.id);
 
     socket.on("joinRoom", (userId) => {
       socket.join(userId);
-      console.log(`📥 Socket ${socket.id} joined room: ${userId}`);
-      
-      // Konfirmasi join room
-      socket.emit("roomJoined", {
-        userId: userId,
-        socketId: socket.id,
-        message: `✅ Successfully joined room: ${userId}`
-      });
-    });
-
-    // Ping-pong untuk keep alive
-    socket.on("ping", () => {
-      socket.emit("pong");
-    });
-
-    // Enhanced error handling
-    socket.on("error", (error) => {
-      console.log("❌ Socket error:", error);
-    });
-
-    socket.on("disconnect", (reason) => {
-      console.log("❌ Client disconnected:");
-      console.log("- Socket ID:", socket.id);
-      console.log("- Reason:", reason);
-      console.log("- Transport:", socket.conn.transport.name);
+      console.log(`Socket ${socket.id} joined room: ${userId}`);
     });
 
     // Socket handler untuk menangani image dengan penyimpanan ke file
@@ -151,7 +82,33 @@ const createSocketServer = (server) => {
       try {
         const { senderId, receiverId, text, role, type, image } = msg;
 
-        console.log("📩 Menerima pesan dari:", senderId, "ke:", receiverId);
+        // DEBUG: Log seluruh data yang diterima
+        console.log("🔍 DEBUG - Data lengkap yang diterima:");
+        console.log("- senderId:", senderId);
+        console.log("- receiverId:", receiverId);
+        console.log("- type:", type);
+        console.log("- text:", text);
+        console.log("- role:", role);
+        console.log("- hasImage:", !!image);
+        console.log("- imageLength:", image ? image.length : 0);
+        console.log("- imageType:", image ? typeof image : "undefined");
+
+        if (image) {
+          console.log("- imagePreview:", image.substring(0, 50) + "...");
+        }
+
+        console.log(
+          "📩 Menerima pesan dari:",
+          senderId,
+          "ke:",
+          receiverId,
+          "type:",
+          type,
+          "text:",
+          text,
+          "hasImage:",
+          !!image
+        );
 
         const chatList = await ChatList.findOne({
           "participants.user": { $all: [senderId, receiverId] },
@@ -159,32 +116,50 @@ const createSocketServer = (server) => {
           .populate("jadwal")
           .sort({ "jadwal.tgl_konsul": -1 });
 
+        console.log("🔍 ChatList ditemukan:", !!chatList);
+        console.log("🔍 Jadwal ditemukan:", !!chatList?.jadwal);
+
         if (!chatList || !chatList.jadwal) {
           console.log("❌ ChatList atau jadwal tidak ditemukan");
           return socket.emit("errorMessage", {
-            message: "❌ Tidak ada sesi konsultasi aktif. Silakan buat jadwal konsultasi baru.",
+            message:
+              "❌ Tidak ada sesi konsultasi aktif. Silakan buat jadwal konsultasi baru.",
           });
         }
 
         const jadwal = chatList.jadwal;
+        console.log("📅 Status jadwal:", jadwal.status_konsul);
 
         if (jadwal.status_konsul === "selesai") {
+          console.log("⛔ Status konsultasi: selesai");
           return socket.emit("errorMessage", {
-            message: "⛔ Konsultasi telah selesai. Silakan buat jadwal konsultasi baru untuk melanjutkan.",
+            message:
+              "⛔ Konsultasi telah selesai. Silakan buat jadwal konsultasi baru untuk melanjutkan.",
           });
         }
 
-        if (jadwal.status_konsul !== "berlangsung" && jadwal.status_konsul !== "aktif") {
+        if (
+          jadwal.status_konsul !== "berlangsung" &&
+          jadwal.status_konsul !== "aktif"
+        ) {
+          console.log(
+            "⏳ Status konsultasi:",
+            jadwal.status_konsul,
+            "- tidak berlangsung"
+          );
           return socket.emit("errorMessage", {
             message: `⏳ Konsultasi belum dimulai. Status saat ini: ${jadwal.status_konsul}`,
           });
         }
 
-        // Time validation
+        // Time validation dengan Jakarta timezone
         try {
           const [hour, minute] = jadwal.jam_konsul.split(":").map(Number);
           if (!isNaN(hour) && !isNaN(minute)) {
+            // Buat tanggal konsultasi dengan timezone Jakarta
             const consultationDate = new Date(jadwal.tgl_konsul);
+
+            // Set waktu konsultasi berdasarkan jadwal
             const startTime = new Date(
               consultationDate.getFullYear(),
               consultationDate.getMonth(),
@@ -194,50 +169,120 @@ const createSocketServer = (server) => {
               0,
               0
             );
+
+            // Tambah 2 jam untuk durasi konsultasi
             const endTime = new Date(startTime.getTime() + 3 * 60 * 1000);
+
+            // Dapatkan waktu sekarang dalam Jakarta timezone
             const nowJakarta = getJakartaTime();
 
+            console.log("⏰ Validasi waktu:");
+            console.log(
+              "- Waktu mulai:",
+              startTime.toLocaleString("id-ID", { timeZone: "Asia/Jakarta" })
+            );
+            console.log(
+              "- Waktu selesai:",
+              endTime.toLocaleString("id-ID", { timeZone: "Asia/Jakarta" })
+            );
+            console.log(
+              "- Waktu sekarang (Jakarta):",
+              nowJakarta.toLocaleString("id-ID", { timeZone: "Asia/Jakarta" })
+            );
+
             if (nowJakarta >= endTime) {
+              console.log(
+                "⏰ Waktu konsultasi habis, mengupdate status ke selesai"
+              );
               jadwal.status_konsul = "selesai";
               await jadwal.save();
               return socket.emit("errorMessage", {
-                message: "⛔ Waktu konsultasi telah habis. Konsultasi otomatis ditutup.",
+                message:
+                  "⛔ Waktu konsultasi telah habis. Konsultasi otomatis ditutup.",
               });
             }
           }
         } catch (timeError) {
-          console.log("⚠️ Error validasi waktu:", timeError.message);
+          console.log(
+            "⚠️ Error validasi waktu (diabaikan):",
+            timeError.message
+          );
         }
 
-        // Buat object chat
+        console.log("💾 Menyimpan pesan ke database...");
+
+        // Buat object berdasarkan type dengan waktu Jakarta
         const chatData = {
           senderId,
           receiverId,
           role,
           type: type || "text",
-          waktu: getJakartaTime(),
+          waktu: getJakartaTime(), // Gunakan waktu Jakarta
         };
 
-        // Process image or text
+        // DEBUG: Log sebelum memproses
+        console.log("🔍 DEBUG - Sebelum memproses:");
+        console.log("- Kondisi type === 'image':", type === "image");
+        console.log("- Kondisi !!image:", !!image);
+        console.log("- Gabungan kondisi:", type === "image" && !!image);
+
+        // Tambahkan field berdasarkan type
         if (type === "image" && image && image.trim() !== "") {
+          console.log("🖼️ Memproses gambar...");
+
+          // Validasi format base64
           if (!image.startsWith("data:image/")) {
-            throw new Error("Format gambar tidak valid");
+            throw new Error(
+              "Format gambar tidak valid. Harus berupa base64 dengan header data:image/"
+            );
           }
 
+          // Deteksi format gambar dari base64 header
           const imageFormat = image.match(/^data:image\/([a-z]+);base64,/);
           const fileExtension = imageFormat ? imageFormat[1] : "jpg";
+
+          console.log("📝 Format gambar terdeteksi:", fileExtension);
+
+          // Generate nama file unik
           const filename = generateImageFilename(senderId, fileExtension);
+          console.log("📝 Nama file yang akan dibuat:", filename);
+
+          // Simpan gambar ke file
           const imagePath = saveImageToFile(image, filename);
 
-          chatData.image = imagePath;
-          chatData.text = text || null;
+          chatData.image = imagePath; // Simpan path relatif
+          chatData.text = text || null; // Tetap simpan text jika ada
+
+          console.log("✅ Gambar berhasil disimpan dengan path:", imagePath);
+        } else if (type === "text" || !type) {
+          console.log("📝 Memproses text...");
+          chatData.text = text;
+          chatData.image = null; // Set image null untuk text
         } else {
+          console.log("⚠️ Kondisi tidak terpenuhi untuk menyimpan gambar:");
+          console.log("- type:", type);
+          console.log("- image exists:", !!image);
+          console.log(
+            "- image empty:",
+            image === "" || image === null || image === undefined
+          );
+
+          // Default ke text jika kondisi tidak jelas
           chatData.text = text;
           chatData.image = null;
         }
 
         const newChat = await Chat.create(chatData);
+        console.log(
+          "✅ Pesan berhasil disimpan:",
+          newChat._id,
+          "Type:",
+          newChat.type,
+          "Waktu:",
+          newChat.waktu.toLocaleString("id-ID", { timeZone: "Asia/Jakarta" })
+        );
 
+        // Emit pesan lengkap ke kedua user
         const messageToSend = {
           _id: newChat._id,
           senderId: newChat.senderId,
@@ -249,29 +294,26 @@ const createSocketServer = (server) => {
           waktu: newChat.waktu,
         };
 
-        // Emit dengan retry mechanism
-        const emitWithRetry = (targetId, event, data, retries = 3) => {
-          const targetSocket = io.sockets.sockets.get(targetId);
-          if (targetSocket && targetSocket.connected) {
-            targetSocket.emit(event, data);
-          } else {
-            io.to(targetId).emit(event, data);
-          }
-        };
+        io.to(receiverId).emit("chat message", messageToSend);
+        io.to(senderId).emit("chat message", messageToSend);
 
-        emitWithRetry(receiverId, "chat message", messageToSend);
-        emitWithRetry(senderId, "chat message", messageToSend);
-
-        // Update ChatList
-        chatList.lastMessage = type === "image" ? "📷 Gambar" : text;
+        // Update lastMessage di ChatList dengan waktu Jakarta
+        if (type === "image") {
+          chatList.lastMessage = "📷 Gambar";
+        } else {
+          chatList.lastMessage = text;
+        }
         chatList.lastMessageDate = getJakartaTime();
         await chatList.save();
 
-        console.log("✅ Pesan berhasil dikirim");
+        console.log("✅ Pesan berhasil dikirim dan diupdate di ChatList");
       } catch (error) {
-        console.log("❌ Error saat mengirim pesan:", error.message);
+        console.log("❌ Error detail saat mengirim pesan:");
+        console.log("- Message:", error.message);
+        console.log("- Stack:", error.stack);
+        console.log("- Data pesan:", msg);
         socket.emit("errorMessage", {
-          message: "❌ Terjadi kesalahan: " + error.message,
+          message: "❌ Terjadi kesalahan saat mengirim pesan: " + error.message,
         });
       }
     });
@@ -302,21 +344,21 @@ const createSocketServer = (server) => {
             participants: [{ user: senderId }, { user: receiverId }],
             jadwal: jadwalId,
             lastMessage: "",
-            lastMessageDate: getJakartaTime(),
+            lastMessageDate: getJakartaTime(), // Gunakan waktu Jakarta
           });
         }
 
         io.to(senderId).emit("consultationStarted", {
-          message: "✅ Konsultasi dimulai!",
+          message: "✅ Konsultasi dimulai! Anda sekarang bisa mengirim pesan.",
           chatListId: chatList._id,
         });
 
         io.to(receiverId).emit("consultationStarted", {
-          message: "✅ Konsultasi dimulai!",
+          message: "✅ Konsultasi dimulai! Anda sekarang bisa mengirim pesan.",
           chatListId: chatList._id,
         });
       } catch (error) {
-        console.log("❌ Error memulai konsultasi:", error.message);
+        console.log("❌ Error saat memulai konsultasi:", error.message);
         socket.emit("errorMessage", {
           message: "❌ Gagal memulai konsultasi.",
         });
@@ -329,6 +371,7 @@ const createSocketServer = (server) => {
         const jadwal = await Jadwal.findById(jadwalId);
 
         if (!jadwal) {
+          console.log("❌ Jadwal tidak ditemukan untuk ID:", jadwalId);
           return socket.emit("errorMessage", {
             message: "❌ Jadwal konsultasi tidak ditemukan.",
           });
@@ -336,12 +379,17 @@ const createSocketServer = (server) => {
 
         jadwal.status_konsul = "selesai";
         await jadwal.save();
+        console.log("✅ Jadwal status updated to selesai for ID:", jadwalId);
 
         const chatList = await ChatList.findOne({ jadwal: jadwalId }).populate(
           "participants.user"
         );
 
         if (chatList) {
+          console.log(
+            "📢 Emitting consultationEnded to participants:",
+            chatList.participants.map((p) => p.user._id.toString())
+          );
           chatList.participants.forEach((participant) => {
             io.to(participant.user._id.toString()).emit("consultationEnded", {
               message: "⛔ Konsultasi telah selesai.",
@@ -349,13 +397,19 @@ const createSocketServer = (server) => {
               jadwalId: jadwalId,
             });
           });
+        } else {
+          console.log("❌ ChatList tidak ditemukan untuk jadwal ID:", jadwalId);
         }
       } catch (error) {
-        console.error("❌ Error mengakhiri konsultasi:", error.message);
+        console.error("❌ Error saat mengakhiri konsultasi:", error.message);
         socket.emit("errorMessage", {
           message: "❌ Gagal mengakhiri konsultasi.",
         });
       }
+    });
+
+    socket.on("disconnect", () => {
+      console.log("Client disconnected:", socket.id);
     });
   });
 
