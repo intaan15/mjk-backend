@@ -29,7 +29,15 @@ const startCronJob = (io) => {
     return targetDate;
   };
 
-  cron.schedule("* * * * *", async () => {
+  cron.schedule("* * * * *", () => {
+    setTimeout(() => {
+      runCronLogic();
+    }, 1000); // Delay 1 detik
+  });
+
+  // cron.schedule("* * * * *", async () => {
+  const runCronLogic = async () => {
+
     const jakartaTime = getJakartaTime();
     console.log(
       "⏰ [CRON] Cek jadwal pada:",
@@ -463,7 +471,8 @@ const startCronJob = (io) => {
     } catch (err) {
       console.error("❌ Gagal update status selesai (fallback):", err);
     }
-  });
+  }
+// );
 };
 
 module.exports = startCronJob;
