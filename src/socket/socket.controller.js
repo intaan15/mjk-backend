@@ -146,7 +146,10 @@ const createSocketServer = (server) => {
             const startTime = new Date(jadwal.tgl_konsul);
             startTime.setHours(hour, minute, 0, 0);
             const endTime = new Date(startTime.getTime() + 120 * 60 * 1000);
-            const now = new Date();
+
+            const now1 = new Date();
+            const jakartaOffset = 7 * 60; // 7 hours in minutes
+            const now = new Date(now1.getTime() + jakartaOffset * 60 * 1000);
 
             if (now >= endTime) {
               console.log(
