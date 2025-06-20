@@ -8,11 +8,8 @@ const mongoose = require("mongoose");
 const multer = require("multer");
 const path = require("path");
 const masyarakatAuthorization = require("../middleware/masyarakatAuthorization");
-const dokterAuthorization = require("../middleware/dokterAuthorization");
-const adminAuthorization = require("../middleware/adminAuthorization");
 const createLimiter = require("../middleware/ratelimiter");
 const rateLimit = require("express-rate-limit");
-const roleAuthorization = require("../middleware/roleAuthorization");
 
 const uploadLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 menit
@@ -155,7 +152,7 @@ router.post("/create", createLimiter, verifyToken, async (req, res) => {
   }
 });
 
-router.get("/getall", roleAuthorization(['dokter', 'admin']), async (req, res) => {
+router.get("/getall", verifyToken, async (req, res) => {
   try {
     const allUsers = await masyarakat.find().select("-password_masyarakat");
 
@@ -203,7 +200,7 @@ router.get("/getbyid/:id", verifyToken, async (req, res) => {
   }
 });
 
-router.patch("/update/:id", roleAuthorization(['masyarakat', 'admin']), async (req, res) => {
+router.patch("/update/:id", verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
     const {
@@ -241,14 +238,14 @@ router.patch("/update/:id", roleAuthorization(['masyarakat', 'admin']), async (r
         return res.status(400).json({ message: "Username sudah terdaftar." });
       }
     }
-
+    
     if (nama_masyarakat) {
       const namaExist = await masyarakat.exists({
         nama_masyarakat,
         _id: { $ne: id },
       });
       if (namaExist) {
-        return res.status(400).json({ message: "Username sudah terdaftar." });
+        return res.status(400).json({ message: "Nama sudah terdaftar." });
       }
     }
 
@@ -261,6 +258,8 @@ router.patch("/update/:id", roleAuthorization(['masyarakat', 'admin']), async (r
         return res.status(400).json({ message: "Email sudah terdaftar." });
       }
     }
+
+    
 
     const updateData = { ...otherFields };
     if (nama_masyarakat) updateData.nama_masyarakat = nama_masyarakat;
@@ -294,7 +293,7 @@ router.patch("/update/:id", roleAuthorization(['masyarakat', 'admin']), async (r
   }
 });
 
-router.delete("/delete/:id", roleAuthorization(['masyarakat', 'admin']), async (req, res) => {
+router.delete("/delete/:id", verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -355,57 +354,6 @@ router.patch("/ubah-password", masyarakatAuthorization, async (req, res) => {
   } catch (e) {
     return res.status(500).json({ message: e.message });
   }
-});
-
-router.delete('/delete-profile-image/:id', masyarakatAuthorization, async (req, res) => {
- try {
-   const { id } = req.params;
-       if (!mongoose.Types.ObjectId.isValid(id)) {
-     return res.status(400).json({
-       success: false,
-       message: 'ID masyarakat tidak valid'
-     });
-   }
-   const masyarakatData = await masyarakat.findById(id);
-   if (!masyarakatData) {
-     return res.status(404).json({
-       success: false,
-       message: 'Masyarakat tidak ditemukan'
-     });
-   }
-   const updateResult = await masyarakat.findByIdAndUpdate(
-     id,
-     { foto_profil_masyarakat: "" },
-     { new: true }
-   );
-   if (!updateResult) {
-     return res.status(400).json({
-       success: false,
-       message: 'Gagal menghapus foto profil dari database'
-     });
-   }
-   res.status(200).json({
-     success: true,
-     message: 'Foto profil berhasil dihapus',
-     data: {
-       _id: updateResult._id,
-       nama_masyarakat: updateResult.nama_masyarakat,
-       foto_profil_masyarakat: updateResult.foto_profil_masyarakat
-     }
-   });
- } catch (error) {
-   console.log('Error menghapus foto profil:', error);
-   if (error.name === 'CastError') {
-     return res.status(400).json({
-       success: false,
-       message: 'ID masyarakat tidak valid'
-     });
-   }
-   res.status(500).json({
-     success: false,
-     message: 'Terjadi kesalahan server saat menghapus foto profil'
-   });
- }
 });
 
 module.exports = router;

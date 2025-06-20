@@ -317,7 +317,6 @@ router.patch("/update/:id", roleAuthorization(['dokter', 'admin']), async (req, 
   try {
     const { id } = req.params;
     const {
-      nama_dokter,
       username_dokter,
       email_dokter,
       str_dokter,
@@ -340,18 +339,6 @@ router.patch("/update/:id", roleAuthorization(['dokter', 'admin']), async (req, 
         return res
           .status(400)
           .json({ message: "Username sudah digunakan oleh pengguna lain" });
-      }
-    }
-
-    if (nama_dokter) {
-      const namaDokterExist = await Dokter.exists({
-        nama_dokter,
-        _id: { $ne: id },
-      });
-      if (namaDokterExist) {
-        return res
-          .status(400)
-          .json({ message: "Nama dokter sudah terdaftar oleh pengguna lain" });
       }
     }
 
