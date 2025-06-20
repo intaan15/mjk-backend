@@ -208,7 +208,7 @@ const startCronJob = (io) => {
 
         const [hour, minute] = jam_konsul.split(":").map(Number);
         const konsultasiTime = createJakartaDate(tgl_konsul, hour, minute);
-        const endTime = new Date(konsultasiTime.getTime() + 120 * 60 * 1000); // Konsultasi 120 menit (2 jam)
+        const endTime = new Date(konsultasiTime.getTime() + 3 * 60 * 1000); // Konsultasi 3 menit (2 jam)
 
         console.log(
           `📨 Cek pesan otomatis - Konsultasi: ${konsultasiTime.toLocaleString(
@@ -287,7 +287,7 @@ const startCronJob = (io) => {
     }
 
     /* =========================
-    ⏹️ AUTO SELESAI: ChatList yang sudah lewat 120 menit (2 jam)
+    ⏹️ AUTO SELESAI: ChatList yang sudah lewat 3 menit (2 jam)
     ========================= */
     try {
       const chatLists = await ChatList.find({ status: "berlangsung" }).populate(
@@ -309,7 +309,7 @@ const startCronJob = (io) => {
 
         const [hour, minute] = jam_konsul.split(":").map(Number);
         const startTime = createJakartaDate(tgl_konsul, hour, minute);
-        const endTime = new Date(startTime.getTime() + 120 * 60 * 1000); // 120 menit (2 jam)
+        const endTime = new Date(startTime.getTime() + 3 * 60 * 1000); // 3 menit (2 jam)
 
         console.log(
           `⏹️ Cek auto selesai - Start: ${startTime.toLocaleString("id-ID", {
@@ -378,7 +378,7 @@ const startCronJob = (io) => {
 
         const [hour, minute] = jadwal.jam_konsul.split(":").map(Number);
         const startTime = createJakartaDate(jadwal.tgl_konsul, hour, minute);
-        const endTime = new Date(startTime.getTime() + 120 * 60 * 1000); // 120 menit (2 jam)
+        const endTime = new Date(startTime.getTime() + 3 * 60 * 1000); // 3 menit (2 jam)
 
         console.log(
           `🔄 Cek reactive - Start: ${startTime.toLocaleString("id-ID", {
@@ -437,7 +437,7 @@ const startCronJob = (io) => {
 
         const [hour, minute] = jam_konsul.split(":").map(Number);
         const startTime = createJakartaDate(tgl_konsul, hour, minute);
-        const endTime = new Date(startTime.getTime() + 120 * 60 * 1000); // 120 menit (2 jam)
+        const endTime = new Date(startTime.getTime() + 3 * 60 * 1000); // 3 menit (2 jam)
 
         console.log(
           `🛡️ Fallback check - End: ${endTime.toLocaleString("id-ID", {

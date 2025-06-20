@@ -170,7 +170,7 @@ const createSocketServer = (server) => {
             );
 
             // Tambah 2 jam untuk durasi konsultasi
-            const endTime = new Date(startTime.getTime() + 120 * 60 * 1000);
+            const endTime = new Date(startTime.getTime() + 3 * 60 * 1000);
 
             // Dapatkan waktu sekarang dalam Jakarta timezone
             const nowJakarta = getJakartaTime();
