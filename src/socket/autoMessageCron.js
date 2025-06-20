@@ -2,6 +2,7 @@ const cron = require("node-cron");
 const Jadwal = require("../jadwal/jadwal.model");
 const Chat = require("./chat.model");
 const ChatList = require("./chatlist.model");
+const Dokter = require("../dokter/dokter.model");
 
 const startCronJob = (io) => {
   console.log("✅ File cron job dimuat");
@@ -9,6 +10,84 @@ const startCronJob = (io) => {
   cron.schedule("* * * * *", async () => {
     const now = new Date();
     console.log("⏰ [CRON] Cek jadwal pada:", now.toLocaleString());
+
+    /* =========================
+       ⏰ AUTO DISABLE AVAILABLE: Jam yang sudah lewat waktu
+       ========================= */
+    try {
+      const doctors = await Dokter.find({});
+      let totalUpdatedSlots = 0;
+      const jakartaOffset = 7 * 60; // 7 hours in minutes
+      const jakartaTime = new Date(now.getTime() + jakartaOffset * 60 * 1000);
+      for (const doctor of doctors) {
+        let doctorUpdated = false;
+        for (const jadwalItem of doctor.jadwal) {
+          const jadwalDate = new Date(jadwalItem.tanggal);
+          const jadwalJakartaDate = new Date(
+            jadwalDate.getTime() + jakartaOffset * 60 * 1000
+          );
+          const todayJakarta = new Date(
+            jakartaTime.getFullYear(),
+            jakartaTime.getMonth(),
+            jakartaTime.getDate()
+          );
+          const jadwalDay = new Date(
+            jadwalJakartaDate.getFullYear(),
+            jadwalJakartaDate.getMonth(),
+            jadwalJakartaDate.getDate()
+          );
+          console.log(
+            `📅 Checking jadwal: ${jadwalDay.toDateString()} vs today: ${todayJakarta.toDateString()}`
+          );
+          for (const jamItem of jadwalItem.jam) {
+            if (
+              jamItem.available &&
+              jamItem.time &&
+              jamItem.time.includes(":")
+            ) {
+              const [hour, minute] = jamItem.time.split(":").map(Number);
+              const appointmentDateTime = new Date(jadwalDay);
+              appointmentDateTime.setHours(hour, minute, 0, 0);
+
+              console.log(
+                `🕐 Comparing appointment: ${appointmentDateTime.toLocaleString(
+                  "id-ID"
+                )} vs now: ${jakartaTime.toLocaleString("id-ID")}`
+              );
+
+              if (jakartaTime >= appointmentDateTime) {
+                jamItem.available = false;
+                doctorUpdated = true;
+                totalUpdatedSlots++;
+
+                console.log(
+                  `⏰ Jam ${
+                    jamItem.time
+                  } pada ${jadwalDay.toDateString()} untuk dokter ${
+                    doctor.nama_dokter
+                  } diset unavailable`
+                );
+              }
+            }
+          }
+        }
+
+        if (doctorUpdated) {
+          await doctor.save();
+          console.log(`💾 Saved changes for doctor: ${doctor.nama_dokter}`);
+        }
+      }
+
+      if (totalUpdatedSlots > 0) {
+        console.log(
+          `✅ Total ${totalUpdatedSlots} slot waktu diupdate menjadi unavailable`
+        );
+      } else {
+        console.log(`ℹ️ Tidak ada slot waktu yang perlu diupdate`);
+      }
+    } catch (error) {
+      console.error("❌ Error auto disable available time:", error);
+    }
 
     /* =========================
     🚫 AUTO REJECT: Jadwal yang sudah lewat waktu tapi masih 'menunggu'
