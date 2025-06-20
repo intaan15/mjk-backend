@@ -54,7 +54,7 @@ const storage = multer.diskStorage({
 const upload = multer({ 
   storage: storage,
   limits: {
-    fileSize: 2 * 1024 * 1024, // 2MB dalam bytes
+    fileSize: 5 * 1024 * 1024, // 5MB dalam bytes
   },
   fileFilter: function (req, file, cb) {
     // Validasi tipe file - hanya menerima gambar
@@ -77,7 +77,7 @@ router.post("/upload", uploadLimiter, verifyToken, (req, res) => {
       // Error dari multer
       if (err.code === 'LIMIT_FILE_SIZE') {
         return res.status(400).json({ 
-          message: "Ukuran file terlalu besar. Maksimal 2MB diizinkan.",
+          message: "Ukuran file terlalu besar. Maksimal 4MB diizinkan.",
           error: "FILE_TOO_LARGE"
         });
       }

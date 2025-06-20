@@ -20,6 +20,18 @@ const createSocketServer = (server) => {
     console.log("📁 Folder imageschat berhasil dibuat:", imagesDir);
   }
 
+  // Fungsi untuk mendapatkan waktu Jakarta
+  const getJakartaTime = () => {
+    const now = new Date();
+    // Konversi ke Jakarta timezone (UTC+7)
+    const jakartaTime = new Date(
+      now.toLocaleString("en-US", {
+        timeZone: "Asia/Jakarta",
+      })
+    );
+    return jakartaTime;
+  };
+
   // Fungsi untuk menyimpan gambar
   const saveImageToFile = (imageData, filename) => {
     try {
@@ -139,19 +151,45 @@ const createSocketServer = (server) => {
           });
         }
 
-        // Time validation
+        // Time validation dengan Jakarta timezone
         try {
           const [hour, minute] = jadwal.jam_konsul.split(":").map(Number);
           if (!isNaN(hour) && !isNaN(minute)) {
-            const startTime = new Date(jadwal.tgl_konsul);
-            startTime.setHours(hour, minute, 0, 0);
+            // Buat tanggal konsultasi dengan timezone Jakarta
+            const consultationDate = new Date(jadwal.tgl_konsul);
+
+            // Set waktu konsultasi berdasarkan jadwal
+            const startTime = new Date(
+              consultationDate.getFullYear(),
+              consultationDate.getMonth(),
+              consultationDate.getDate(),
+              hour,
+              minute,
+              0,
+              0
+            );
+
+            // Tambah 2 jam untuk durasi konsultasi
             const endTime = new Date(startTime.getTime() + 120 * 60 * 1000);
 
-            const now1 = new Date();
-            const jakartaOffset = 7 * 60; // 7 hours in minutes
-            const now = new Date(now1.getTime() + jakartaOffset * 60 * 1000);
+            // Dapatkan waktu sekarang dalam Jakarta timezone
+            const nowJakarta = getJakartaTime();
 
-            if (now >= endTime) {
+            console.log("⏰ Validasi waktu:");
+            console.log(
+              "- Waktu mulai:",
+              startTime.toLocaleString("id-ID", { timeZone: "Asia/Jakarta" })
+            );
+            console.log(
+              "- Waktu selesai:",
+              endTime.toLocaleString("id-ID", { timeZone: "Asia/Jakarta" })
+            );
+            console.log(
+              "- Waktu sekarang (Jakarta):",
+              nowJakarta.toLocaleString("id-ID", { timeZone: "Asia/Jakarta" })
+            );
+
+            if (nowJakarta >= endTime) {
               console.log(
                 "⏰ Waktu konsultasi habis, mengupdate status ke selesai"
               );
@@ -172,13 +210,13 @@ const createSocketServer = (server) => {
 
         console.log("💾 Menyimpan pesan ke database...");
 
-        // Buat object berdasarkan type
+        // Buat object berdasarkan type dengan waktu Jakarta
         const chatData = {
           senderId,
           receiverId,
           role,
           type: type || "text",
-          waktu: new Date(),
+          waktu: getJakartaTime(), // Gunakan waktu Jakarta
         };
 
         // DEBUG: Log sebelum memproses
@@ -238,7 +276,9 @@ const createSocketServer = (server) => {
           "✅ Pesan berhasil disimpan:",
           newChat._id,
           "Type:",
-          newChat.type
+          newChat.type,
+          "Waktu:",
+          newChat.waktu.toLocaleString("id-ID", { timeZone: "Asia/Jakarta" })
         );
 
         // Emit pesan lengkap ke kedua user
@@ -256,13 +296,13 @@ const createSocketServer = (server) => {
         io.to(receiverId).emit("chat message", messageToSend);
         io.to(senderId).emit("chat message", messageToSend);
 
-        // Update lastMessage di ChatList
+        // Update lastMessage di ChatList dengan waktu Jakarta
         if (type === "image") {
           chatList.lastMessage = "📷 Gambar";
         } else {
           chatList.lastMessage = text;
         }
-        chatList.lastMessageDate = new Date();
+        chatList.lastMessageDate = getJakartaTime();
         await chatList.save();
 
         console.log("✅ Pesan berhasil dikirim dan diupdate di ChatList");
@@ -303,7 +343,7 @@ const createSocketServer = (server) => {
             participants: [{ user: senderId }, { user: receiverId }],
             jadwal: jadwalId,
             lastMessage: "",
-            lastMessageDate: new Date(),
+            lastMessageDate: getJakartaTime(), // Gunakan waktu Jakarta
           });
         }
 

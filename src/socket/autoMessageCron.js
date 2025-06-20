@@ -7,11 +7,34 @@ const Dokter = require("../dokter/dokter.model");
 const startCronJob = (io) => {
   console.log("✅ File cron job dimuat");
 
-  cron.schedule("* * * * *", async () => {
+  // Fungsi untuk mendapatkan waktu Jakarta yang akurat
+  const getJakartaTime = () => {
     const now = new Date();
-    const jakartaOffset = 7 * 60; // 7 hours in minutes
-    const jakartaTime = new Date(now.getTime() + jakartaOffset * 60 * 1000);
-    console.log("⏰ [CRON] Cek jadwal pada:", jakartaTime.toLocaleString());
+    // Konversi ke Jakarta timezone (UTC+7)
+    const jakartaTime = new Date(
+      now.toLocaleString("en-US", {
+        timeZone: "Asia/Jakarta",
+      })
+    );
+    return jakartaTime;
+  };
+
+  // Fungsi untuk membuat Date object dengan timezone Jakarta
+  const createJakartaDate = (date, hour = 0, minute = 0, second = 0) => {
+    // Buat date object dengan parameter yang diberikan
+    const targetDate = new Date(date);
+    targetDate.setHours(hour, minute, second, 0);
+
+    // Return sebagai waktu Jakarta
+    return targetDate;
+  };
+
+  cron.schedule("* * * * *", async () => {
+    const jakartaTime = getJakartaTime();
+    console.log(
+      "⏰ [CRON] Cek jadwal pada:",
+      jakartaTime.toLocaleString("id-ID", { timeZone: "Asia/Jakarta" })
+    );
 
     /* =========================
        ⏰ AUTO DISABLE AVAILABLE: Jam yang sudah lewat waktu
@@ -19,26 +42,27 @@ const startCronJob = (io) => {
     try {
       const doctors = await Dokter.find({});
       let totalUpdatedSlots = 0;
+
       for (const doctor of doctors) {
         let doctorUpdated = false;
+
         for (const jadwalItem of doctor.jadwal) {
           const jadwalDate = new Date(jadwalItem.tanggal);
-          const jadwalJakartaDate = new Date(
-            jadwalDate.getTime() + jakartaOffset * 60 * 1000
-          );
+
+          // Buat tanggal untuk hari ini dalam Jakarta timezone
           const todayJakarta = new Date(
             jakartaTime.getFullYear(),
             jakartaTime.getMonth(),
             jakartaTime.getDate()
           );
+
+          // Buat tanggal jadwal dalam Jakarta timezone
           const jadwalDay = new Date(
-            jadwalJakartaDate.getFullYear(),
-            jadwalJakartaDate.getMonth(),
-            jadwalJakartaDate.getDate()
+            jadwalDate.getFullYear(),
+            jadwalDate.getMonth(),
+            jadwalDate.getDate()
           );
-          //console.log(
-            //`📅 Checking jadwal: ${jadwalDay.toDateString()} vs today: ${todayJakarta.toDateString()}`
-          //);
+
           for (const jamItem of jadwalItem.jam) {
             if (
               jamItem.available &&
@@ -46,14 +70,20 @@ const startCronJob = (io) => {
               jamItem.time.includes(":")
             ) {
               const [hour, minute] = jamItem.time.split(":").map(Number);
-              const appointmentDateTime = new Date(jadwalDay);
-              appointmentDateTime.setHours(hour, minute, 0, 0);
+              const appointmentDateTime = createJakartaDate(
+                jadwalDay,
+                hour,
+                minute
+              );
 
-              // console.log(
-              //   `🕐 Comparing appointment: ${appointmentDateTime.toLocaleString(
-              //     "id-ID"
-              //   )} vs now: ${jakartaTime.toLocaleString("id-ID")}`
-              // );
+              console.log(
+                `🕐 Comparing appointment: ${appointmentDateTime.toLocaleString(
+                  "id-ID",
+                  { timeZone: "Asia/Jakarta" }
+                )} vs now: ${jakartaTime.toLocaleString("id-ID", {
+                  timeZone: "Asia/Jakarta",
+                })}`
+              );
 
               if (jakartaTime >= appointmentDateTime) {
                 jamItem.available = false;
@@ -61,11 +91,9 @@ const startCronJob = (io) => {
                 totalUpdatedSlots++;
 
                 console.log(
-                  `⏰ Jam ${
-                    jamItem.time
-                  } pada ${jadwalDay.toDateString()} untuk dokter ${
-                    doctor.nama_dokter
-                  } diset unavailable`
+                  `⏰ Jam ${jamItem.time} pada ${jadwalDay.toLocaleDateString(
+                    "id-ID"
+                  )} untuk dokter ${doctor.nama_dokter} diset unavailable`
                 );
               }
             }
@@ -94,7 +122,7 @@ const startCronJob = (io) => {
     ========================= */
     try {
       const menunggujadwals = await Jadwal.find({
-        status_konsul: "menunggu", // atau sesuaikan dengan status pending di sistem Anda
+        status_konsul: "menunggu",
       })
         .populate("dokter_id")
         .populate("masyarakat_id");
@@ -107,18 +135,21 @@ const startCronJob = (io) => {
         const { tgl_konsul, jam_konsul } = jadwal;
 
         if (!tgl_konsul || !jam_konsul || !jam_konsul.includes(":")) {
-          // console.log(`⚠️ Jadwal tidak lengkap, dilewati: ${jadwal._id}`);
           continue;
         }
 
         const [hour, minute] = jam_konsul.split(":").map(Number);
+        const konsultasiTime = createJakartaDate(tgl_konsul, hour, minute);
 
-        const konsultasiTime = new Date(tgl_konsul);
-        konsultasiTime.setHours(hour);
-        konsultasiTime.setMinutes(minute);
-        konsultasiTime.setSeconds(0);
+        console.log(
+          `🕒 Jadwal menunggu: ${konsultasiTime.toLocaleString("id-ID", {
+            timeZone: "Asia/Jakarta",
+          })} vs now: ${jakartaTime.toLocaleString("id-ID", {
+            timeZone: "Asia/Jakarta",
+          })}`
+        );
 
-        // Hanya tolak jika waktu sekarang sudah melewati waktu konsultasi (bukan hanya jam)
+        // Hanya tolak jika waktu sekarang sudah melewati waktu konsultasi
         if (jakartaTime > konsultasiTime) {
           // Auto reject jadwal
           jadwal.status_konsul = "ditolak";
@@ -130,7 +161,7 @@ const startCronJob = (io) => {
             `❌ Jadwal ${jadwal._id} otomatis ditolak karena dokter tidak merespons sebelum jam ${jam_konsul}`
           );
 
-          // Opsional: Kirim notifikasi ke masyarakat bahwa jadwalnya ditolak
+          // Kirim notifikasi ke masyarakat bahwa jadwalnya ditolak
           if (jadwal.masyarakat_id) {
             io.to(jadwal.masyarakat_id.toString()).emit("jadwalDitolak", {
               jadwalId: jadwal._id,
@@ -172,33 +203,37 @@ const startCronJob = (io) => {
         } = jadwal;
 
         if (!dokter || !masyarakat || !jam_konsul) {
-          // console.log("⚠️ Jadwal tidak lengkap, dilewati:", jadwal._id);
           continue;
         }
 
         const [hour, minute] = jam_konsul.split(":").map(Number);
+        const konsultasiTime = createJakartaDate(tgl_konsul, hour, minute);
+        const endTime = new Date(konsultasiTime.getTime() + 120 * 60 * 1000); // Konsultasi 120 menit (2 jam)
 
-        const konsultasiTime = new Date(tgl_konsul);
-        konsultasiTime.setHours(hour);
-        konsultasiTime.setMinutes(minute);
-        konsultasiTime.setSeconds(0);
-
-        const endTime = new Date(konsultasiTime);
-        endTime.setMinutes(endTime.getMinutes() + 3); // Konsultasi 3 menit
+        console.log(
+          `📨 Cek pesan otomatis - Konsultasi: ${konsultasiTime.toLocaleString(
+            "id-ID",
+            { timeZone: "Asia/Jakarta" }
+          )} - ${endTime.toLocaleString("id-ID", {
+            timeZone: "Asia/Jakarta",
+          })} vs now: ${jakartaTime.toLocaleString("id-ID", {
+            timeZone: "Asia/Jakarta",
+          })}`
+        );
 
         if (jakartaTime >= konsultasiTime && jakartaTime < endTime) {
           const dokterId = dokter._id;
           const masyarakatId = masyarakat._id;
           const pesanTemplate = "Halo, ada yang bisa dibantu?";
 
-          // Simpan pesan pertama
+          // Simpan pesan pertama dengan waktu Jakarta
           const newChat = await Chat.create({
             senderId: dokterId,
             receiverId: masyarakatId,
             text: pesanTemplate,
             type: "text",
             role: "dokter",
-            waktu: jakartaTime,
+            waktu: getJakartaTime(),
           });
 
           // Emit ke socket.io
@@ -218,12 +253,12 @@ const startCronJob = (io) => {
               ],
               jadwal: jadwal._id,
               lastMessage: pesanTemplate,
-              lastMessageDate: jakartaTime,
+              lastMessageDate: getJakartaTime(),
               status: "berlangsung",
             });
           } else {
             chatlist.lastMessage = pesanTemplate;
-            chatlist.lastMessageDate = jakartaTime;
+            chatlist.lastMessageDate = getJakartaTime();
             chatlist.status = "berlangsung";
             chatlist.jadwal = jadwal._id;
             await chatlist.save();
@@ -235,7 +270,11 @@ const startCronJob = (io) => {
           await jadwal.save();
 
           console.log(
-            `✅ Pesan otomatis dikirim & status jadi 'berlangsung' untuk jadwal ${jadwal._id}`
+            `✅ Pesan otomatis dikirim & status jadi 'berlangsung' untuk jadwal ${
+              jadwal._id
+            } pada ${jakartaTime.toLocaleString("id-ID", {
+              timeZone: "Asia/Jakarta",
+            })}`
           );
         } else {
           console.log(
@@ -248,7 +287,7 @@ const startCronJob = (io) => {
     }
 
     /* =========================
-    ⏹️ AUTO SELESAI: ChatList yang sudah lewat 3 menit
+    ⏹️ AUTO SELESAI: ChatList yang sudah lewat 120 menit (2 jam)
     ========================= */
     try {
       const chatLists = await ChatList.find({ status: "berlangsung" }).populate(
@@ -265,18 +304,22 @@ const startCronJob = (io) => {
         const { tgl_konsul, jam_konsul } = jadwal;
 
         if (!tgl_konsul || !jam_konsul || !jam_konsul.includes(":")) {
-          // console.log(`⚠️ Jadwal tidak lengkap/salah format: ${jadwal._id}`);
           continue;
         }
 
         const [hour, minute] = jam_konsul.split(":").map(Number);
+        const startTime = createJakartaDate(tgl_konsul, hour, minute);
+        const endTime = new Date(startTime.getTime() + 120 * 60 * 1000); // 120 menit (2 jam)
 
-        // ✅ PERBAIKAN: Konsisten dengan pembuatan waktu
-        const startTime = new Date(tgl_konsul);
-        startTime.setHours(hour);
-        startTime.setMinutes(minute);
-        startTime.setSeconds(0);
-        const endTime = new Date(startTime.getTime() + 3 * 60 * 1000); // 3 menit
+        console.log(
+          `⏹️ Cek auto selesai - Start: ${startTime.toLocaleString("id-ID", {
+            timeZone: "Asia/Jakarta",
+          })}, End: ${endTime.toLocaleString("id-ID", {
+            timeZone: "Asia/Jakarta",
+          })}, Now: ${jakartaTime.toLocaleString("id-ID", {
+            timeZone: "Asia/Jakarta",
+          })}`
+        );
 
         if (jakartaTime >= endTime) {
           chat.status = "selesai";
@@ -286,7 +329,12 @@ const startCronJob = (io) => {
             jadwal.status_konsul = "selesai";
             await jadwal.save();
             console.log(
-              `✅ Status Jadwal ${jadwal._id} berhasil diubah ke 'selesai'`
+              `✅ Status Jadwal ${
+                jadwal._id
+              } berhasil diubah ke 'selesai' pada ${jakartaTime.toLocaleString(
+                "id-ID",
+                { timeZone: "Asia/Jakarta" }
+              )}`
             );
           }
 
@@ -300,7 +348,12 @@ const startCronJob = (io) => {
           });
 
           console.log(
-            `⏹️ Jadwal ${jadwal._id} & ChatList ${chat._id} otomatis jadi 'selesai'`
+            `⏹️ Jadwal ${jadwal._id} & ChatList ${
+              chat._id
+            } otomatis jadi 'selesai' pada ${jakartaTime.toLocaleString(
+              "id-ID",
+              { timeZone: "Asia/Jakarta" }
+            )}`
           );
         }
       }
@@ -324,13 +377,18 @@ const startCronJob = (io) => {
         if (jadwal.status_konsul === "ditolak") continue;
 
         const [hour, minute] = jadwal.jam_konsul.split(":").map(Number);
+        const startTime = createJakartaDate(jadwal.tgl_konsul, hour, minute);
+        const endTime = new Date(startTime.getTime() + 120 * 60 * 1000); // 120 menit (2 jam)
 
-        // ✅ PERBAIKAN: Konsisten dengan pembuatan waktu
-        const startTime = new Date(jadwal.tgl_konsul);
-        startTime.setHours(hour);
-        startTime.setMinutes(minute);
-        startTime.setSeconds(0);
-        const endTime = new Date(startTime.getTime() + 3 * 60 * 1000); // 3 menit
+        console.log(
+          `🔄 Cek reactive - Start: ${startTime.toLocaleString("id-ID", {
+            timeZone: "Asia/Jakarta",
+          })}, End: ${endTime.toLocaleString("id-ID", {
+            timeZone: "Asia/Jakarta",
+          })}, Now: ${jakartaTime.toLocaleString("id-ID", {
+            timeZone: "Asia/Jakarta",
+          })}`
+        );
 
         if (
           startTime <= jakartaTime &&
@@ -348,7 +406,12 @@ const startCronJob = (io) => {
             }
 
             console.log(
-              `✅ ChatList ${chat._id} diubah ke 'berlangsung' karena waktunya tiba`
+              `✅ ChatList ${
+                chat._id
+              } diubah ke 'berlangsung' karena waktunya tiba pada ${jakartaTime.toLocaleString(
+                "id-ID",
+                { timeZone: "Asia/Jakarta" }
+              )}`
             );
           }
         }
@@ -369,24 +432,31 @@ const startCronJob = (io) => {
         const { tgl_konsul, jam_konsul } = jadwal;
 
         if (!tgl_konsul || !jam_konsul || !jam_konsul.includes(":")) {
-          // console.log(`⚠️ Jadwal tidak lengkap (fallback): ${jadwal._id}`);
           continue;
         }
 
         const [hour, minute] = jam_konsul.split(":").map(Number);
+        const startTime = createJakartaDate(tgl_konsul, hour, minute);
+        const endTime = new Date(startTime.getTime() + 120 * 60 * 1000); // 120 menit (2 jam)
 
-        // ✅ PERBAIKAN: Konsisten dengan pembuatan waktu
-        const startTime = new Date(tgl_konsul);
-        startTime.setHours(hour);
-        startTime.setMinutes(minute);
-        startTime.setSeconds(0);
-        const endTime = new Date(startTime.getTime() + 3 * 60 * 1000); // 3 menit
+        console.log(
+          `🛡️ Fallback check - End: ${endTime.toLocaleString("id-ID", {
+            timeZone: "Asia/Jakarta",
+          })}, Now: ${jakartaTime.toLocaleString("id-ID", {
+            timeZone: "Asia/Jakarta",
+          })}`
+        );
 
         if (jakartaTime >= endTime) {
           jadwal.status_konsul = "selesai";
           await jadwal.save();
           console.log(
-            `⏹️ Jadwal ${jadwal._id} otomatis jadi 'selesai' [fallback]`
+            `⏹️ Jadwal ${
+              jadwal._id
+            } otomatis jadi 'selesai' [fallback] pada ${jakartaTime.toLocaleString(
+              "id-ID",
+              { timeZone: "Asia/Jakarta" }
+            )}`
           );
         }
       }
