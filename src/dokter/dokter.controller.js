@@ -7,6 +7,8 @@ const mongoose = require("mongoose");
 const { hashString } = require("../utils/hash");
 const multer = require("multer");
 const path = require("path");
+const sharp = require("sharp");
+const fs = require("fs").promises;
 const dokterAuthorization = require("../middleware/dokterAuthorization");
 const masyarakatAuthorization = require("../middleware/masyarakatAuthorization");
 const adminAuthorization = require("../middleware/adminAuthorization");
@@ -21,22 +23,114 @@ const uploadLimiter = rateLimit({
   message: {
     message: "Terlalu banyak request upload. Coba lagi dalam 1 menit.",
     error: "UPLOAD_RATE_LIMIT_EXCEEDED",
-    retryAfter: Math.ceil(1 * 60)
+    retryAfter: Math.ceil(1 * 60),
   },
   standardHeaders: true,
-  legacyHeaders: false, // menonaktifkan headers `X-RateLimit-*`
-
+  legacyHeaders: false,
   keyGenerator: (req) => {
     return req.user?.id || req.ip;
   },
   skip: (req) => {
     return false;
-  }
+  },
 });
-// Konfigurasi tempat penyimpanan file
+
+// Fungsi untuk mengompres gambar
+async function compressImage(inputPath, outputPath, maxSizeKB = 3072) {
+  // 3MB = 3072KB
+  try {
+    let quality = 90;
+    let compressed = false;
+
+    while (quality > 10 && !compressed) {
+      await sharp(inputPath)
+        .jpeg({
+          quality: quality,
+          progressive: true,
+          mozjpeg: true,
+        })
+        .toFile(outputPath);
+
+      // Cek ukuran file hasil kompresi
+      const stats = await fs.stat(outputPath);
+      const fileSizeKB = stats.size / 1024;
+
+      if (fileSizeKB <= maxSizeKB) {
+        compressed = true;
+        console.log(
+          `File berhasil dikompres dengan quality ${quality}%, ukuran: ${fileSizeKB.toFixed(
+            2
+          )}KB`
+        );
+      } else {
+        quality -= 10;
+        console.log(
+          `Mencoba kompresi dengan quality ${quality}%, ukuran saat ini: ${fileSizeKB.toFixed(
+            2
+          )}KB`
+        );
+      }
+    }
+
+    // Jika masih terlalu besar, resize gambar
+    if (!compressed) {
+      let width = 1920;
+      let resized = false;
+
+      while (width > 400 && !resized) {
+        await sharp(inputPath)
+          .resize(width, null, {
+            withoutEnlargement: true,
+            fit: "inside",
+          })
+          .jpeg({
+            quality: 70,
+            progressive: true,
+            mozjpeg: true,
+          })
+          .toFile(outputPath);
+
+        const stats = await fs.stat(outputPath);
+        const fileSizeKB = stats.size / 1024;
+
+        if (fileSizeKB <= maxSizeKB) {
+          resized = true;
+          console.log(
+            `File berhasil diresize dan dikompres, lebar: ${width}px, ukuran: ${fileSizeKB.toFixed(
+              2
+            )}KB`
+          );
+        } else {
+          width -= 200;
+          console.log(
+            `Mencoba resize dengan lebar ${width}px, ukuran saat ini: ${fileSizeKB.toFixed(
+              2
+            )}KB`
+          );
+        }
+      }
+    }
+
+    // Hapus file asli setelah kompresi berhasil
+    await fs.unlink(inputPath);
+
+    return true;
+  } catch (error) {
+    console.error("Error saat mengompres gambar:", error);
+    // Jika gagal kompres, tetap gunakan file asli
+    try {
+      await fs.rename(inputPath, outputPath);
+    } catch (renameError) {
+      console.error("Error saat rename file:", renameError);
+    }
+    return false;
+  }
+}
+
+// Konfigurasi tempat penyimpanan file sementara
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "public/imagesdokter/");
+    cb(null, "public/temp/"); // Folder sementara untuk file sebelum dikompres
   },
   filename: function (req, file, cb) {
     const originalName = file.originalname;
@@ -44,211 +138,303 @@ const storage = multer.diskStorage({
       .toLowerCase()
       .replace(/\s+/g, "-")
       .replace(/[^a-z0-9.\-]/g, "");
-    
-    const uniqueName = Date.now() + "-" + sanitized;
+
+    const uniqueName = Date.now() + "-temp-" + sanitized;
     cb(null, uniqueName);
   },
 });
 
-// Konfigurasi multer dengan validasi ukuran file dan tipe file
-const upload = multer({ 
+// Konfigurasi multer tanpa batasan ukuran file
+const upload = multer({
   storage: storage,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB dalam bytes
+    fileSize: 20 * 1024 * 1024, // Batas 20MB untuk upload (akan dikompres nanti)
   },
   fileFilter: function (req, file, cb) {
     // Validasi tipe file - hanya menerima gambar
-    const allowedTypes = /jpeg|jpg|png|gif|webp/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const allowedTypes = /jpeg|jpg|png|heic|webp/;
+    const extname = allowedTypes.test(
+      path.extname(file.originalname).toLowerCase()
+    );
     const mimetype = allowedTypes.test(file.mimetype);
 
     if (mimetype && extname) {
       return cb(null, true);
     } else {
-      cb(new Error('Hanya file gambar (JPEG, JPG, PNG, GIF, WEBP) yang diizinkan!'));
+      cb(
+        new Error(
+          "Hanya file gambar (JPEG, JPG, PNG, HEIC, WEBP) yang diizinkan!"
+        )
+      );
     }
-  }
+  },
 });
 
-// Endpoint upload file dengan update ke database dokter
+// Endpoint upload file dengan kompresi otomatis
 router.post("/upload", uploadLimiter, verifyToken, (req, res) => {
   upload.single("image")(req, res, async function (err) {
     if (err instanceof multer.MulterError) {
-      // Error dari multer
-      if (err.code === 'LIMIT_FILE_SIZE') {
-        return res.status(400).json({ 
-          message: "Ukuran file terlalu besar. Maksimal 4MB diizinkan.",
-          error: "FILE_TOO_LARGE"
+      if (err.code === "LIMIT_FILE_SIZE") {
+        return res.status(400).json({
+          message:
+            "Ukuran file terlalu besar. Maksimal 20MB diizinkan untuk upload.",
+          error: "FILE_TOO_LARGE",
         });
       }
-      return res.status(400).json({ 
-        message: "Error upload file", 
-        error: err.message 
+      return res.status(400).json({
+        message: "Error upload file",
+        error: err.message,
       });
     } else if (err) {
-      // Error custom dari fileFilter
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: err.message,
-        error: "INVALID_FILE_TYPE"
+        error: "INVALID_FILE_TYPE",
       });
     }
 
-    // Jika tidak ada file yang diupload
     if (!req.file) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: "File tidak ditemukan",
-        error: "NO_FILE"
+        error: "NO_FILE",
       });
     }
 
     try {
       const dokterId = req.body.id;
-      
+
       if (!dokterId) {
-        return res.status(400).json({ 
+        // Hapus file temp jika tidak ada ID dokter
+        await fs.unlink(req.file.path).catch(console.error);
+        return res.status(400).json({
           message: "ID dokter tidak ditemukan",
-          error: "NO_DOCTOR_ID"
+          error: "NO_DOCTOR_ID",
         });
       }
 
-      const filePath = `/imagesdokter/${req.file.filename}`;
+      // Path file sementara dan final
+      const tempFilePath = req.file.path;
+      const originalName = req.file.originalname
+        .toLowerCase()
+        .replace(/\s+/g, "-")
+        .replace(/[^a-z0-9.\-]/g, "");
+      const finalFileName =
+        Date.now() + "-" + originalName.replace(/\.[^/.]+$/, "") + ".jpg";
+      const finalFilePath = path.join("public/imagesdokter/", finalFileName);
 
+      // Kompres gambar
+      console.log(`Mulai kompresi file: ${req.file.originalname}`);
+      const compressionSuccess = await compressImage(
+        tempFilePath,
+        finalFilePath,
+        3072
+      ); // 3MB
+
+      // Update database
       const updated = await Dokter.findByIdAndUpdate(dokterId, {
-        foto_profil_dokter: filePath,
+        foto_profil_dokter: `/imagesdokter/${finalFileName}`,
       });
 
       if (!updated) {
-        return res.status(404).json({ 
+        // Hapus file jika dokter tidak ditemukan
+        await fs.unlink(finalFilePath).catch(console.error);
+        return res.status(404).json({
           message: "Dokter tidak ditemukan",
-          error: "DOCTOR_NOT_FOUND"
+          error: "DOCTOR_NOT_FOUND",
         });
       }
 
-      res.status(200).json({ 
-        message: "Upload berhasil", 
-        path: filePath,
-        filename: req.file.filename,
-        size: req.file.size,
-        originalname: req.file.originalname
+      // Dapatkan ukuran file final
+      const finalStats = await fs.stat(finalFilePath);
+      const finalSizeKB = finalStats.size / 1024;
+
+      res.status(200).json({
+        message: "Upload dan kompresi berhasil",
+        path: `/imagesdokter/${finalFileName}`,
+        filename: finalFileName,
+        originalSize: req.file.size,
+        compressedSize: finalStats.size,
+        originalSizeKB: (req.file.size / 1024).toFixed(2),
+        compressedSizeKB: finalSizeKB.toFixed(2),
+        compressionRatio:
+          (((req.file.size - finalStats.size) / req.file.size) * 100).toFixed(
+            2
+          ) + "%",
+        originalname: req.file.originalname,
       });
     } catch (error) {
       console.error("Upload error:", error);
+      // Bersihkan file jika ada error
+      if (req.file && req.file.path) {
+        await fs.unlink(req.file.path).catch(console.error);
+      }
       res.status(500).json({ message: "Upload gagal", error: error.message });
     }
   });
 });
 
-// Endpoint upload file untuk admin (tanpa update database)
+// Endpoint upload file untuk admin dengan kompresi
 router.post("/upload/admin", uploadLimiter, verifyToken, (req, res) => {
-  upload.single("foto")(req, res, function (err) {
+  upload.single("foto")(req, res, async function (err) {
     if (err instanceof multer.MulterError) {
-      // Error dari multer
-      if (err.code === 'LIMIT_FILE_SIZE') {
-        return res.status(400).json({ 
-          message: "Ukuran file terlalu besar. Maksimal 2MB diizinkan.",
-          error: "FILE_TOO_LARGE"
+      if (err.code === "LIMIT_FILE_SIZE") {
+        return res.status(400).json({
+          message:
+            "Ukuran file terlalu besar. Maksimal 20MB diizinkan untuk upload.",
+          error: "FILE_TOO_LARGE",
         });
       }
-      return res.status(400).json({ 
-        message: "Error upload file", 
-        error: err.message 
+      return res.status(400).json({
+        message: "Error upload file",
+        error: err.message,
       });
     } else if (err) {
-      // Error custom dari fileFilter
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: err.message,
-        error: "INVALID_FILE_TYPE"
+        error: "INVALID_FILE_TYPE",
       });
     }
 
-    // Jika tidak ada file yang diupload
     if (!req.file) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: "File tidak ditemukan",
-        error: "NO_FILE"
+        error: "NO_FILE",
       });
     }
 
     try {
-      const filePath = `/imagesdokter/${req.file.filename}`;
-      res.status(200).json({ 
-        message: "Upload berhasil", 
-        path: filePath,
-        filename: req.file.filename,
-        size: req.file.size,
-        originalname: req.file.originalname
+      // Path file sementara dan final
+      const tempFilePath = req.file.path;
+      const originalName = req.file.originalname
+        .toLowerCase()
+        .replace(/\s+/g, "-")
+        .replace(/[^a-z0-9.\-]/g, "");
+      const finalFileName =
+        Date.now() + "-" + originalName.replace(/\.[^/.]+$/, "") + ".jpg";
+      const finalFilePath = path.join("public/imagesdokter/", finalFileName);
+
+      // Kompres gambar
+      console.log(`Mulai kompresi file admin: ${req.file.originalname}`);
+      const compressionSuccess = await compressImage(
+        tempFilePath,
+        finalFilePath,
+        3072
+      ); // 3MB
+
+      // Dapatkan ukuran file final
+      const finalStats = await fs.stat(finalFilePath);
+      const finalSizeKB = finalStats.size / 1024;
+
+      res.status(200).json({
+        message: "Upload dan kompresi berhasil",
+        path: `/imagesdokter/${finalFileName}`,
+        filename: finalFileName,
+        originalSize: req.file.size,
+        compressedSize: finalStats.size,
+        originalSizeKB: (req.file.size / 1024).toFixed(2),
+        compressedSizeKB: finalSizeKB.toFixed(2),
+        compressionRatio:
+          (((req.file.size - finalStats.size) / req.file.size) * 100).toFixed(
+            2
+          ) + "%",
+        originalname: req.file.originalname,
       });
     } catch (error) {
+      console.error("Upload admin error:", error);
+      // Bersihkan file jika ada error
+      if (req.file && req.file.path) {
+        await fs.unlink(req.file.path).catch(console.error);
+      }
       res.status(500).json({ message: "Upload gagal", error: error.message });
     }
   });
 });
 
-router.post("/create", createLimiter, adminAuthorization, async (req, res, next) => {
-  try {
-    const {
-      nama_dokter,
-      username_dokter,
-      password_dokter,
-      email_dokter,
-      spesialis_dokter,
-      notlp_dokter,
-      str_dokter,
-      rating_dokter,
-      foto_profil_dokter,
-    } = req.body;
+// Sisanya tetap sama seperti kode asli...
+router.post(
+  "/create",
+  createLimiter,
+  adminAuthorization,
+  async (req, res, next) => {
+    try {
+      const {
+        nama_dokter,
+        username_dokter,
+        password_dokter,
+        email_dokter,
+        spesialis_dokter,
+        notlp_dokter,
+        str_dokter,
+        rating_dokter,
+        foto_profil_dokter,
+      } = req.body;
 
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
-    if (!emailRegex.test(email_dokter)) {
-      return res.status(400).json({ message: "Email tidak valid" });
-    }
-
-    if (await Dokter.exists({ username_dokter })) {
-      return res.status(400).json({ message: "Username sudah digunakan" });
-    }
-
-    if (await Dokter.exists({ str_dokter })) {
-      return res.status(400).json({ message: "STR sudah terdaftar" });
-    }
-
-    const allDokter = await Dokter.find(); // Ambil semua dokter
-    const emailAlreadyUsed = allDokter.some((dok) => {
-      try {
-        return decrypt(dok.email_dokter) === email_dokter;
-      } catch (e) {
-        return false;
+      if (!emailRegex.test(email_dokter)) {
+        return res.status(400).json({ message: "Email tidak valid" });
       }
-    });
 
-    if (emailAlreadyUsed) {
-      return res.status(400).json({ message: "Email sudah terdaftar" });
+      if (await Dokter.exists({ username_dokter })) {
+        return res.status(400).json({ message: "Username sudah digunakan" });
+      }
+
+      if (await Dokter.exists({ str_dokter })) {
+        return res.status(400).json({ message: "STR sudah terdaftar" });
+      }
+
+      const allDokter = await Dokter.find();
+      const emailAlreadyUsed = allDokter.some((dok) => {
+        try {
+          return decrypt(dok.email_dokter) === email_dokter;
+        } catch (e) {
+          return false;
+        }
+      });
+
+      if (emailAlreadyUsed) {
+        return res.status(400).json({ message: "Email sudah terdaftar" });
+      }
+
+      const hashedPassword = await bcrypt.hash(password_dokter, 10);
+
+      const newDokter = new Dokter({
+        nama_dokter,
+        username_dokter,
+        password_dokter: hashedPassword,
+        email_dokter: encrypt(email_dokter),
+        spesialis_dokter,
+        notlp_dokter: encrypt(notlp_dokter),
+        str_dokter,
+        rating_dokter:
+          rating_dokter >= 0 && rating_dokter <= 5 ? rating_dokter : 0,
+        foto_profil_dokter,
+      });
+
+      await newDokter.save();
+      res.status(201).json({
+        message: "Dokter berhasil didaftarkan",
+        dokter: newDokter,
+      });
+    } catch (e) {
+      next(e);
     }
-
-    const hashedPassword = await bcrypt.hash(password_dokter, 10);
-
-    const newDokter = new Dokter({
-      nama_dokter,
-      username_dokter,
-      password_dokter: hashedPassword,
-      email_dokter: encrypt(email_dokter),
-      spesialis_dokter,
-      notlp_dokter: encrypt(notlp_dokter),
-      str_dokter,
-      rating_dokter:
-        rating_dokter >= 0 && rating_dokter <= 5 ? rating_dokter : 0,
-      foto_profil_dokter,
-    });
-
-    await newDokter.save();
-    res.status(201).json({
-      message: "Dokter berhasil didaftarkan",
-      dokter: newDokter,
-    });
-  } catch (e) {
-    next(e);
   }
-});
+);
+
+// Tambahkan middleware untuk memastikan folder ada
+const ensureDirectoryExists = async (dirPath) => {
+  try {
+    await fs.access(dirPath);
+  } catch (error) {
+    await fs.mkdir(dirPath, { recursive: true });
+  }
+};
+
+// Jalankan saat server start
+(async () => {
+  await ensureDirectoryExists("public/temp");
+  await ensureDirectoryExists("public/imagesdokter");
+})();
 
 router.get("/getall", roleAuthorization(['masyarakat', 'admin']), async (req, res, next) => {
   try {

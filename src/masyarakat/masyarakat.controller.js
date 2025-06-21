@@ -7,6 +7,8 @@ const { encrypt, decrypt } = require("../utils/encryption");
 const mongoose = require("mongoose");
 const multer = require("multer");
 const path = require("path");
+const sharp = require("sharp");
+const fs = require("fs").promises;
 const masyarakatAuthorization = require("../middleware/masyarakatAuthorization");
 const createLimiter = require("../middleware/ratelimiter");
 const rateLimit = require("express-rate-limit");
@@ -30,9 +32,47 @@ const uploadLimiter = rateLimit({
   },
 });
 
+// Fungsi untuk mengompres gambar profil - otomatis compress tanpa batasan size
+async function compressImage(inputPath, outputPath) {
+  try {
+    // Compress dengan setting optimal untuk foto profil
+    await sharp(inputPath)
+      .resize(800, 800, {
+        fit: "inside",
+        withoutEnlargement: true,
+      })
+      .webp({
+        quality: 80,
+        effort: 4,
+      })
+      .toFile(outputPath);
+
+    // Dapatkan ukuran file hasil kompresi
+    const stats = await fs.stat(outputPath);
+    const fileSizeKB = stats.size / 1024;
+
+    console.log(`File berhasil dikompres, ukuran: ${fileSizeKB.toFixed(2)}KB`);
+
+    // Hapus file asli setelah kompresi berhasil
+    await fs.unlink(inputPath);
+
+    return true;
+  } catch (error) {
+    console.error("Error saat mengompres gambar:", error);
+    // Jika gagal kompres, tetap gunakan file asli
+    try {
+      await fs.rename(inputPath, outputPath);
+    } catch (renameError) {
+      console.error("Error saat rename file:", renameError);
+    }
+    return false;
+  }
+}
+
+// Konfigurasi tempat penyimpanan file sementara
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "public/imagesmasyarakat/");
+    cb(null, "public/temp/"); // Folder sementara untuk file sebelum dikompres
   },
   filename: function (req, file, cb) {
     const originalName = file.originalname;
@@ -41,36 +81,278 @@ const storage = multer.diskStorage({
       .replace(/\s+/g, "-")
       .replace(/[^a-z0-9.\-]/g, "");
 
-    const uniqueName = Date.now() + "-" + sanitized;
+    const uniqueName = Date.now() + "-temp-" + sanitized;
     cb(null, uniqueName);
   },
 });
 
-const upload = multer({ storage });
+// Konfigurasi multer tanpa batasan ukuran - biar auto compress
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 20 * 1024 * 1024, // Batas 20MB untuk upload (akan dikompres nanti)
+  },
+  fileFilter: function (req, file, cb) {
+    // Validasi tipe file - hanya menerima gambar
+    const allowedTypes = /jpeg|jpg|png|heic|webp/;
+    const extname = allowedTypes.test(
+      path.extname(file.originalname).toLowerCase()
+    );
+    const mimetype = allowedTypes.test(file.mimetype);
 
-router.post("/upload", uploadLimiter, upload.single("image"), async (req, res) => {
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(
+        new Error(
+          "Hanya file gambar (JPEG, JPG, PNG, HEIC, WEBP) yang diizinkan!"
+        )
+      );
+    }
+  },
+});
+
+// Tambahkan middleware untuk memastikan folder ada
+const ensureDirectoryExists = async (dirPath) => {
   try {
-    const masyarakatId = req.body.id;
+    await fs.access(dirPath);
+  } catch (error) {
+    await fs.mkdir(dirPath, { recursive: true });
+  }
+};
+
+// Jalankan saat server start
+(async () => {
+  await ensureDirectoryExists("public/temp");
+  await ensureDirectoryExists("public/imagesmasyarakat");
+})();
+
+const lockManager = {
+  locks: new Set(),
+
+  async acquireLock(key) {
+    while (this.locks.has(key)) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    this.locks.add(key);
+  },
+
+  releaseLock(key) {
+    this.locks.delete(key);
+  },
+};
+
+router.post("/upload", uploadLimiter, (req, res) => {
+  upload.single("image")(req, res, async function (err) {
+    if (err instanceof multer.MulterError) {
+      if (err.code === "LIMIT_FILE_SIZE") {
+        return res.status(400).json({
+          message:
+            "Ukuran file terlalu besar. Maksimal 20MB diizinkan untuk upload.",
+          error: "FILE_TOO_LARGE",
+        });
+      }
+      return res.status(400).json({
+        message: "Error upload file",
+        error: err.message,
+      });
+    } else if (err) {
+      return res.status(400).json({
+        message: err.message,
+        error: "INVALID_FILE_TYPE",
+      });
+    }
 
     if (!req.file) {
-      console.log("⛔ Tidak ada file yang diunggah");
-      return res.status(400).json({ error: "File tidak ditemukan" });
+      return res.status(400).json({
+        message: "File tidak ditemukan",
+        error: "NO_FILE",
+      });
     }
 
-    const filePath = `/imagesmasyarakat/${req.file.filename}`;
-    const updated = await masyarakat.findByIdAndUpdate(masyarakatId, {
-      foto_profil_masyarakat: filePath,
-    });
-
-    if (!updated) {
-      console.log("⚠️ Masyarakat tidak ditemukan dengan ID:", masyarakatId);
-      return res.status(404).json({ error: "Masyarakat tidak ditemukan" });
+    const masyarakatId = req.body.id;
+    if (!masyarakatId) {
+      // Bersihkan file jika tidak ada ID
+      await fs.unlink(req.file.path).catch(console.error);
+      return res.status(400).json({
+        message: "ID masyarakat diperlukan",
+        error: "MISSING_ID",
+      });
     }
 
-    res.status(200).json({ message: "Upload berhasil", path: filePath });
-  } catch (err) {
-    console.error("❌ Upload error:", err);
-    res.status(500).json({ error: "Upload gagal" });
+    // Gunakan lock untuk mencegah race condition
+    const lockKey = `upload_${masyarakatId}`;
+    await lockManager.acquireLock(lockKey);
+
+    try {
+      // Cek apakah masyarakat exist
+      const userExist = await masyarakat.exists({ _id: masyarakatId });
+      if (!userExist) {
+        await fs.unlink(req.file.path).catch(console.error);
+        return res.status(404).json({
+          message: "Masyarakat tidak ditemukan",
+          error: "USER_NOT_FOUND",
+        });
+      }
+
+      // Path file sementara dan final
+      const tempFilePath = req.file.path;
+      const originalName = req.file.originalname
+        .toLowerCase()
+        .replace(/\s+/g, "-")
+        .replace(/[^a-z0-9.\-]/g, "");
+      const finalFileName =
+        Date.now() + "-" + originalName.replace(/\.[^/.]+$/, "") + ".webp";
+      const finalFilePath = path.join(
+        "public/imagesmasyarakat/",
+        finalFileName
+      );
+
+      // Kompres gambar otomatis
+      console.log(`Mulai kompresi foto profil: ${req.file.originalname}`);
+      const compressionSuccess = await compressImage(
+        tempFilePath,
+        finalFilePath
+      );
+
+      // Update database
+      const dbFilePath = `/imagesmasyarakat/${finalFileName}`;
+      const updated = await masyarakat.findByIdAndUpdate(masyarakatId, {
+        foto_profil_masyarakat: dbFilePath,
+      });
+
+      if (!updated) {
+        // Hapus file yang sudah diupload jika gagal update database
+        await fs.unlink(finalFilePath).catch(console.error);
+        return res.status(404).json({
+          message: "Gagal memperbarui data masyarakat",
+          error: "UPDATE_FAILED",
+        });
+      }
+
+      // Dapatkan ukuran file final
+      const finalStats = await fs.stat(finalFilePath);
+      const finalSizeKB = finalStats.size / 1024;
+
+      res.status(200).json({
+        message: "Upload dan kompresi berhasil",
+        path: dbFilePath,
+        filename: finalFileName,
+        originalSize: req.file.size,
+        compressedSize: finalStats.size,
+        originalSizeKB: (req.file.size / 1024).toFixed(2),
+        compressedSizeKB: finalSizeKB.toFixed(2),
+        compressionRatio:
+          (((req.file.size - finalStats.size) / req.file.size) * 100).toFixed(
+            2
+          ) + "%",
+        originalname: req.file.originalname,
+        compressed: true,
+      });
+    } catch (error) {
+      console.error("Upload error:", error);
+      // Bersihkan file jika ada error
+      if (req.file && req.file.path) {
+        await fs.unlink(req.file.path).catch(console.error);
+      }
+      res.status(500).json({
+        message: "Upload gagal",
+        error: error.message,
+      });
+    } finally {
+      lockManager.releaseLock(lockKey);
+    }
+  });
+});
+
+router.patch("/update/:id", verifyToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      nama_masyarakat,
+      username_masyarakat,
+      nik_masyarakat,
+      email_masyarakat,
+      password_masyarakat,
+      alamat_masyarakat,
+      notlp_masyarakat,
+      ...otherFields
+    } = req.body;
+
+    const userExist = await masyarakat.exists({ _id: id });
+    if (!userExist) {
+      return res.status(404).json({ message: "Data tidak ditemukan" });
+    }
+
+    if (nik_masyarakat) {
+      const nikExist = await masyarakat.exists({
+        nik_masyarakat,
+        _id: { $ne: id },
+      });
+      if (nikExist) {
+        return res.status(400).json({ message: "NIK sudah terdaftar." });
+      }
+    }
+
+    if (username_masyarakat) {
+      const usernameExist = await masyarakat.exists({
+        username_masyarakat,
+        _id: { $ne: id },
+      });
+      if (usernameExist) {
+        return res.status(400).json({ message: "Username sudah terdaftar." });
+      }
+    }
+
+    if (nama_masyarakat) {
+      const namaExist = await masyarakat.exists({
+        nama_masyarakat,
+        _id: { $ne: id },
+      });
+      if (namaExist) {
+        return res.status(400).json({ message: "Nama sudah terdaftar." });
+      }
+    }
+
+    if (email_masyarakat) {
+      const emailExist = await masyarakat.exists({
+        email_masyarakat,
+        _id: { $ne: id },
+      });
+      if (emailExist) {
+        return res.status(400).json({ message: "Email sudah terdaftar." });
+      }
+    }
+
+    const updateData = { ...otherFields };
+    if (nama_masyarakat) updateData.nama_masyarakat = nama_masyarakat;
+    if (username_masyarakat)
+      updateData.username_masyarakat = username_masyarakat;
+    if (nik_masyarakat) updateData.nik_masyarakat = encrypt(nik_masyarakat);
+    if (email_masyarakat)
+      updateData.email_masyarakat = encrypt(email_masyarakat);
+    if (alamat_masyarakat)
+      updateData.alamat_masyarakat = encrypt(alamat_masyarakat);
+    if (notlp_masyarakat)
+      updateData.notlp_masyarakat = encrypt(notlp_masyarakat);
+    if (password_masyarakat) {
+      const salt = await bcrypt.genSalt(10);
+      updateData.password_masyarakat = await bcrypt.hash(
+        password_masyarakat,
+        salt
+      );
+    }
+
+    const updatedUser = await masyarakat
+      .findByIdAndUpdate(id, updateData, { new: true })
+      .select("-password_masyarakat");
+
+    res.status(200).json(updatedUser);
+  } catch (e) {
+    console.error("Update error:", e);
+    res
+      .status(500)
+      .json({ message: "Terjadi kesalahan saat memperbarui data" });
   }
 });
 
@@ -197,99 +479,6 @@ router.get("/getbyid/:id", verifyToken, async (req, res) => {
   } catch (e) {
     console.error("Error:", e);
     res.status(500).json({ message: e.message });
-  }
-});
-
-router.patch("/update/:id", verifyToken, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const {
-      nama_masyarakat,
-      username_masyarakat,
-      nik_masyarakat,
-      email_masyarakat,
-      password_masyarakat,
-      alamat_masyarakat,
-      notlp_masyarakat,
-      ...otherFields
-    } = req.body;
-
-    const userExist = await masyarakat.exists({ _id: id });
-    if (!userExist) {
-      return res.status(404).json({ message: "Data tidak ditemukan" });
-    }
-
-    if (nik_masyarakat) {
-      const nikExist = await masyarakat.exists({
-        nik_masyarakat,
-        _id: { $ne: id },
-      });
-      if (nikExist) {
-        return res.status(400).json({ message: "NIK sudah terdaftar." });
-      }
-    }
-
-    if (username_masyarakat) {
-      const usernameExist = await masyarakat.exists({
-        username_masyarakat,
-        _id: { $ne: id },
-      });
-      if (usernameExist) {
-        return res.status(400).json({ message: "Username sudah terdaftar." });
-      }
-    }
-    
-    if (nama_masyarakat) {
-      const namaExist = await masyarakat.exists({
-        nama_masyarakat,
-        _id: { $ne: id },
-      });
-      if (namaExist) {
-        return res.status(400).json({ message: "Nama sudah terdaftar." });
-      }
-    }
-
-    if (email_masyarakat) {
-      const emailExist = await masyarakat.exists({
-        email_masyarakat,
-        _id: { $ne: id },
-      });
-      if (emailExist) {
-        return res.status(400).json({ message: "Email sudah terdaftar." });
-      }
-    }
-
-    
-
-    const updateData = { ...otherFields };
-    if (nama_masyarakat) updateData.nama_masyarakat = nama_masyarakat;
-    if (username_masyarakat)
-      updateData.username_masyarakat = username_masyarakat;
-    if (nik_masyarakat) updateData.nik_masyarakat = encrypt(nik_masyarakat);
-    if (email_masyarakat)
-      updateData.email_masyarakat = encrypt(email_masyarakat);
-    if (alamat_masyarakat)
-      updateData.alamat_masyarakat = encrypt(alamat_masyarakat);
-    if (notlp_masyarakat)
-      updateData.notlp_masyarakat = encrypt(notlp_masyarakat);
-    if (password_masyarakat) {
-      const salt = await bcrypt.genSalt(10);
-      updateData.password_masyarakat = await bcrypt.hash(
-        password_masyarakat,
-        salt
-      );
-    }
-
-    const updatedUser = await masyarakat
-      .findByIdAndUpdate(id, updateData, { new: true })
-      .select("-password_masyarakat");
-
-    res.status(200).json(updatedUser);
-  } catch (e) {
-    console.error("Update error:", e);
-    res
-      .status(500)
-      .json({ message: "Terjadi kesalahan saat memperbarui data" });
   }
 });
 
