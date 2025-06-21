@@ -6,8 +6,8 @@ const multer = require("multer");
 const path = require("path");
 const adminAuthorization = require("../middleware/adminAuthorization");
 const verifyToken = require("../middleware/verifyToken");
-const createLimiter = require("../middleware/ratelimiter"); 
-const rateLimit = require('express-rate-limit');
+const createLimiter = require("../middleware/ratelimiter");
+const rateLimit = require("express-rate-limit");
 const masyarakatAuthorization = require("../middleware/masyarakatAuthorization");
 const roleAuthorization = require("../middleware/roleAuthorization");
 
@@ -17,7 +17,7 @@ const uploadLimiter = rateLimit({
   message: {
     message: "Terlalu banyak request upload. Coba lagi dalam 1 menit.",
     error: "UPLOAD_RATE_LIMIT_EXCEEDED",
-    retryAfter: Math.ceil(1 * 60)
+    retryAfter: Math.ceil(1 * 60),
   },
   standardHeaders: true,
   legacyHeaders: false, // menonaktifkan headers `X-RateLimit-*`
@@ -27,7 +27,7 @@ const uploadLimiter = rateLimit({
   },
   skip: (req) => {
     return false;
-  }
+  },
 });
 
 // Konfigurasi tempat penyimpanan file
@@ -41,12 +41,9 @@ const storage = multer.diskStorage({
   },
 });
 
-// Konfigurasi multer dengan validasi ukuran file dan tipe file
+// Konfigurasi multer dengan validasi tipe file (tanpa batas ukuran file)
 const upload = multer({
   storage: storage,
-  limits: {
-    fileSize: 2 * 1024 * 1024, // 2MB dalam bytes
-  },
   fileFilter: function (req, file, cb) {
     // Validasi tipe file - hanya menerima gambar
     const allowedTypes = /jpeg|jpg|png|heic|webp/;
@@ -72,12 +69,6 @@ router.post("/upload", uploadLimiter, verifyToken, (req, res) => {
   upload.single("foto")(req, res, function (err) {
     if (err instanceof multer.MulterError) {
       // Error dari multer
-      if (err.code === "LIMIT_FILE_SIZE") {
-        return res.status(400).json({
-          message: "Ukuran file terlalu besar. Maksimal 2MB diizinkan.",
-          error: "FILE_TOO_LARGE",
-        });
-      }
       return res.status(400).json({
         message: "Error upload file",
         error: err.message,
@@ -114,81 +105,88 @@ router.post("/upload", uploadLimiter, verifyToken, (req, res) => {
 });
 
 const lockManager = {
-    locks: new Set(),
-    
-    async acquireLock(key) {
-        while (this.locks.has(key)) {
-            await new Promise(resolve => setTimeout(resolve, 10));
-        }
-        this.locks.add(key);
-    },
-    
-    releaseLock(key) {
-        this.locks.delete(key);
+  locks: new Set(),
+
+  async acquireLock(key) {
+    while (this.locks.has(key)) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
     }
+    this.locks.add(key);
+  },
+
+  releaseLock(key) {
+    this.locks.delete(key);
+  },
 };
 
 router.post("/create", createLimiter, adminAuthorization, async (req, res) => {
-    const lockKey = `artikel_${req.body.nama_artikel}_${req.body.kategori_artikel}`;
-    
+  const lockKey = `artikel_${req.body.nama_artikel}_${req.body.kategori_artikel}`;
+
+  try {
+    await lockManager.acquireLock(lockKey);
+
+    const existingArtikel = await artikel.findOne({
+      nama_artikel: req.body.nama_artikel,
+    });
+
+    if (existingArtikel) {
+      return res.status(409).json({
+        message: "Artikel dengan nama tersebut sudah ada",
+        error: "DUPLICATE_ARTIKEL",
+      });
+    }
+
+    const newArtikel = new artikel(req.body);
+    const savedArtikel = await newArtikel.save();
+
+    res.status(201).json(savedArtikel);
+  } catch (error) {
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(409).json({
+        message: `Artikel dengan ${field} tersebut sudah ada`,
+        error: "DUPLICATE_KEY",
+        field: field,
+      });
+    }
+
+    res.status(400).json({
+      message: error.message,
+      error: "CREATE_FAILED",
+    });
+  } finally {
+    lockManager.releaseLock(lockKey);
+  }
+});
+
+router.get(
+  "/getall",
+  roleAuthorization(["masyarakat", "admin"]),
+  async (req, res) => {
     try {
-        await lockManager.acquireLock(lockKey);
-
-        const existingArtikel = await artikel.findOne({
-            nama_artikel: req.body.nama_artikel
-        });
-        
-        if (existingArtikel) {
-            return res.status(409).json({
-                message: "Artikel dengan nama tersebut sudah ada",
-                error: "DUPLICATE_ARTIKEL"
-            });
-        }
-        
-        const newArtikel = new artikel(req.body);
-        const savedArtikel = await newArtikel.save();
-        
-        res.status(201).json(savedArtikel);
-        
+      const artikels = await artikel.find();
+      res.status(200).json(artikels);
     } catch (error) {
-        if (error.code === 11000) {
-            const field = Object.keys(error.keyValue)[0];
-            return res.status(409).json({
-                message: `Artikel dengan ${field} tersebut sudah ada`,
-                error: "DUPLICATE_KEY",
-                field: field
-            });
-        }
-        
-        res.status(400).json({ 
-            message: error.message,
-            error: "CREATE_FAILED"
-        });
-    } finally {
-        lockManager.releaseLock(lockKey);
+      res.status(500).json({ message: error.message });
     }
-});
-
-router.get("/getall", roleAuthorization(['masyarakat', 'admin']), async (req, res) => {
-  try {
-    const artikels = await artikel.find();
-    res.status(200).json(artikels);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
   }
-});
+);
 
-router.get("/getbyid/:id", roleAuthorization(['masyarakat', 'admin']), async (req, res) => {
-  try {
-    const artikelItem = await artikel.findById(req.params.id);
-    if (!artikelItem) {
-      return res.status(404).json({ message: "Artikel tidak ditemukan" });
+router.get(
+  "/getbyid/:id",
+  roleAuthorization(["masyarakat", "admin"]),
+  async (req, res) => {
+    try {
+      const artikelItem = await artikel.findById(req.params.id);
+      if (!artikelItem) {
+        return res.status(404).json({ message: "Artikel tidak ditemukan" });
+      }
+      res.status(200).json(artikelItem);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
     }
-    res.status(200).json(artikelItem);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
   }
-});
+);
 
 router.patch("/update/:id", adminAuthorization, async (req, res) => {
   try {
