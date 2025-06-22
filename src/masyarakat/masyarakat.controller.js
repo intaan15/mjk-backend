@@ -10,27 +10,7 @@ const path = require("path");
 const sharp = require("sharp");
 const fs = require("fs").promises;
 const masyarakatAuthorization = require("../middleware/masyarakatAuthorization");
-const createLimiter = require("../middleware/ratelimiter");
-const rateLimit = require("express-rate-limit");
-
-const uploadLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 menit
-  max: 2, // maksimal 2 upload per 1 menit per IP
-  message: {
-    message: "Terlalu banyak request upload. Coba lagi dalam 1 menit.",
-    error: "UPLOAD_RATE_LIMIT_EXCEEDED",
-    retryAfter: Math.ceil(1 * 60),
-  },
-  standardHeaders: true,
-  legacyHeaders: false, // menonaktifkan headers `X-RateLimit-*`
-
-  keyGenerator: (req) => {
-    return req.user?.id || req.ip;
-  },
-  skip: (req) => {
-    return false;
-  },
-});
+const { createLimiter, uploadLimiter } = require("../middleware/ratelimiter");
 
 // Fungsi untuk mengompres gambar profil - otomatis compress tanpa batasan size
 async function compressImage(inputPath, outputPath) {

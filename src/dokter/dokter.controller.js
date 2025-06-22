@@ -13,27 +13,8 @@ const dokterAuthorization = require("../middleware/dokterAuthorization");
 const masyarakatAuthorization = require("../middleware/masyarakatAuthorization");
 const adminAuthorization = require("../middleware/adminAuthorization");
 const verifyToken = require("../middleware/verifyToken");
-const createLimiter = require("../middleware/ratelimiter"); 
-const rateLimit = require('express-rate-limit');
+const { createLimiter, uploadLimiter } = require("../middleware/ratelimiter");
 const roleAuthorization = require("../middleware/roleAuthorization");
-
-const uploadLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 menit
-  max: 2, // maksimal 2 upload per 1 menit per IP
-  message: {
-    message: "Terlalu banyak request upload. Coba lagi dalam 1 menit.",
-    error: "UPLOAD_RATE_LIMIT_EXCEEDED",
-    retryAfter: Math.ceil(1 * 60),
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  keyGenerator: (req) => {
-    return req.user?.id || req.ip;
-  },
-  skip: (req) => {
-    return false;
-  },
-});
 
 // Fungsi untuk mengompres gambar
 async function compressImage(inputPath, outputPath, maxSizeKB = 3072) {
