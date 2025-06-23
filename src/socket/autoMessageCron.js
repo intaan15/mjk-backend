@@ -150,11 +150,7 @@ const startCronJob = (io) => {
         const konsultasiTime = createJakartaDate(tgl_konsul, hour, minute);
 
         console.log(
-          `🕒 Jadwal menunggu: ${konsultasiTime.toLocaleString("id-ID", {
-            timeZone: "Asia/Jakarta",
-          })} vs now: ${jakartaTime.toLocaleString("id-ID", {
-            timeZone: "Asia/Jakarta",
-          })}`
+          `🕒 Jadwal menunggu: ${konsultasiTime.toLocaleString("id-ID")} vs now: ${jakartaTime.toLocaleString("id-ID")}`
         );
 
         // Hanya tolak jika waktu sekarang sudah melewati waktu konsultasi
@@ -220,13 +216,8 @@ const startCronJob = (io) => {
 
         console.log(
           `📨 Cek pesan otomatis - Konsultasi: ${konsultasiTime.toLocaleString(
-            "id-ID",
-            { timeZone: "Asia/Jakarta" }
-          )} - ${endTime.toLocaleString("id-ID", {
-            timeZone: "Asia/Jakarta",
-          })} vs now: ${jakartaTime.toLocaleString("id-ID", {
-            timeZone: "Asia/Jakarta",
-          })}`
+            "id-ID")} - ${endTime.toLocaleString("id-ID")}
+             vs now: ${jakartaTime.toLocaleString("id-ID")}`
         );
 
         if (jakartaTime >= konsultasiTime && jakartaTime < endTime) {
@@ -281,7 +272,6 @@ const startCronJob = (io) => {
             `✅ Pesan otomatis dikirim & status jadi 'berlangsung' untuk jadwal ${
               jadwal._id
             } pada ${jakartaTime.toLocaleString("id-ID", {
-              timeZone: "Asia/Jakarta",
             })}`
           );
         } else {
@@ -320,13 +310,7 @@ const startCronJob = (io) => {
         const endTime = new Date(startTime.getTime() + 3 * 60 * 1000); // 3 menit (2 jam)
 
         console.log(
-          `⏹️ Cek auto selesai - Start: ${startTime.toLocaleString("id-ID", {
-            timeZone: "Asia/Jakarta",
-          })}, End: ${endTime.toLocaleString("id-ID", {
-            timeZone: "Asia/Jakarta",
-          })}, Now: ${jakartaTime.toLocaleString("id-ID", {
-            timeZone: "Asia/Jakarta",
-          })}`
+          `⏹️ Cek auto selesai - Start: ${startTime.toLocaleString("id-ID")}, End: ${endTime.toLocaleString("id-ID")}, Now: ${jakartaTime.toLocaleString("id-ID")}`
         );
 
         if (jakartaTime >= endTime) {
@@ -389,13 +373,7 @@ const startCronJob = (io) => {
         const endTime = new Date(startTime.getTime() + 3 * 60 * 1000); // 3 menit (2 jam)
 
         console.log(
-          `🔄 Cek reactive - Start: ${startTime.toLocaleString("id-ID", {
-            timeZone: "Asia/Jakarta",
-          })}, End: ${endTime.toLocaleString("id-ID", {
-            timeZone: "Asia/Jakarta",
-          })}, Now: ${jakartaTime.toLocaleString("id-ID", {
-            timeZone: "Asia/Jakarta",
-          })}`
+          `🔄 Cek reactive - Start: ${startTime.toLocaleString("id-ID")}, End: ${endTime.toLocaleString("id-ID")}, Now: ${jakartaTime.toLocaleString("id-ID")}`
         );
 
         if (
@@ -448,11 +426,7 @@ const startCronJob = (io) => {
         const endTime = new Date(startTime.getTime() + 3 * 60 * 1000); // 3 menit (2 jam)
 
         console.log(
-          `🛡️ Fallback check - End: ${endTime.toLocaleString("id-ID", {
-            timeZone: "Asia/Jakarta",
-          })}, Now: ${jakartaTime.toLocaleString("id-ID", {
-            timeZone: "Asia/Jakarta",
-          })}`
+          `🛡️ Fallback check - End: ${endTime.toLocaleString("id-ID")}, Now: ${jakartaTime.toLocaleString("id-ID")}`
         );
 
         if (jakartaTime >= endTime) {
