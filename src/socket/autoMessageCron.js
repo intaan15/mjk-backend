@@ -372,7 +372,6 @@ const startCronJob = (io) => {
         const startTime = createJakartaDate(jadwal.tgl_konsul, hour, minute);
         const endTime = new Date(startTime.getTime() + 3 * 60 * 1000); // 3 menit (2 jam)
 
-<<<<<<< HEAD
         // console.log(
         //   `🔄 Cek reactive - Start: ${startTime.toLocaleString("id-ID", {
         //     timeZone: "Asia/Jakarta",
@@ -382,11 +381,7 @@ const startCronJob = (io) => {
         //     timeZone: "Asia/Jakarta",
         //   })}`
         // );
-=======
-        console.log(
-          `🔄 Cek reactive - Start: ${startTime.toLocaleString("id-ID")}, End: ${endTime.toLocaleString("id-ID")}, Now: ${jakartaTime.toLocaleString("id-ID")}`
-        );
->>>>>>> cbf5bd9c5c79685a2b568326664b1374a7e6d75c
+      
 
         if (
           startTime <= jakartaTime &&
