@@ -108,6 +108,51 @@ async function compressImage(inputPath, outputPath, maxSizeKB = 3072) {
   }
 }
 
+async function deleteImageFile(imagePath) {
+  if (!imagePath) {
+    console.log("Tidak ada path gambar untuk dihapus");
+    return;
+  }
+
+  try {
+    console.log(`Mencoba menghapus gambar dokter dengan path: ${imagePath}`);
+
+    // Berbagai kemungkinan format path yang perlu ditangani
+    let possiblePaths = [];
+
+    // Jika path dimulai dengan /imagesdokter/
+    if (imagePath.startsWith("/imagesdokter/")) {
+      const fileName = imagePath.replace("/imagesdokter/", "");
+      possiblePaths.push(path.join("public/imagesdokter/", fileName));
+    }
+    // Coba hapus dari semua kemungkinan path
+    let deleted = false;
+    for (const fullPath of possiblePaths) {
+      try {
+        await fs.access(fullPath);
+        await fs.unlink(fullPath);
+        console.log(`✅ File gambar dokter berhasil dihapus: ${fullPath}`);
+        deleted = true;
+        break;
+      } catch (error) {
+        if (error.code === "ENOENT") {
+          console.log(`File tidak ditemukan di: ${fullPath}`);
+        } else {
+          console.error(`Error menghapus file di ${fullPath}:`, error.message);
+        }
+      }
+    }
+
+    if (!deleted) {
+      console.log(
+        `⚠️ File gambar dokter tidak ditemukan di semua lokasi yang dicoba untuk path: ${imagePath}`
+      );
+    }
+  } catch (error) {
+    console.error("❌ Error dalam deleteImageFile:", error);
+  }
+}
+
 // Konfigurasi tempat penyimpanan file sementara
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -480,6 +525,7 @@ router.get("/getbyname/:doctorName", verifyToken, async (req, res) => {
   }
 });
 
+// UPDATE ENDPOINT - PERBAIKAN
 router.patch("/update/:id", roleAuthorization(['dokter', 'admin']), async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -492,11 +538,12 @@ router.patch("/update/:id", roleAuthorization(['dokter', 'admin']), async (req, 
       notlp_dokter,
     } = req.body;
 
-    const dokterExist = await Dokter.findById(id);
-    if (!dokterExist) {
-      return res.status(404).json({ message: "Data tidak ditemukan" });
+    const existingDokter = await Dokter.findById(id);
+    if (!existingDokter) {
+      return res.status(404).json({ message: "Dokter tidak ditemukan" });
     }
 
+    // Validasi username
     if (username_dokter) {
       const usernameExist = await Dokter.exists({
         username_dokter,
@@ -509,6 +556,7 @@ router.patch("/update/:id", roleAuthorization(['dokter', 'admin']), async (req, 
       }
     }
 
+    // Validasi STR
     if (str_dokter) {
       const strExist = await Dokter.exists({
         str_dokter,
@@ -521,6 +569,7 @@ router.patch("/update/:id", roleAuthorization(['dokter', 'admin']), async (req, 
       }
     }
 
+    // Validasi dan enkripsi email
     if (email_dokter) {
       const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
       if (!emailRegex.test(email_dokter)) {
@@ -545,22 +594,41 @@ router.patch("/update/:id", roleAuthorization(['dokter', 'admin']), async (req, 
       req.body.email_dokter = encrypt(email_dokter);
     }
 
+    // Enkripsi nomor telepon
     if (notlp_dokter) {
       req.body.notlp_dokter = encrypt(notlp_dokter);
     }
 
-    // if (password_dokter) {
-    //   req.body.password_dokter = await bcrypt.hash(password_dokter, 10);
-    // }
-
+    // Validasi rating
     if (rating_dokter !== undefined) {
       req.body.rating_dokter =
         rating_dokter >= 0 && rating_dokter <= 5 ? rating_dokter : 0;
     }
 
+    // 🔄 UPDATE DOKTER
     const updatedDokter = await Dokter.findByIdAndUpdate(id, req.body, {
       new: true,
     }).select("-password_dokter");
+
+    const possibleImageFields = [
+      "foto_profil_dokter", 
+    ];
+
+    for (const field of possibleImageFields) {
+      const oldImagePath = existingDokter[field];
+      const newImagePath = req.body[field];
+
+      if (oldImagePath && newImagePath && oldImagePath !== newImagePath) {
+        console.log(`🔄 Mengganti gambar pada field '${field}':`);
+        console.log(`   Gambar lama: ${oldImagePath}`);
+        console.log(`   Gambar baru: ${newImagePath}`);
+        await deleteImageFile(oldImagePath);
+      } else if (oldImagePath && newImagePath === null) {
+        // Jika gambar dihapus (set ke null)
+        console.log(`🗑️ Menghapus gambar pada field '${field}': ${oldImagePath}`);
+        await deleteImageFile(oldImagePath);
+      }
+    }
 
     res.status(200).json(updatedDokter);
   } catch (e) {
@@ -568,13 +636,38 @@ router.patch("/update/:id", roleAuthorization(['dokter', 'admin']), async (req, 
   }
 });
 
+// DELETE ENDPOINT - PERBAIKAN
 router.delete("/delete/:id", roleAuthorization(['dokter', 'admin']), async (req, res, next) => {
   try {
-    const deletedDokter = await Dokter.findByIdAndDelete(req.params.id);
-    if (!deletedDokter) {
+    // 🔍 AMBIL DATA SEBELUM DIHAPUS
+    const existingDokter = await Dokter.findById(req.params.id);
+    if (!existingDokter) {
       return res.status(404).json({ message: "Dokter tidak ditemukan" });
     }
-    res.status(200).json({ message: "Dokter berhasil dihapus" });
+
+    console.log('📋 Data dokter yang akan dihapus:', JSON.stringify(existingDokter, null, 2));
+
+    const deletedDokter = await Dokter.findByIdAndDelete(req.params.id);
+
+    const possibleImageFields = [
+      "foto_profil_dokter",  
+    ];
+
+    let deletedImages = [];
+    for (const field of possibleImageFields) {
+      const imagePath = existingDokter[field]; // Gunakan existingDokter, bukan deletedDokter
+      if (imagePath) {
+        console.log(`🗑️ Menghapus gambar dari field '${field}': ${imagePath}`);
+        await deleteImageFile(imagePath);
+        deletedImages.push({ field, path: imagePath });
+      }
+    }
+
+    res.status(200).json({ 
+      message: "Dokter berhasil dihapus", 
+      deletedImages,
+      imageFieldsChecked: possibleImageFields
+    });
   } catch (e) {
     next(e);
   }

@@ -4,7 +4,7 @@ const Jadwal = require("./jadwal.model");
 const verifyToken = require("../middleware/verifyToken");
 const Chat = require("../socket/chat.model");
 const ChatList = require("../socket/chatlist.model");
-const createLimiter = require("../middleware/ratelimiter"); 
+const {createLimiter} = require("../middleware/ratelimiter"); 
 const masyarakatAuthorization = require("../middleware/masyarakatAuthorization");
 const dokterAuthorization = require("../middleware/dokterAuthorization");
 
