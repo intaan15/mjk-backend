@@ -17,7 +17,7 @@ router.post("/create", async (req, res, next) => {
       return res.status(400).json({ message: "Username sudah digunakan" });
     }
 
-    const hashedPassword = await bcrypt.hash(password_superadmin, 10);
+    const hashedPassword = await bcrypt.hash(password_superadmin, 17);
 
     const newAdmin = new admin({
       username_superadmin,
