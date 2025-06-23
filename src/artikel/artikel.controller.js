@@ -101,6 +101,52 @@ async function compressImage(inputPath, outputPath, maxSizeKB = 3072) {
   }
 }
 
+// Fungsi helper untuk menghapus file gambar
+async function deleteImageFile(imagePath) {
+  if (!imagePath) {
+    console.log("Tidak ada path gambar untuk dihapus");
+    return;
+  }
+
+  try {
+    console.log(`Mencoba menghapus gambar dengan path: ${imagePath}`);
+
+    // Berbagai kemungkinan format path yang perlu ditangani
+    let possiblePaths = [];
+
+    // Jika path dimulai dengan /imagesartikel/
+    if (imagePath.startsWith("/imagesartikel/")) {
+      const fileName = imagePath.replace("/imagesartikel/", "");
+      possiblePaths.push(path.join("public/imagesartikel/", fileName));
+    }
+
+    let deleted = false;
+    for (const fullPath of possiblePaths) {
+      try {
+        await fs.access(fullPath);
+        await fs.unlink(fullPath);
+        console.log(`✅ File gambar berhasil dihapus: ${fullPath}`);
+        deleted = true;
+        break;
+      } catch (error) {
+        if (error.code === "ENOENT") {
+          console.log(`File tidak ditemukan di: ${fullPath}`);
+        } else {
+          console.error(`Error menghapus file di ${fullPath}:`, error.message);
+        }
+      }
+    }
+
+    if (!deleted) {
+      console.log(
+        `⚠️ File gambar tidak ditemukan di semua lokasi yang dicoba untuk path: ${imagePath}`
+      );
+    }
+  } catch (error) {
+    console.error("❌ Error dalam deleteImageFile:", error);
+  }
+}
+
 // Konfigurasi tempat penyimpanan file sementara
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -322,16 +368,43 @@ router.get(
 
 router.patch("/update/:id", adminAuthorization, async (req, res) => {
   try {
+    // Ambil data artikel lama untuk mendapatkan path gambar lama
+    const existingArtikel = await artikel.findById(req.params.id);
+    if (!existingArtikel) {
+      return res.status(404).json({ message: "Artikel tidak ditemukan" });
+    }
+
+    // Update artikel dengan data baru
     const updatedArtikel = await artikel.findByIdAndUpdate(
       req.params.id,
       req.body,
       { new: true }
     );
-    if (!updatedArtikel) {
-      return res.status(404).json({ message: "Artikel tidak ditemukan" });
+
+    // Cek berbagai kemungkinan field yang menyimpan path gambar
+    const possibleImageFields = [
+      "foto_artikel",
+      "gambar_artikel",
+      "image",
+      "foto",
+      "gambar",
+      "thumbnail",
+    ];
+
+    for (const field of possibleImageFields) {
+      const oldImagePath = existingArtikel[field];
+      const newImagePath = req.body[field];
+
+      if (oldImagePath && newImagePath && oldImagePath !== newImagePath) {
+        await deleteImageFile(oldImagePath);
+      } else if (oldImagePath && !newImagePath) {
+        await deleteImageFile(oldImagePath);
+      }
     }
+
     res.status(200).json(updatedArtikel);
   } catch (error) {
+    console.error("❌ Error updating artikel:", error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -342,13 +415,46 @@ router.delete("/delete/:id", adminAuthorization, async (req, res) => {
   }
 
   try {
-    const deletedArtikel = await artikel.findByIdAndDelete(req.params.id);
-    if (!deletedArtikel) {
+    // Ambil data artikel sebelum dihapus untuk mendapatkan path gambar
+    const existingArtikel = await artikel.findById(req.params.id);
+    if (!existingArtikel) {
       return res.status(404).json({ message: "Artikel tidak ditemukan" });
     }
-    res.status(200).json({ message: "Artikel berhasil dihapus" });
+
+    console.log(
+      "📋 Data artikel yang akan dihapus:",
+      JSON.stringify(existingArtikel, null, 2)
+    );
+
+    const deletedArtikel = await artikel.findByIdAndDelete(req.params.id);
+
+    const possibleImageFields = [
+      "foto_artikel",
+      "gambar_artikel",
+      "image",
+      "foto",
+      "gambar",
+      "thumbnail",
+    ];
+
+    let deletedImages = [];
+    for (const field of possibleImageFields) {
+      const imagePath = existingArtikel[field];
+      if (imagePath) {
+        console.log(`🗑️ Menghapus gambar dari field '${field}': ${imagePath}`);
+        await deleteImageFile(imagePath);
+        deletedImages.push({ field, path: imagePath });
+      }
+    }
+
+    res.status(200).json({
+      message: "Artikel berhasil dihapus",
+      deletedArtikel: deletedArtikel,
+      deletedImages: deletedImages,
+      imageFieldsChecked: possibleImageFields,
+    });
   } catch (error) {
-    console.error("Gagal hapus artikel:", error);
+    console.error("❌ Gagal hapus artikel:", error);
     res.status(500).json({ message: error.message });
   }
 });

@@ -84,14 +84,14 @@ const startCronJob = (io) => {
                 minute
               );
 
-              console.log(
-                `🕐 Comparing appointment: ${appointmentDateTime.toLocaleString(
-                  "id-ID",
-                  { timeZone: "Asia/Jakarta" }
-                )} vs now: ${jakartaTime.toLocaleString("id-ID", {
-                  timeZone: "Asia/Jakarta",
-                })}`
-              );
+              // console.log(
+              //   `🕐 Comparing appointment: ${appointmentDateTime.toLocaleString(
+              //     "id-ID",
+              //     { timeZone: "Asia/Jakarta" }
+              //   )} vs now: ${jakartaTime.toLocaleString("id-ID", {
+              //     timeZone: "Asia/Jakarta",
+              //   })}`
+              // );
 
               if (jakartaTime >= appointmentDateTime) {
                 jamItem.available = false;
@@ -388,15 +388,15 @@ const startCronJob = (io) => {
         const startTime = createJakartaDate(jadwal.tgl_konsul, hour, minute);
         const endTime = new Date(startTime.getTime() + 3 * 60 * 1000); // 3 menit (2 jam)
 
-        console.log(
-          `🔄 Cek reactive - Start: ${startTime.toLocaleString("id-ID", {
-            timeZone: "Asia/Jakarta",
-          })}, End: ${endTime.toLocaleString("id-ID", {
-            timeZone: "Asia/Jakarta",
-          })}, Now: ${jakartaTime.toLocaleString("id-ID", {
-            timeZone: "Asia/Jakarta",
-          })}`
-        );
+        // console.log(
+        //   `🔄 Cek reactive - Start: ${startTime.toLocaleString("id-ID", {
+        //     timeZone: "Asia/Jakarta",
+        //   })}, End: ${endTime.toLocaleString("id-ID", {
+        //     timeZone: "Asia/Jakarta",
+        //   })}, Now: ${jakartaTime.toLocaleString("id-ID", {
+        //     timeZone: "Asia/Jakarta",
+        //   })}`
+        // );
 
         if (
           startTime <= jakartaTime &&
