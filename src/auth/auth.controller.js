@@ -6,7 +6,11 @@ const dokter = require("../dokter/dokter.model");
 const superadmin = require("../admin/admin.model");
 const { encrypt, decrypt } = require("../utils/encryption");
 const router = express.Router();
+<<<<<<< HEAD
 const {loginLimiter} = require("../middleware/ratelimiter");
+=======
+const { loginLimiter } = require("../middleware/ratelimiter");
+>>>>>>> cbf5bd9c5c79685a2b568326664b1374a7e6d75c
 const multer = require("multer");
 
 const storage = multer.diskStorage({
