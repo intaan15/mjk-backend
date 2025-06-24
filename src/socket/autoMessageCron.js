@@ -122,7 +122,7 @@ const startCronJob = (io) => {
         console.log(`ℹ️ Tidak ada slot waktu yang perlu diupdate`);
       }
     } catch (error) {
-      console.error("❌ Error auto disable available time:", error);
+      console.log("❌ Error auto disable available time:", error);
     }
 
     /* =========================
@@ -180,7 +180,7 @@ const startCronJob = (io) => {
         }
       }
     } catch (error) {
-      console.error("❌ Error auto reject jadwal menunggu:", error);
+      console.log("❌ Error auto reject jadwal menunggu:", error);
     }
 
     /* =========================
@@ -281,7 +281,7 @@ const startCronJob = (io) => {
         }
       }
     } catch (error) {
-      console.error("❌ Error kirim pesan otomatis:", error);
+      console.log("❌ Error kirim pesan otomatis:", error);
     }
 
     /* =========================
@@ -350,7 +350,7 @@ const startCronJob = (io) => {
         }
       }
     } catch (err) {
-      console.error("❌ Gagal update status selesai (ChatList):", err);
+      console.log("❌ Gagal update status selesai (ChatList):", err);
     }
 
     /* =========================
@@ -410,7 +410,7 @@ const startCronJob = (io) => {
         }
       }
     } catch (err) {
-      console.error("❌ Gagal update status berlangsung (ChatList):", err);
+      console.log("❌ Gagal update status berlangsung (ChatList):", err);
     }
 
     /* =========================
@@ -450,7 +450,7 @@ const startCronJob = (io) => {
         }
       }
     } catch (err) {
-      console.error("❌ Gagal update status selesai (fallback):", err);
+      console.log("❌ Gagal update status selesai (fallback):", err);
     }
   }
 // );

@@ -98,12 +98,12 @@ async function compressImage(inputPath, outputPath, maxSizeKB = 3072) {
 
     return true;
   } catch (error) {
-    console.error("Error saat mengompres gambar:", error);
+    console.log("Error saat mengompres gambar:", error);
     // Jika gagal kompres, tetap gunakan file asli
     try {
       await fs.rename(inputPath, outputPath);
     } catch (renameError) {
-      console.error("Error saat rename file:", renameError);
+      console.log("Error saat rename file:", renameError);
     }
     return false;
   }
@@ -139,7 +139,7 @@ async function deleteImageFile(imagePath) {
         if (error.code === "ENOENT") {
           console.log(`File tidak ditemukan di: ${fullPath}`);
         } else {
-          console.error(`Error menghapus file di ${fullPath}:`, error.message);
+          console.log(`Error menghapus file di ${fullPath}:`, error.message);
         }
       }
     }
@@ -150,7 +150,7 @@ async function deleteImageFile(imagePath) {
       );
     }
   } catch (error) {
-    console.error("❌ Error dalam deleteImageFile:", error);
+    console.log("❌ Error dalam deleteImageFile:", error);
   }
 }
 
@@ -231,7 +231,7 @@ router.post("/upload", uploadLimiter, verifyToken, (req, res) => {
 
       if (!dokterId) {
         // Hapus file temp jika tidak ada ID dokter
-        await fs.unlink(req.file.path).catch(console.error);
+        await fs.unlink(req.file.path).catch(console.log);
         return res.status(400).json({
           message: "ID dokter tidak ditemukan",
           error: "NO_DOCTOR_ID",
@@ -241,7 +241,7 @@ router.post("/upload", uploadLimiter, verifyToken, (req, res) => {
       // Ambil data dokter untuk mendapatkan foto lama
       const dokterLama = await Dokter.findById(dokterId);
       if (!dokterLama) {
-        await fs.unlink(req.file.path).catch(console.error);
+        await fs.unlink(req.file.path).catch(console.log);
         return res.status(404).json({
           message: "Dokter tidak ditemukan",
           error: "DOCTOR_NOT_FOUND",
@@ -285,7 +285,7 @@ router.post("/upload", uploadLimiter, verifyToken, (req, res) => {
 
       if (!updated) {
         // Hapus file baru jika update database gagal
-        await fs.unlink(finalFilePath).catch(console.error);
+        await fs.unlink(finalFilePath).catch(console.log);
         return res.status(404).json({
           message: "Gagal update data dokter",
           error: "UPDATE_FAILED",
@@ -293,7 +293,7 @@ router.post("/upload", uploadLimiter, verifyToken, (req, res) => {
       }
 
       // Hapus file temporary
-      await fs.unlink(tempFilePath).catch(console.error);
+      await fs.unlink(tempFilePath).catch(console.log);
 
       // Dapatkan ukuran file final
       const finalStats = await fs.stat(finalFilePath);
@@ -315,10 +315,10 @@ router.post("/upload", uploadLimiter, verifyToken, (req, res) => {
         oldPhotoDeleted: dokterLama.foto_profil_dokter ? true : false,
       });
     } catch (error) {
-      console.error("Upload error:", error);
+      console.log("Upload error:", error);
       // Bersihkan file jika ada error
       if (req.file && req.file.path) {
-        await fs.unlink(req.file.path).catch(console.error);
+        await fs.unlink(req.file.path).catch(console.log);
       }
       res.status(500).json({ message: "Upload gagal", error: error.message });
     }
@@ -392,10 +392,10 @@ router.post("/upload/admin", uploadLimiter, verifyToken, (req, res) => {
         originalname: req.file.originalname,
       });
     } catch (error) {
-      console.error("Upload admin error:", error);
+      console.log("Upload admin error:", error);
       // Bersihkan file jika ada error
       if (req.file && req.file.path) {
-        await fs.unlink(req.file.path).catch(console.error);
+        await fs.unlink(req.file.path).catch(console.log);
       }
       res.status(500).json({ message: "Upload gagal", error: error.message });
     }
@@ -848,7 +848,7 @@ router.post("/jadwal/add/:dokterId", dokterAuthorization, async (req, res) => {
       .status(201)
       .json({ message: "Jadwal berhasil ditambahkan", data: dokter.jadwal });
   } catch (error) {
-    console.error(error);
+    console.log(error);
     res.status(400).json({ message: error.message });
   }
 });
@@ -964,7 +964,7 @@ router.patch(
         },
       });
     } catch (err) {
-      console.error("Error:", err);
+      console.log("Error:", err);
       return res.status(500).json({
         success: false,
         message: "Terjadi kesalahan server",
@@ -1003,7 +1003,7 @@ router.patch(
       await dokter.save();
       return res.status(200).json({ message: "Jadwal diperbarui" });
     } catch (err) {
-      console.error(err);
+      console.log(err);
       return res.status(500).json({ message: "Terjadi kesalahan server" });
     }
   }
@@ -1111,7 +1111,7 @@ router.delete(
         },
       });
     } catch (error) {
-      console.error("Error saat menghapus jadwal:", error);
+      console.log("Error saat menghapus jadwal:", error);
       res.status(500).json({
         success: false,
         message: "Terjadi kesalahan server",

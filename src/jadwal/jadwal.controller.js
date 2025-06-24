@@ -43,7 +43,7 @@ router.get("/getall", verifyToken, async (req, res) => {
 
     res.status(200).json(allJadwal);
   } catch (error) {
-    console.error("Error getall jadwal:", error);
+    console.log("Error getall jadwal:", error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -66,7 +66,7 @@ router.get("/getbyid/:id", verifyToken, async (req, res) => {
 
     res.status(200).json(oneJadwal);
   } catch (error) {
-    console.error("Error getbyid jadwal:", error);
+    console.log("Error getbyid jadwal:", error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -202,7 +202,7 @@ router.post("/:id/terima", dokterAuthorization, async (req, res) => {
       message: "Jadwal diterima, pesan dikirim, dan chatlist diperbarui.",
     });
   } catch (error) {
-    console.error("Error terima jadwal:", error);
+    console.log("Error terima jadwal:", error);
     return res.status(500).json({ message: "Gagal menerima jadwal" });
   }
 });

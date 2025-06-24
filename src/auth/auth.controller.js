@@ -158,7 +158,7 @@ const storage = multer.diskStorage({
           .status(201)
           .json({ message: "Registrasi berhasil", user: newUser });
       } catch (err) {
-        console.error("Error saat registrasi:", err);
+        console.log("Error saat registrasi:", err);
         return res.status(500).json({
           message: "Terjadi kesalahan pada server. Silakan coba lagi nanti.",
         });

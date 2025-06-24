@@ -48,7 +48,7 @@ router.post('/create', masyarakatAuthorization, async (req, res) => {
        data: newRating
      });
     } catch (error) {
-     console.error('Error creating rating:', error);
+     console.log('Error creating rating:', error);
     
      if (error.code === 11000) {
        return res.status(400).json({
@@ -90,7 +90,7 @@ router.post('/create', masyarakatAuthorization, async (req, res) => {
      console.log('Doctor rating updated:', updatedDokter);
    }
  } catch (err) {
-   console.error('Error updating doctor rating:', err);
+   console.log('Error updating doctor rating:', err);
  }
 }
 
@@ -144,7 +144,7 @@ router.get('/getbyid/:jadwal', verifyToken, async (req, res) => {
 
 
  } catch (error) {
-   console.error('Error checking rating:', error);
+   console.log('Error checking rating:', error);
    res.status(500).json({
      success: false,
      message: 'Terjadi kesalahan server',
@@ -171,7 +171,7 @@ router.get('/masyarakat/getall', verifyToken, async (req, res) => {
    });
 
  } catch (error) {
-   console.error('Error getting user ratings:', error);
+   console.log('Error getting user ratings:', error);
    res.status(500).json({
      success: false,
      message: 'Terjadi kesalahan server',
@@ -205,7 +205,7 @@ router.get('/dokter/:dokter_id', verifyToken, async (req, res) => {
      data: ratings
    });
  } catch (error) {
-   console.error('Error getting doctor ratings:', error);
+   console.log('Error getting doctor ratings:', error);
    res.status(500).json({
      success: false,
      message: 'Terjadi kesalahan server',

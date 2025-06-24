@@ -55,8 +55,8 @@ const createSocketServer = (server) => {
       console.log("✅ Gambar berhasil disimpan:", filePath);
       return `/imageschat/${filename}`; // Return relative path untuk URL
     } catch (error) {
-      console.error("❌ Error menyimpan gambar:", error.message);
-      console.error("❌ Error stack:", error.stack);
+      console.log("❌ Error menyimpan gambar:", error.message);
+      console.log("❌ Error stack:", error.stack);
       throw error;
     }
   };
@@ -401,7 +401,7 @@ const createSocketServer = (server) => {
           console.log("❌ ChatList tidak ditemukan untuk jadwal ID:", jadwalId);
         }
       } catch (error) {
-        console.error("❌ Error saat mengakhiri konsultasi:", error.message);
+        console.log("❌ Error saat mengakhiri konsultasi:", error.message);
         socket.emit("errorMessage", {
           message: "❌ Gagal mengakhiri konsultasi.",
         });

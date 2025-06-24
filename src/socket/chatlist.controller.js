@@ -60,7 +60,7 @@ router.get("/:userId", verifyToken, async (req, res) => {
             status: chat.status,
           };
         } catch (error) {
-          console.error('[ERROR] Error processing chat:', chat._id, error);
+          console.log('[ERROR] Error processing chat:', chat._id, error);
           return null;
         }
       })
@@ -68,7 +68,7 @@ router.get("/:userId", verifyToken, async (req, res) => {
 
     res.status(200).json(formattedChatlists);
   } catch (error) {
-    console.error("Gagal ambil daftar chat:", error);
+    console.log("Gagal ambil daftar chat:", error);
     res.status(500).json({ message: "Gagal ambil daftar chat" });
   }
 });

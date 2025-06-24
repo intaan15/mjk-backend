@@ -26,7 +26,7 @@ router.get("/history/:senderId/:receiverId", verifyToken, async (req, res) => {
 
     res.json(messages);
   } catch (error) {
-    console.error("Catch error in /history/:senderId/:receiverId:", error);
+    console.log("Catch error in /history/:senderId/:receiverId:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 });

@@ -90,12 +90,12 @@ async function compressImage(inputPath, outputPath, maxSizeKB = 3072) {
 
     return true;
   } catch (error) {
-    console.error("Error saat mengompres gambar:", error);
+    console.log("Error saat mengompres gambar:", error);
     // Jika gagal kompres, tetap gunakan file asli
     try {
       await fs.rename(inputPath, outputPath);
     } catch (renameError) {
-      console.error("Error saat rename file:", renameError);
+      console.log("Error saat rename file:", renameError);
     }
     return false;
   }
@@ -132,7 +132,7 @@ async function deleteImageFile(imagePath) {
         if (error.code === "ENOENT") {
           console.log(`File tidak ditemukan di: ${fullPath}`);
         } else {
-          console.error(`Error menghapus file di ${fullPath}:`, error.message);
+          console.log(`Error menghapus file di ${fullPath}:`, error.message);
         }
       }
     }
@@ -143,7 +143,7 @@ async function deleteImageFile(imagePath) {
       );
     }
   } catch (error) {
-    console.error("❌ Error dalam deleteImageFile:", error);
+    console.log("❌ Error dalam deleteImageFile:", error);
   }
 }
 
@@ -257,10 +257,10 @@ router.post("/upload", uploadLimiter, verifyToken, (req, res) => {
         originalname: req.file.originalname,
       });
     } catch (error) {
-      console.error("Upload error:", error);
+      console.log("Upload error:", error);
       // Bersihkan file jika ada error
       if (req.file && req.file.path) {
-        await fs.unlink(req.file.path).catch(console.error);
+        await fs.unlink(req.file.path).catch(console.log);
       }
       res.status(500).json({ message: "Upload gagal", error: error.message });
     }
@@ -404,7 +404,7 @@ router.patch("/update/:id", adminAuthorization, async (req, res) => {
 
     res.status(200).json(updatedArtikel);
   } catch (error) {
-    console.error("❌ Error updating artikel:", error);
+    console.log("❌ Error updating artikel:", error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -454,7 +454,7 @@ router.delete("/delete/:id", adminAuthorization, async (req, res) => {
       imageFieldsChecked: possibleImageFields,
     });
   } catch (error) {
-    console.error("❌ Gagal hapus artikel:", error);
+    console.log("❌ Gagal hapus artikel:", error);
     res.status(500).json({ message: error.message });
   }
 });

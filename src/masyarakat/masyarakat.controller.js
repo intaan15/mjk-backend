@@ -38,12 +38,12 @@ async function compressImage(inputPath, outputPath) {
 
     return true;
   } catch (error) {
-    console.error("Error saat mengompres gambar:", error);
+    console.log("Error saat mengompres gambar:", error);
     // Jika gagal kompres, tetap gunakan file asli
     try {
       await fs.rename(inputPath, outputPath);
     } catch (renameError) {
-      console.error("Error saat rename file:", renameError);
+      console.log("Error saat rename file:", renameError);
     }
     return false;
   }
@@ -153,7 +153,7 @@ router.post("/upload", uploadLimiter, (req, res) => {
     const masyarakatId = req.body.id;
     if (!masyarakatId) {
       // Bersihkan file jika tidak ada ID
-      await fs.unlink(req.file.path).catch(console.error);
+      await fs.unlink(req.file.path).catch(console.log);
       return res.status(400).json({
         message: "ID masyarakat diperlukan",
         error: "MISSING_ID",
@@ -168,7 +168,7 @@ router.post("/upload", uploadLimiter, (req, res) => {
       // Ambil data masyarakat untuk mendapatkan foto lama
       const userData = await masyarakat.findById(masyarakatId);
       if (!userData) {
-        await fs.unlink(req.file.path).catch(console.error);
+        await fs.unlink(req.file.path).catch(console.log);
         return res.status(404).json({
           message: "Masyarakat tidak ditemukan",
           error: "USER_NOT_FOUND",
@@ -218,7 +218,7 @@ router.post("/upload", uploadLimiter, (req, res) => {
 
       if (!updated) {
         // Hapus file yang sudah diupload jika gagal update database
-        await fs.unlink(finalFilePath).catch(console.error);
+        await fs.unlink(finalFilePath).catch(console.log);
         return res.status(404).json({
           message: "Gagal memperbarui data masyarakat",
           error: "UPDATE_FAILED",
@@ -226,7 +226,7 @@ router.post("/upload", uploadLimiter, (req, res) => {
       }
 
       // Hapus file temporary
-      await fs.unlink(tempFilePath).catch(console.error);
+      await fs.unlink(tempFilePath).catch(console.log);
 
       // Dapatkan ukuran file final
       const finalStats = await fs.stat(finalFilePath);
@@ -249,10 +249,10 @@ router.post("/upload", uploadLimiter, (req, res) => {
         oldPhotoDeleted: userData.foto_profil_masyarakat ? true : false,
       });
     } catch (error) {
-      console.error("Upload error:", error);
+      console.log("Upload error:", error);
       // Bersihkan file jika ada error
       if (req.file && req.file.path) {
-        await fs.unlink(req.file.path).catch(console.error);
+        await fs.unlink(req.file.path).catch(console.log);
       }
       res.status(500).json({
         message: "Upload gagal",
@@ -348,7 +348,7 @@ router.patch("/update/:id", verifyToken, async (req, res) => {
 
     res.status(200).json(updatedUser);
   } catch (e) {
-    console.error("Update error:", e);
+    console.log("Update error:", e);
     res
       .status(500)
       .json({ message: "Terjadi kesalahan saat memperbarui data" });
@@ -451,7 +451,7 @@ router.get("/getall", verifyToken, async (req, res) => {
 
     res.status(200).json(decryptedUsers);
   } catch (e) {
-    console.error("Error:", e);
+    console.log("Error:", e);
     res.status(500).json({ message: e.message });
   }
 });
@@ -476,7 +476,7 @@ router.get("/getbyid/:id", verifyToken, async (req, res) => {
 
     res.status(200).json(decryptedUser);
   } catch (e) {
-    console.error("Error:", e);
+    console.log("Error:", e);
     res.status(500).json({ message: e.message });
   }
 });
