@@ -153,7 +153,7 @@ router.post("/upload", uploadLimiter, (req, res) => {
     const masyarakatId = req.body.id;
     if (!masyarakatId) {
       // Bersihkan file jika tidak ada ID
-      await fs.unlink(req.file.path).catch(console.log);
+      await fs.unlink(req.file.path).catch(console.error);
       return res.status(400).json({
         message: "ID masyarakat diperlukan",
         error: "MISSING_ID",
@@ -168,7 +168,7 @@ router.post("/upload", uploadLimiter, (req, res) => {
       // Ambil data masyarakat untuk mendapatkan foto lama
       const userData = await masyarakat.findById(masyarakatId);
       if (!userData) {
-        await fs.unlink(req.file.path).catch(console.log);
+        await fs.unlink(req.file.path).catch(console.error);
         return res.status(404).json({
           message: "Masyarakat tidak ditemukan",
           error: "USER_NOT_FOUND",
@@ -218,7 +218,7 @@ router.post("/upload", uploadLimiter, (req, res) => {
 
       if (!updated) {
         // Hapus file yang sudah diupload jika gagal update database
-        await fs.unlink(finalFilePath).catch(console.log);
+        await fs.unlink(finalFilePath).catch(console.error);
         return res.status(404).json({
           message: "Gagal memperbarui data masyarakat",
           error: "UPDATE_FAILED",
@@ -226,7 +226,7 @@ router.post("/upload", uploadLimiter, (req, res) => {
       }
 
       // Hapus file temporary
-      await fs.unlink(tempFilePath).catch(console.log);
+      await fs.unlink(tempFilePath).catch(console.error);
 
       // Dapatkan ukuran file final
       const finalStats = await fs.stat(finalFilePath);
@@ -252,7 +252,7 @@ router.post("/upload", uploadLimiter, (req, res) => {
       console.log("Upload error:", error);
       // Bersihkan file jika ada error
       if (req.file && req.file.path) {
-        await fs.unlink(req.file.path).catch(console.log);
+        await fs.unlink(req.file.path).catch(console.error);
       }
       res.status(500).json({
         message: "Upload gagal",

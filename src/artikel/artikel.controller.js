@@ -260,7 +260,7 @@ router.post("/upload", uploadLimiter, verifyToken, (req, res) => {
       console.log("Upload error:", error);
       // Bersihkan file jika ada error
       if (req.file && req.file.path) {
-        await fs.unlink(req.file.path).catch(console.log);
+        await fs.unlink(req.file.path).catch(console.error);
       }
       res.status(500).json({ message: "Upload gagal", error: error.message });
     }

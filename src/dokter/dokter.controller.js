@@ -2,7 +2,7 @@ const express = require("express");
 const bcrypt = require("bcrypt");
 const router = express.Router();
 const Dokter = require("./dokter.model");
-const Jadwal = require("./jadwal.model");
+const Jadwal = require("../jadwal/jadwal.model");
 const { encrypt, decrypt } = require("../utils/encryption");
 const mongoose = require("mongoose");
 const { hashString } = require("../utils/hash");
@@ -231,7 +231,7 @@ router.post("/upload", uploadLimiter, verifyToken, (req, res) => {
 
       if (!dokterId) {
         // Hapus file temp jika tidak ada ID dokter
-        await fs.unlink(req.file.path).catch(console.log);
+        await fs.unlink(req.file.path).catch(console.error);
         return res.status(400).json({
           message: "ID dokter tidak ditemukan",
           error: "NO_DOCTOR_ID",
@@ -241,7 +241,7 @@ router.post("/upload", uploadLimiter, verifyToken, (req, res) => {
       // Ambil data dokter untuk mendapatkan foto lama
       const dokterLama = await Dokter.findById(dokterId);
       if (!dokterLama) {
-        await fs.unlink(req.file.path).catch(console.log);
+        await fs.unlink(req.file.path).catch(console.error);
         return res.status(404).json({
           message: "Dokter tidak ditemukan",
           error: "DOCTOR_NOT_FOUND",
@@ -285,7 +285,7 @@ router.post("/upload", uploadLimiter, verifyToken, (req, res) => {
 
       if (!updated) {
         // Hapus file baru jika update database gagal
-        await fs.unlink(finalFilePath).catch(console.log);
+        await fs.unlink(finalFilePath).catch(console.error);
         return res.status(404).json({
           message: "Gagal update data dokter",
           error: "UPDATE_FAILED",
@@ -293,7 +293,7 @@ router.post("/upload", uploadLimiter, verifyToken, (req, res) => {
       }
 
       // Hapus file temporary
-      await fs.unlink(tempFilePath).catch(console.log);
+      await fs.unlink(tempFilePath).catch(console.error);
 
       // Dapatkan ukuran file final
       const finalStats = await fs.stat(finalFilePath);
@@ -318,7 +318,7 @@ router.post("/upload", uploadLimiter, verifyToken, (req, res) => {
       console.log("Upload error:", error);
       // Bersihkan file jika ada error
       if (req.file && req.file.path) {
-        await fs.unlink(req.file.path).catch(console.log);
+        await fs.unlink(req.file.path).catch(console.error);
       }
       res.status(500).json({ message: "Upload gagal", error: error.message });
     }
@@ -395,7 +395,7 @@ router.post("/upload/admin", uploadLimiter, verifyToken, (req, res) => {
       console.log("Upload admin error:", error);
       // Bersihkan file jika ada error
       if (req.file && req.file.path) {
-        await fs.unlink(req.file.path).catch(console.log);
+        await fs.unlink(req.file.path).catch(console.error);
       }
       res.status(500).json({ message: "Upload gagal", error: error.message });
     }
