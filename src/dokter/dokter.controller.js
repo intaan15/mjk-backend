@@ -2,6 +2,7 @@ const express = require("express");
 const bcrypt = require("bcrypt");
 const router = express.Router();
 const Dokter = require("./dokter.model");
+const Jadwal = require("./jadwal.model");
 const { encrypt, decrypt } = require("../utils/encryption");
 const mongoose = require("mongoose");
 const { hashString } = require("../utils/hash");
@@ -488,25 +489,28 @@ const ensureDirectoryExists = async (dirPath) => {
   await ensureDirectoryExists("public/imagesdokter");
 })();
 
-router.get("/getall", roleAuthorization(['masyarakat', 'admin']), async (req, res, next) => {
-  try {
-    const dokterList = await Dokter.find().select("-password_dokter");
+router.get(
+  "/getall",
+  roleAuthorization(["masyarakat", "admin"]),
+  async (req, res, next) => {
+    try {
+      const dokterList = await Dokter.find().select("-password_dokter");
 
-    // Lakukan dekripsi pada tiap objek dokter
-    const decryptedList = dokterList.map((dokter) => {
-      return {
-        ...dokter._doc,
-        email_dokter: decrypt(dokter.email_dokter),
-        notlp_dokter: decrypt(dokter.notlp_dokter),
-      };
-    });
+      // Lakukan dekripsi pada tiap objek dokter
+      const decryptedList = dokterList.map((dokter) => {
+        return {
+          ...dokter._doc,
+          email_dokter: decrypt(dokter.email_dokter),
+          notlp_dokter: decrypt(dokter.notlp_dokter),
+        };
+      });
 
-    res.status(200).json(decryptedList);
-  } catch (e) {
-    next(e);
+      res.status(200).json(decryptedList);
+    } catch (e) {
+      next(e);
+    }
   }
-});
-
+);
 
 router.get("/getbyid/:id", verifyToken, async (req, res) => {
   try {
@@ -552,152 +556,163 @@ router.get("/getbyname/:doctorName", verifyToken, async (req, res) => {
 });
 
 // UPDATE ENDPOINT - PERBAIKAN
-router.patch("/update/:id", roleAuthorization(['dokter', 'admin']), async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const {
-      username_dokter,
-      email_dokter,
-      str_dokter,
-      // password_dokter,
-      rating_dokter,
-      notlp_dokter,
-    } = req.body;
-
-    const existingDokter = await Dokter.findById(id);
-    if (!existingDokter) {
-      return res.status(404).json({ message: "Dokter tidak ditemukan" });
-    }
-
-    // Validasi username
-    if (username_dokter) {
-      const usernameExist = await Dokter.exists({
+router.patch(
+  "/update/:id",
+  roleAuthorization(["dokter", "admin"]),
+  async (req, res, next) => {
+    try {
+      const { id } = req.params;
+      const {
         username_dokter,
-        _id: { $ne: id },
-      });
-      if (usernameExist) {
-        return res
-          .status(400)
-          .json({ message: "Username sudah digunakan oleh pengguna lain" });
-      }
-    }
-
-    // Validasi STR
-    if (str_dokter) {
-      const strExist = await Dokter.exists({
+        email_dokter,
         str_dokter,
-        _id: { $ne: id },
-      });
-      if (strExist) {
-        return res
-          .status(400)
-          .json({ message: "STR sudah terdaftar oleh pengguna lain" });
-      }
-    }
+        // password_dokter,
+        rating_dokter,
+        notlp_dokter,
+      } = req.body;
 
-    // Validasi dan enkripsi email
-    if (email_dokter) {
-      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-      if (!emailRegex.test(email_dokter)) {
-        return res.status(400).json({ message: "Email tidak valid" });
+      const existingDokter = await Dokter.findById(id);
+      if (!existingDokter) {
+        return res.status(404).json({ message: "Dokter tidak ditemukan" });
       }
 
-      const allDokter = await Dokter.find({ _id: { $ne: id } });
-      const emailExist = allDokter.some((dok) => {
-        try {
-          return decrypt(dok.email_dokter) === email_dokter;
-        } catch (e) {
-          return false;
+      // Validasi username
+      if (username_dokter) {
+        const usernameExist = await Dokter.exists({
+          username_dokter,
+          _id: { $ne: id },
+        });
+        if (usernameExist) {
+          return res
+            .status(400)
+            .json({ message: "Username sudah digunakan oleh pengguna lain" });
         }
-      });
-
-      if (emailExist) {
-        return res
-          .status(400)
-          .json({ message: "Email sudah digunakan oleh pengguna lain" });
       }
 
-      req.body.email_dokter = encrypt(email_dokter);
-    }
-
-    // Enkripsi nomor telepon
-    if (notlp_dokter) {
-      req.body.notlp_dokter = encrypt(notlp_dokter);
-    }
-
-    // Validasi rating
-    if (rating_dokter !== undefined) {
-      req.body.rating_dokter =
-        rating_dokter >= 0 && rating_dokter <= 5 ? rating_dokter : 0;
-    }
-
-    // 🔄 UPDATE DOKTER
-    const updatedDokter = await Dokter.findByIdAndUpdate(id, req.body, {
-      new: true,
-    }).select("-password_dokter");
-
-    const possibleImageFields = [
-      "foto_profil_dokter", 
-    ];
-
-    for (const field of possibleImageFields) {
-      const oldImagePath = existingDokter[field];
-      const newImagePath = req.body[field];
-
-      if (oldImagePath && newImagePath && oldImagePath !== newImagePath) {
-        console.log(`🔄 Mengganti gambar pada field '${field}':`);
-        console.log(`   Gambar lama: ${oldImagePath}`);
-        console.log(`   Gambar baru: ${newImagePath}`);
-        await deleteImageFile(oldImagePath);
-      } else if (oldImagePath && newImagePath === null) {
-        // Jika gambar dihapus (set ke null)
-        console.log(`🗑️ Menghapus gambar pada field '${field}': ${oldImagePath}`);
-        await deleteImageFile(oldImagePath);
+      // Validasi STR
+      if (str_dokter) {
+        const strExist = await Dokter.exists({
+          str_dokter,
+          _id: { $ne: id },
+        });
+        if (strExist) {
+          return res
+            .status(400)
+            .json({ message: "STR sudah terdaftar oleh pengguna lain" });
+        }
       }
-    }
 
-    res.status(200).json(updatedDokter);
-  } catch (e) {
-    next(e);
+      // Validasi dan enkripsi email
+      if (email_dokter) {
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        if (!emailRegex.test(email_dokter)) {
+          return res.status(400).json({ message: "Email tidak valid" });
+        }
+
+        const allDokter = await Dokter.find({ _id: { $ne: id } });
+        const emailExist = allDokter.some((dok) => {
+          try {
+            return decrypt(dok.email_dokter) === email_dokter;
+          } catch (e) {
+            return false;
+          }
+        });
+
+        if (emailExist) {
+          return res
+            .status(400)
+            .json({ message: "Email sudah digunakan oleh pengguna lain" });
+        }
+
+        req.body.email_dokter = encrypt(email_dokter);
+      }
+
+      // Enkripsi nomor telepon
+      if (notlp_dokter) {
+        req.body.notlp_dokter = encrypt(notlp_dokter);
+      }
+
+      // Validasi rating
+      if (rating_dokter !== undefined) {
+        req.body.rating_dokter =
+          rating_dokter >= 0 && rating_dokter <= 5 ? rating_dokter : 0;
+      }
+
+      // 🔄 UPDATE DOKTER
+      const updatedDokter = await Dokter.findByIdAndUpdate(id, req.body, {
+        new: true,
+      }).select("-password_dokter");
+
+      const possibleImageFields = ["foto_profil_dokter"];
+
+      for (const field of possibleImageFields) {
+        const oldImagePath = existingDokter[field];
+        const newImagePath = req.body[field];
+
+        if (oldImagePath && newImagePath && oldImagePath !== newImagePath) {
+          console.log(`🔄 Mengganti gambar pada field '${field}':`);
+          console.log(`   Gambar lama: ${oldImagePath}`);
+          console.log(`   Gambar baru: ${newImagePath}`);
+          await deleteImageFile(oldImagePath);
+        } else if (oldImagePath && newImagePath === null) {
+          // Jika gambar dihapus (set ke null)
+          console.log(
+            `🗑️ Menghapus gambar pada field '${field}': ${oldImagePath}`
+          );
+          await deleteImageFile(oldImagePath);
+        }
+      }
+
+      res.status(200).json(updatedDokter);
+    } catch (e) {
+      next(e);
+    }
   }
-});
+);
 
 // DELETE ENDPOINT - PERBAIKAN
-router.delete("/delete/:id", roleAuthorization(['dokter', 'admin']), async (req, res, next) => {
-  try {
-    // 🔍 AMBIL DATA SEBELUM DIHAPUS
-    const existingDokter = await Dokter.findById(req.params.id);
-    if (!existingDokter) {
-      return res.status(404).json({ message: "Dokter tidak ditemukan" });
-    }
-
-    console.log('📋 Data dokter yang akan dihapus:', JSON.stringify(existingDokter, null, 2));
-
-    const deletedDokter = await Dokter.findByIdAndDelete(req.params.id);
-
-    const possibleImageFields = [
-      "foto_profil_dokter",  
-    ];
-
-    let deletedImages = [];
-    for (const field of possibleImageFields) {
-      const imagePath = existingDokter[field]; // Gunakan existingDokter, bukan deletedDokter
-      if (imagePath) {
-        console.log(`🗑️ Menghapus gambar dari field '${field}': ${imagePath}`);
-        await deleteImageFile(imagePath);
-        deletedImages.push({ field, path: imagePath });
+router.delete(
+  "/delete/:id",
+  roleAuthorization(["dokter", "admin"]),
+  async (req, res, next) => {
+    try {
+      // 🔍 AMBIL DATA SEBELUM DIHAPUS
+      const existingDokter = await Dokter.findById(req.params.id);
+      if (!existingDokter) {
+        return res.status(404).json({ message: "Dokter tidak ditemukan" });
       }
-    }
 
-    res.status(200).json({ 
-      message: "Dokter berhasil dihapus", 
-      deletedImages,
-      imageFieldsChecked: possibleImageFields
-    });
-  } catch (e) {
-    next(e);
+      console.log(
+        "📋 Data dokter yang akan dihapus:",
+        JSON.stringify(existingDokter, null, 2)
+      );
+
+      const deletedDokter = await Dokter.findByIdAndDelete(req.params.id);
+
+      const possibleImageFields = ["foto_profil_dokter"];
+
+      let deletedImages = [];
+      for (const field of possibleImageFields) {
+        const imagePath = existingDokter[field]; // Gunakan existingDokter, bukan deletedDokter
+        if (imagePath) {
+          console.log(
+            `🗑️ Menghapus gambar dari field '${field}': ${imagePath}`
+          );
+          await deleteImageFile(imagePath);
+          deletedImages.push({ field, path: imagePath });
+        }
+      }
+
+      res.status(200).json({
+        message: "Dokter berhasil dihapus",
+        deletedImages,
+        imageFieldsChecked: possibleImageFields,
+      });
+    } catch (e) {
+      next(e);
+    }
   }
-});
+);
 
 router.patch("/ubah-password", dokterAuthorization, async (req, res) => {
   try {
@@ -714,7 +729,7 @@ router.patch("/ubah-password", dokterAuthorization, async (req, res) => {
         .status(400)
         .json({ message: "Konfirmasi password tidak cocok" });
     }
-        const passwordRegex =
+    const passwordRegex =
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&/#^()[\]{}<>]).{8,}$/;
     if (!passwordRegex.test(password_baru)) {
       return res.status(400).json({
@@ -746,7 +761,6 @@ router.patch("/ubah-password", dokterAuthorization, async (req, res) => {
     return res.status(500).json({ message: e.message });
   }
 });
-
 
 // jadwal dokter
 router.get("/jadwal/:dokterId", verifyToken, async (req, res) => {
@@ -839,209 +853,274 @@ router.post("/jadwal/add/:dokterId", dokterAuthorization, async (req, res) => {
   }
 });
 
-router.patch("/:dokterId/jadwal/update", dokterAuthorization, async (req, res) => {
-  const { dokterId } = req.params;
-  const { tanggal, jam_mulai, jam_selesai, interval = 3 } = req.body;
-
-  try {
-    if (!tanggal || !jam_mulai || !jam_selesai) {
-      return res.status(400).json({
-        success: false,
-        message: "Tanggal, jam_mulai, dan jam_selesai harus diisi",
-      });
-    }
-
-    const dokter = await Dokter.findById(dokterId);
-    if (!dokter) {
-      return res.status(404).json({
-        success: false,
-        message: "Dokter tidak ditemukan",
-      });
-    }
-
-    const targetDate = new Date(tanggal);
-    const jadwalIndex = dokter.jadwal.findIndex((j) => {
-      const jadwalDate = new Date(j.tanggal);
-      return (
-        jadwalDate.toISOString().slice(0, 10) ===
-        targetDate.toISOString().slice(0, 10)
-      );
-    });
-
-    if (jadwalIndex === -1) {
-      return res.status(404).json({
-        success: false,
-        message: "Jadwal pada tanggal tersebut tidak ditemukan",
-      });
-    }
-
-    const newSlots = [];
-    const [startH, startM] = jam_mulai.split(":").map(Number);
-    const [endH, endM] = jam_selesai.split(":").map(Number);
-
-    let currentH = startH;
-    let currentM = startM;
-    let currentInMinutes = startH * 60 + startM;
-    let endInMinutes = endH * 60 + endM;
-
-    while (currentInMinutes + interval <= endInMinutes || currentInMinutes <= endInMinutes) {
-      newSlots.push({
-        time: `${Math.floor(currentInMinutes / 60).toString().padStart(2, '0')}:${(currentInMinutes % 60).toString().padStart(2, '0')}`,
-        available: true
-      });
-
-      currentInMinutes += interval;
-    }
-
-    dokter.jadwal[jadwalIndex].jam = newSlots;
-    await dokter.save();
-    return res.status(200).json({
-      success: true,
-      message: "Jadwal berhasil diperbarui",
-      data: dokter.jadwal[jadwalIndex],
-    });
-  } catch (err) {
-    console.error("Error:", err);
-    return res.status(500).json({
-      success: false,
-      message: "Terjadi kesalahan server",
-    });
-  }
-});
-
-router.patch("/jadwal/:dokterId/jam/:jamId", masyarakatAuthorization, async (req, res) => {
-  const { dokterId, jamId } = req.params;
-  const { tanggal, jam_mulai, jam_selesai } = req.body;
-
-  try {
-    const dokter = await Dokter.findById(dokterId);
-    if (!dokter) return res.status(404).json({ message: "Dokter tidak ditemukan" });
-
-    const jadwal = dokter.jadwal.find(j => {
-      const tgl = new Date(j.tanggal).toISOString().split("T")[0];
-      const targetTgl = new Date(tanggal).toISOString().split("T")[0];
-      return tgl === targetTgl;
-    });
-
-    if (!jadwal) return res.status(404).json({ message: "Jadwal tidak ditemukan" });
-
-    const jamItem = jadwal.jam.find(j => j._id.toString() === jamId);
-    if (!jamItem) return res.status(404).json({ message: "Jam tidak ditemukan" });
-
-    jamItem.available = false;
-
-    await dokter.save();
-    return res.status(200).json({ message: "Jadwal diperbarui" });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: "Terjadi kesalahan server" });
-  }
-});
-
-router.delete("/jadwal/hapus/:dokterId", dokterAuthorization, async (req, res) => {
-  try {
+router.patch(
+  "/:dokterId/jadwal/update",
+  dokterAuthorization,
+  async (req, res) => {
     const { dokterId } = req.params;
-    const { tanggal } = req.body;
+    const { tanggal, jam_mulai, jam_selesai, interval = 3 } = req.body;
 
-    if (!mongoose.Types.ObjectId.isValid(dokterId)) {
-      return res.status(400).json({
-        success: false,
-        message: "ID Dokter tidak valid"
-      });
-    }
-
-    if (!tanggal) {
-      return res.status(400).json({
-        success: false,
-        message: "Parameter tanggal diperlukan"
-      });
-    }
-
-    const targetDate = new Date(tanggal);
-    if (isNaN(targetDate.getTime())) {
-      return res.status(400).json({
-        success: false,
-        message: "Format tanggal tidak valid"
-      });
-    }
-
-    const startOfDay = new Date(targetDate);
-    startOfDay.setUTCHours(0, 0, 0, 0);
-
-    const endOfDay = new Date(targetDate);
-    endOfDay.setUTCHours(23, 59, 59, 999);
-
-    console.log('Rentang tanggal untuk penghapusan:', {
-      start: startOfDay.toISOString(),
-      end: endOfDay.toISOString()
-    });
-
-    const dokter = await Dokter.findOne({
-      _id: dokterId,
-      'jadwal.tanggal': {
-        $gte: startOfDay,
-        $lte: endOfDay
+    try {
+      if (!tanggal || !jam_mulai || !jam_selesai) {
+        return res.status(400).json({
+          success: false,
+          message: "Tanggal, jam_mulai, dan jam_selesai harus diisi",
+        });
       }
-    });
 
-    if (!dokter) {
-      return res.status(404).json({
-        success: false,
-        message: `Tidak ada jadwal pada tanggal ${targetDate.toLocaleDateString('id-ID')} untuk dihapus`
+      const dokter = await Dokter.findById(dokterId);
+      if (!dokter) {
+        return res.status(404).json({
+          success: false,
+          message: "Dokter tidak ditemukan",
+        });
+      }
+
+      if (req.user.id !== dokterId) {
+        return res.status(403).json({
+          success: false,
+          message: "Anda hanya bisa mengupdate jadwal Anda sendiri",
+        });
+      }
+
+      const targetDate = new Date(tanggal);
+      const jadwalIndex = dokter.jadwal.findIndex((j) => {
+        const jadwalDate = new Date(j.tanggal);
+        return (
+          jadwalDate.toISOString().slice(0, 10) ===
+          targetDate.toISOString().slice(0, 10)
+        );
       });
-    }
 
-    const result = await Dokter.findByIdAndUpdate(
-      dokterId,
-      {
-        $pull: {
-          jadwal: {
-            tanggal: {
-              $gte: startOfDay,
-              $lte: endOfDay
-            }
-          }
+      if (jadwalIndex === -1) {
+        return res.status(404).json({
+          success: false,
+          message: "Jadwal pada tanggal tersebut tidak ditemukan",
+        });
+      }
+
+      // 🆕 OTOMATIS MENGUBAH STATUS JADWAL KONSULTASI MENJADI "DITOLAK"
+      const startOfDay = new Date(targetDate);
+      startOfDay.setUTCHours(0, 0, 0, 0);
+      const endOfDay = new Date(targetDate);
+      endOfDay.setUTCHours(23, 59, 59, 999);
+
+      const updateResult = await Jadwal.updateMany(
+        {
+          dokter_id: new mongoose.Types.ObjectId(dokterId),
+          tgl_konsul: {
+            $gte: startOfDay,
+            $lte: endOfDay,
+          },
+          status_konsul: "diterima",
+        },
+        {
+          $set: {
+            status_konsul: "ditolak",
+          },
         }
-      },
-      { new: true }
-    );
+      );
 
-    const jadwalTerhapus = dokter.jadwal.filter(j => {
-      const jadwalDate = new Date(j.tanggal);
-      return jadwalDate >= startOfDay && jadwalDate <= endOfDay;
-    });
+      console.log(
+        `📅 Auto-reject: ${
+          updateResult.modifiedCount
+        } jadwal konsultasi berhasil diubah menjadi ditolak untuk tanggal ${targetDate.toLocaleDateString(
+          "id-ID"
+        )}`
+      );
 
-    if (jadwalTerhapus.length === 0) {
-      return res.status(404).json({
+      const newSlots = [];
+      const [startH, startM] = jam_mulai.split(":").map(Number);
+      const [endH, endM] = jam_selesai.split(":").map(Number);
+
+      let currentInMinutes = startH * 60 + startM;
+      let endInMinutes = endH * 60 + endM;
+
+      while (
+        currentInMinutes + interval <= endInMinutes ||
+        currentInMinutes <= endInMinutes
+      ) {
+        newSlots.push({
+          time: `${Math.floor(currentInMinutes / 60)
+            .toString()
+            .padStart(2, "0")}:${(currentInMinutes % 60)
+            .toString()
+            .padStart(2, "0")}`,
+          available: true,
+        });
+
+        currentInMinutes += interval;
+      }
+
+      dokter.jadwal[jadwalIndex].jam = newSlots;
+      await dokter.save();
+      return res.status(200).json({
+        success: true,
+        message: "Jadwal berhasil diperbarui",
+        data: {
+          updatedSchedule: dokter.jadwal[jadwalIndex],
+          autoRejectedCount: updateResult.modifiedCount,
+          rejectedDate: targetDate.toLocaleDateString("id-ID"),
+        },
+      });
+    } catch (err) {
+      console.error("Error:", err);
+      return res.status(500).json({
         success: false,
-        message: `Tidak ada jadwal pada tanggal ${targetDate.toLocaleDateString('id-ID')} untuk dihapus`
+        message: "Terjadi kesalahan server",
       });
     }
-
-    const formattedDate = targetDate.toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    });
-
-    res.status(200).json({
-      success: true,
-      message: `Jadwal pada tanggal ${formattedDate} berhasil dihapus`,
-      data: {
-        deletedCount: jadwalTerhapus.length,
-        deletedSchedules: jadwalTerhapus
-      }
-    });
-
-  } catch (error) {
-    console.error('Error saat menghapus jadwal:', error);
-    res.status(500).json({
-      success: false,
-      message: "Terjadi kesalahan server",
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
   }
-});
+);
+
+router.patch(
+  "/jadwal/:dokterId/jam/:jamId",
+  masyarakatAuthorization,
+  async (req, res) => {
+    const { dokterId, jamId } = req.params;
+    const { tanggal, jam_mulai, jam_selesai } = req.body;
+
+    try {
+      const dokter = await Dokter.findById(dokterId);
+      if (!dokter)
+        return res.status(404).json({ message: "Dokter tidak ditemukan" });
+
+      const jadwal = dokter.jadwal.find((j) => {
+        const tgl = new Date(j.tanggal).toISOString().split("T")[0];
+        const targetTgl = new Date(tanggal).toISOString().split("T")[0];
+        return tgl === targetTgl;
+      });
+
+      if (!jadwal)
+        return res.status(404).json({ message: "Jadwal tidak ditemukan" });
+
+      const jamItem = jadwal.jam.find((j) => j._id.toString() === jamId);
+      if (!jamItem)
+        return res.status(404).json({ message: "Jam tidak ditemukan" });
+
+      jamItem.available = false;
+
+      await dokter.save();
+      return res.status(200).json({ message: "Jadwal diperbarui" });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: "Terjadi kesalahan server" });
+    }
+  }
+);
+
+router.delete(
+  "/jadwal/hapus/:dokterId",
+  dokterAuthorization,
+  async (req, res) => {
+    try {
+      const { dokterId } = req.params;
+      const { tanggal } = req.body;
+
+      if (!mongoose.Types.ObjectId.isValid(dokterId)) {
+        return res.status(400).json({
+          success: false,
+          message: "ID Dokter tidak valid",
+        });
+      }
+
+      if (!tanggal) {
+        return res.status(400).json({
+          success: false,
+          message: "Parameter tanggal diperlukan",
+        });
+      }
+
+      const targetDate = new Date(tanggal);
+      if (isNaN(targetDate.getTime())) {
+        return res.status(400).json({
+          success: false,
+          message: "Format tanggal tidak valid",
+        });
+      }
+
+      const startOfDay = new Date(targetDate);
+      startOfDay.setUTCHours(0, 0, 0, 0);
+
+      const endOfDay = new Date(targetDate);
+      endOfDay.setUTCHours(23, 59, 59, 999);
+
+      console.log("Rentang tanggal untuk penghapusan:", {
+        start: startOfDay.toISOString(),
+        end: endOfDay.toISOString(),
+      });
+
+      const dokter = await Dokter.findOne({
+        _id: dokterId,
+        "jadwal.tanggal": {
+          $gte: startOfDay,
+          $lte: endOfDay,
+        },
+      });
+
+      if (!dokter) {
+        return res.status(404).json({
+          success: false,
+          message: `Tidak ada jadwal pada tanggal ${targetDate.toLocaleDateString(
+            "id-ID"
+          )} untuk dihapus`,
+        });
+      }
+
+      const result = await Dokter.findByIdAndUpdate(
+        dokterId,
+        {
+          $pull: {
+            jadwal: {
+              tanggal: {
+                $gte: startOfDay,
+                $lte: endOfDay,
+              },
+            },
+          },
+        },
+        { new: true }
+      );
+
+      const jadwalTerhapus = dokter.jadwal.filter((j) => {
+        const jadwalDate = new Date(j.tanggal);
+        return jadwalDate >= startOfDay && jadwalDate <= endOfDay;
+      });
+
+      if (jadwalTerhapus.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: `Tidak ada jadwal pada tanggal ${targetDate.toLocaleDateString(
+            "id-ID"
+          )} untuk dihapus`,
+        });
+      }
+
+      const formattedDate = targetDate.toLocaleDateString("id-ID", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
+
+      res.status(200).json({
+        success: true,
+        message: `Jadwal pada tanggal ${formattedDate} berhasil dihapus`,
+        data: {
+          deletedCount: jadwalTerhapus.length,
+          deletedSchedules: jadwalTerhapus,
+        },
+      });
+    } catch (error) {
+      console.error("Error saat menghapus jadwal:", error);
+      res.status(500).json({
+        success: false,
+        message: "Terjadi kesalahan server",
+        error:
+          process.env.NODE_ENV === "development" ? error.message : undefined,
+      });
+    }
+  }
+);
 
 const lockManager = {
   locks: new Set(),
