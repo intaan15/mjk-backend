@@ -1043,55 +1043,96 @@ router.delete("/jadwal/hapus/:dokterId", dokterAuthorization, async (req, res) =
   }
 });
 
-router.delete('/delete-profile-image/:id', dokterAuthorization, async (req, res) => {
- try {
-   const { id } = req.params;
-   const dokter = await Dokter.findById(id);
-  
-   if (!dokter) {
-     return res.status(404).json({
-       success: false,
-       message: 'Dokter tidak ditemukan'
-     });
-   }
-      
-   const updateResult = await Dokter.findByIdAndUpdate(
-     id,
-     { foto_profil_dokter: "" },
-     { new: true }
-   );
-  
-   if (!updateResult) {
-     return res.status(400).json({
-       success: false,
-       message: 'Gagal menghapus foto profil dari database'
-     });
-   }
-   res.status(200).json({
-     success: true,
-     message: 'Foto profil berhasil dihapus',
-     data: {
-       _id: updateResult._id,
-       nama_dokter: updateResult.nama_dokter,
-       foto_profil_dokter: updateResult.foto_profil_dokter
-     }
-   });
-  
- } catch (error) {
-   console.log('Error menghapus foto profil:', error);
-  
-   if (error.name === 'CastError') {
-     return res.status(400).json({
-       success: false,
-       message: 'ID dokter tidak valid'
-     });
-   }
-  
-   res.status(500).json({
-     success: false,
-     message: 'Terjadi kesalahan server saat menghapus foto profil'
-   });
- }
-});
+const lockManager = {
+  locks: new Set(),
+
+  async acquireLock(key) {
+    while (this.locks.has(key)) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    this.locks.add(key);
+  },
+
+  releaseLock(key) {
+    this.locks.delete(key);
+  },
+};
+
+router.delete(
+  "/delete-profile-image/:id",
+  dokterAuthorization,
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const lockKey = `delete_${id}`;
+      await lockManager.acquireLock(lockKey);
+
+      try {
+        const dokterData = await Dokter.findById(id);
+        if (!dokterData) {
+          return res.status(404).json({
+            success: false,
+            message: "Dokter tidak ditemukan",
+          });
+        }
+        const fotoProfilPath = dokterData.foto_profil_dokter;
+        if (fotoProfilPath && fotoProfilPath !== "") {
+          try {
+            const fullPath = path.join("public", fotoProfilPath);
+            if (
+              await fs
+                .access(fullPath)
+                .then(() => true)
+                .catch(() => false)
+            ) {
+              await fs.unlink(fullPath);
+              console.log("File foto profil berhasil dihapus:", fullPath);
+            } else {
+              console.log("File foto profil tidak ditemukan:", fullPath);
+            }
+          } catch (fileError) {
+            console.log("Error menghapus file foto profil:", fileError);
+          }
+        }
+        const updateResult = await Dokter.findByIdAndUpdate(
+          id,
+          { foto_profil_dokter: "" },
+          { new: true }
+        );
+        if (!updateResult) {
+          return res.status(400).json({
+            success: false,
+            message: "Gagal menghapus foto profil dari database",
+          });
+        }
+        res.status(200).json({
+          success: true,
+          message: "Foto profil berhasil dihapus",
+          data: {
+            _id: updateResult._id,
+            nama_dokter: updateResult.nama_dokter,
+            foto_profil_dokter: updateResult.foto_profil_dokter,
+          },
+        });
+      } finally {
+        lockManager.releaseLock(lockKey);
+      }
+    } catch (error) {
+      console.log("Error menghapus foto profil:", error);
+
+      if (error.name === "CastError") {
+        return res.status(400).json({
+          success: false,
+          message: "ID Dokter tidak valid",
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        message: "Terjadi kesalahan server saat menghapus foto profil",
+      });
+    }
+  }
+);
 
 module.exports = router;

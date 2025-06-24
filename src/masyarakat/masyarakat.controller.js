@@ -544,4 +544,83 @@ router.patch("/ubah-password", masyarakatAuthorization, async (req, res) => {
   }
 });
 
+
+router.delete(
+  "/delete-profile-image/:id",
+  masyarakatAuthorization,
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const lockKey = `delete_${id}`;
+      await lockManager.acquireLock(lockKey);
+
+      try {
+        const masyarakatData = await masyarakat.findById(id);
+        if (!masyarakatData) {
+          return res.status(404).json({
+            success: false,
+            message: "Masyarakat tidak ditemukan",
+          });
+        }
+        const fotoProfilPath = masyarakatData.foto_profil_masyarakat;
+        if (fotoProfilPath && fotoProfilPath !== "") {
+          try {
+            const fullPath = path.join("public", fotoProfilPath);
+            if (
+              await fs
+                .access(fullPath)
+                .then(() => true)
+                .catch(() => false)
+            ) {
+              await fs.unlink(fullPath);
+              console.log("File foto profil berhasil dihapus:", fullPath);
+            } else {
+              console.log("File foto profil tidak ditemukan:", fullPath);
+            }
+          } catch (fileError) {
+            console.log("Error menghapus file foto profil:", fileError);
+          }
+        }
+        const updateResult = await masyarakat.findByIdAndUpdate(
+          id,
+          { foto_profil_masyarakat: "" },
+          { new: true }
+        );
+        if (!updateResult) {
+          return res.status(400).json({
+            success: false,
+            message: "Gagal menghapus foto profil dari database",
+          });
+        }
+        res.status(200).json({
+          success: true,
+          message: "Foto profil berhasil dihapus",
+          data: {
+            _id: updateResult._id,
+            nama_masyarakat: updateResult.nama_masyarakat,
+            foto_profil_masyarakat: updateResult.foto_profil_masyarakat,
+          },
+        });
+      } finally {
+        lockManager.releaseLock(lockKey);
+      }
+    } catch (error) {
+      console.log("Error menghapus foto profil:", error);
+
+      if (error.name === "CastError") {
+        return res.status(400).json({
+          success: false,
+          message: "ID masyarakat tidak valid",
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        message: "Terjadi kesalahan server saat menghapus foto profil",
+      });
+    }
+  }
+);
+
+
 module.exports = router;
