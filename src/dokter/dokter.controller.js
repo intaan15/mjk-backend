@@ -916,7 +916,7 @@ router.patch(
         },
         {
           $set: {
-            status_konsul: "ditolak",
+            status_konsul: { $in: ["diterima", "menunggu"] }
           },
         }
       );
