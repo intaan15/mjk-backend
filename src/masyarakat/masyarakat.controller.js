@@ -165,9 +165,9 @@ router.post("/upload", uploadLimiter, (req, res) => {
     await lockManager.acquireLock(lockKey);
 
     try {
-      // Cek apakah masyarakat exist
-      const userExist = await masyarakat.exists({ _id: masyarakatId });
-      if (!userExist) {
+      // Ambil data masyarakat untuk mendapatkan foto lama
+      const userData = await masyarakat.findById(masyarakatId);
+      if (!userData) {
         await fs.unlink(req.file.path).catch(console.error);
         return res.status(404).json({
           message: "Masyarakat tidak ditemukan",
@@ -195,7 +195,22 @@ router.post("/upload", uploadLimiter, (req, res) => {
         finalFilePath
       );
 
-      // Update database
+      // Hapus foto lama jika ada
+      if (userData.foto_profil_masyarakat) {
+        const oldPhotoPath = path.join(
+          "public",
+          userData.foto_profil_masyarakat
+        );
+        try {
+          await fs.unlink(oldPhotoPath);
+          console.log(`Foto lama berhasil dihapus: ${oldPhotoPath}`);
+        } catch (unlinkError) {
+          // Log error tapi jangan gagalkan proses upload
+          console.warn(`Gagal menghapus foto lama: ${unlinkError.message}`);
+        }
+      }
+
+      // Update database dengan foto baru
       const dbFilePath = `/imagesmasyarakat/${finalFileName}`;
       const updated = await masyarakat.findByIdAndUpdate(masyarakatId, {
         foto_profil_masyarakat: dbFilePath,
@@ -209,6 +224,9 @@ router.post("/upload", uploadLimiter, (req, res) => {
           error: "UPDATE_FAILED",
         });
       }
+
+      // Hapus file temporary
+      await fs.unlink(tempFilePath).catch(console.error);
 
       // Dapatkan ukuran file final
       const finalStats = await fs.stat(finalFilePath);
@@ -228,6 +246,7 @@ router.post("/upload", uploadLimiter, (req, res) => {
           ) + "%",
         originalname: req.file.originalname,
         compressed: true,
+        oldPhotoDeleted: userData.foto_profil_masyarakat ? true : false,
       });
     } catch (error) {
       console.error("Upload error:", error);

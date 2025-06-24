@@ -237,6 +237,16 @@ router.post("/upload", uploadLimiter, verifyToken, (req, res) => {
         });
       }
 
+      // Ambil data dokter untuk mendapatkan foto lama
+      const dokterLama = await Dokter.findById(dokterId);
+      if (!dokterLama) {
+        await fs.unlink(req.file.path).catch(console.error);
+        return res.status(404).json({
+          message: "Dokter tidak ditemukan",
+          error: "DOCTOR_NOT_FOUND",
+        });
+      }
+
       // Path file sementara dan final
       const tempFilePath = req.file.path;
       const originalName = req.file.originalname
@@ -255,19 +265,34 @@ router.post("/upload", uploadLimiter, verifyToken, (req, res) => {
         3072
       ); // 3MB
 
-      // Update database
+      // Hapus foto lama jika ada
+      if (dokterLama.foto_profil_dokter) {
+        const oldPhotoPath = path.join("public", dokterLama.foto_profil_dokter);
+        try {
+          await fs.unlink(oldPhotoPath);
+          console.log(`Foto lama berhasil dihapus: ${oldPhotoPath}`);
+        } catch (unlinkError) {
+          // Log error tapi jangan gagalkan proses upload
+          console.warn(`Gagal menghapus foto lama: ${unlinkError.message}`);
+        }
+      }
+
+      // Update database dengan foto baru
       const updated = await Dokter.findByIdAndUpdate(dokterId, {
         foto_profil_dokter: `/imagesdokter/${finalFileName}`,
       });
 
       if (!updated) {
-        // Hapus file jika dokter tidak ditemukan
+        // Hapus file baru jika update database gagal
         await fs.unlink(finalFilePath).catch(console.error);
         return res.status(404).json({
-          message: "Dokter tidak ditemukan",
-          error: "DOCTOR_NOT_FOUND",
+          message: "Gagal update data dokter",
+          error: "UPDATE_FAILED",
         });
       }
+
+      // Hapus file temporary
+      await fs.unlink(tempFilePath).catch(console.error);
 
       // Dapatkan ukuran file final
       const finalStats = await fs.stat(finalFilePath);
@@ -286,6 +311,7 @@ router.post("/upload", uploadLimiter, verifyToken, (req, res) => {
             2
           ) + "%",
         originalname: req.file.originalname,
+        oldPhotoDeleted: dokterLama.foto_profil_dokter ? true : false,
       });
     } catch (error) {
       console.error("Upload error:", error);
