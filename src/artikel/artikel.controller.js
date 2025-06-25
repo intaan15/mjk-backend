@@ -6,10 +6,54 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs").promises;
 const sharp = require("sharp");
+const { fileTypeFromFile } = require("file-type"); // Tambahkan import file-type
 const adminAuthorization = require("../middleware/adminAuthorization");
 const verifyToken = require("../middleware/verifyToken");
 const { createLimiter, uploadLimiter } = require("../middleware/ratelimiter");
 const roleAuthorization = require("../middleware/roleAuthorization");
+
+// Daftar tipe file gambar yang diizinkan berdasarkan magic number
+const ALLOWED_IMAGE_TYPES = new Set([
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+  "image/heic",
+  "image/heif",
+]);
+
+// Fungsi untuk memvalidasi file berdasarkan magic number
+async function validateFileType(filePath) {
+  try {
+    const fileType = await fileTypeFromFile(filePath);
+
+    if (!fileType) {
+      return {
+        isValid: false,
+        error: "Tidak dapat mendeteksi tipe file atau file tidak valid",
+      };
+    }
+
+    if (!ALLOWED_IMAGE_TYPES.has(fileType.mime)) {
+      return {
+        isValid: false,
+        error: `Tipe file tidak diizinkan. Terdeteksi: ${fileType.mime}. Hanya gambar JPEG, PNG, WebP, dan HEIC yang diizinkan.`,
+      };
+    }
+
+    return {
+      isValid: true,
+      detectedType: fileType.mime,
+      extension: fileType.ext,
+    };
+  } catch (error) {
+    console.error("Error saat validasi file:", error);
+    return {
+      isValid: false,
+      error: "Error saat memvalidasi file",
+    };
+  }
+}
 
 // Fungsi untuk mengompres gambar
 async function compressImage(inputPath, outputPath, maxSizeKB = 3072) {
@@ -153,44 +197,23 @@ const storage = multer.diskStorage({
     cb(null, "public/temp/"); // Folder sementara untuk file sebelum dikompres
   },
   filename: function (req, file, cb) {
-    const originalName = file.originalname;
-    const sanitized = originalName
-      .toLowerCase()
-      .replace(/\s+/g, "-")
-      .replace(/[^a-z0-9.\-]/g, "");
-
-    const uniqueName = Date.now() + "-temp-" + sanitized;
+    // Gunakan nama file yang aman tanpa bergantung pada originalname
+    const uniqueName = Date.now() + "-temp-upload";
     cb(null, uniqueName);
   },
 });
 
-// Konfigurasi multer dengan batasan ukuran file untuk upload
+// Konfigurasi multer dengan validasi minimal (akan divalidasi lebih lanjut setelah upload)
 const upload = multer({
   storage: storage,
   limits: {
     fileSize: 50 * 1024 * 1024, // Batas 50MB untuk upload (akan dikompres nanti)
   },
-  fileFilter: function (req, file, cb) {
-    // Validasi tipe file - hanya menerima gambar
-    const allowedTypes = /jpeg|jpg|png|heic|webp/;
-    const extname = allowedTypes.test(
-      path.extname(file.originalname).toLowerCase()
-    );
-    const mimetype = allowedTypes.test(file.mimetype);
-
-    if (mimetype && extname) {
-      return cb(null, true);
-    } else {
-      cb(
-        new Error(
-          "Hanya file gambar (JPEG, JPG, PNG, HEIC, WEBP) yang diizinkan!"
-        )
-      );
-    }
-  },
+  // Hapus fileFilter yang bergantung pada mimetype dan extension
+  // Validasi sebenarnya akan dilakukan setelah file tersimpan
 });
 
-// Endpoint upload file dengan kompresi otomatis
+// Endpoint upload file dengan validasi magic number dan kompresi otomatis
 router.post("/upload", uploadLimiter, verifyToken, (req, res) => {
   upload.single("foto")(req, res, async function (err) {
     if (err instanceof multer.MulterError) {
@@ -208,7 +231,7 @@ router.post("/upload", uploadLimiter, verifyToken, (req, res) => {
     } else if (err) {
       return res.status(400).json({
         message: err.message,
-        error: "INVALID_FILE_TYPE",
+        error: "UPLOAD_ERROR",
       });
     }
 
@@ -219,15 +242,31 @@ router.post("/upload", uploadLimiter, verifyToken, (req, res) => {
       });
     }
 
+    let tempFilePath = req.file.path;
+
     try {
-      // Path file sementara dan final
-      const tempFilePath = req.file.path;
-      const originalName = req.file.originalname
-        .toLowerCase()
-        .replace(/\s+/g, "-")
-        .replace(/[^a-z0-9.\-]/g, "");
-      const finalFileName =
-        Date.now() + "-" + originalName.replace(/\.[^/.]+$/, "") + ".webp";
+      // VALIDASI UTAMA: Cek magic number untuk memastikan file adalah gambar
+      console.log(
+        `Memvalidasi tipe file berdasarkan magic number: ${req.file.originalname}`
+      );
+      const validation = await validateFileType(tempFilePath);
+
+      if (!validation.isValid) {
+        // Hapus file yang tidak valid
+        await fs.unlink(tempFilePath).catch(console.error);
+        return res.status(400).json({
+          message: validation.error,
+          error: "INVALID_FILE_TYPE",
+          detectedType: validation.detectedType || "unknown",
+        });
+      }
+
+      console.log(
+        `✅ File valid terdeteksi sebagai: ${validation.detectedType}`
+      );
+
+      // Buat nama file final berdasarkan timestamp dan ekstensi yang terdeteksi
+      const finalFileName = Date.now() + "-artikel." + validation.extension;
       const finalFilePath = path.join("public/imagesartikel/", finalFileName);
 
       // Kompres gambar
@@ -255,14 +294,19 @@ router.post("/upload", uploadLimiter, verifyToken, (req, res) => {
             2
           ) + "%",
         originalname: req.file.originalname,
+        detectedFileType: validation.detectedType,
+        detectedExtension: validation.extension,
       });
     } catch (error) {
       console.log("Upload error:", error);
       // Bersihkan file jika ada error
-      if (req.file && req.file.path) {
-        await fs.unlink(req.file.path).catch(console.error);
+      if (tempFilePath) {
+        await fs.unlink(tempFilePath).catch(console.error);
       }
-      res.status(500).json({ message: "Upload gagal", error: error.message });
+      res.status(500).json({
+        message: "Upload gagal",
+        error: error.message,
+      });
     }
   });
 });
