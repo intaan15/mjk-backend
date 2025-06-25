@@ -916,7 +916,7 @@ router.patch(
         },
         {
           $set: {
-            status_konsul: { $in: ["diterima", "menunggu"] }
+            status_konsul: { $in: ["diterima", "menunggu"] },
           },
         }
       );
@@ -1039,6 +1039,13 @@ router.delete(
         });
       }
 
+      if (req.user.id !== dokterId) {
+        return res.status(403).json({
+          success: false,
+          message: "Anda hanya bisa menghapus jadwal Anda sendiri",
+        });
+      }
+
       const startOfDay = new Date(targetDate);
       startOfDay.setUTCHours(0, 0, 0, 0);
 
@@ -1049,6 +1056,31 @@ router.delete(
         start: startOfDay.toISOString(),
         end: endOfDay.toISOString(),
       });
+
+      // 🆕 OTOMATIS MENGUBAH STATUS JADWAL KONSULTASI MENJADI "DITOLAK"
+      const updateResult = await Jadwal.updateMany(
+        {
+          dokter_id: new mongoose.Types.ObjectId(dokterId),
+          tgl_konsul: {
+            $gte: startOfDay,
+            $lte: endOfDay,
+          },
+          status_konsul: { $in: ["diterima", "menunggu"] },
+        },
+        {
+          $set: {
+            status_konsul: "ditolak",
+          },
+        }
+      );
+
+      console.log(
+        `📅 Auto-reject: ${
+          updateResult.modifiedCount
+        } jadwal konsultasi berhasil diubah menjadi ditolak untuk tanggal ${targetDate.toLocaleDateString(
+          "id-ID"
+        )}`
+      );
 
       const dokter = await Dokter.findOne({
         _id: dokterId,
@@ -1108,6 +1140,8 @@ router.delete(
         data: {
           deletedCount: jadwalTerhapus.length,
           deletedSchedules: jadwalTerhapus,
+          autoRejectedCount: updateResult.modifiedCount,
+          rejectedDate: targetDate.toLocaleDateString("id-ID"),
         },
       });
     } catch (error) {
