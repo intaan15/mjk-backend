@@ -135,7 +135,7 @@ router.post(
         });
       }
 
-      const hashedPassword = await bcrypt.hash(password_masyarakat, 17);
+      const hashedPassword = await bcrypt.hash(password_masyarakat, 13);
 
       const newUser = new masyarakat({
         nama_masyarakat,

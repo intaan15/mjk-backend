@@ -520,7 +520,7 @@ router.post(
         return res.status(400).json({ message: "Email sudah terdaftar" });
       }
 
-      const hashedPassword = await bcrypt.hash(password_dokter, 17);
+      const hashedPassword = await bcrypt.hash(password_dokter, 13);
 
       const newDokter = new Dokter({
         nama_dokter,
@@ -809,7 +809,7 @@ router.patch("/ubah-password", dokterAuthorization, async (req, res) => {
       return res.status(400).json({ message: "Password lama salah" });
     }
 
-    const salt = await bcrypt.genSalt(17);
+    const salt = await bcrypt.genSalt(13);
     const hashedPassword = await bcrypt.hash(password_baru, salt);
 
     user.password_dokter = hashedPassword;

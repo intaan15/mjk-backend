@@ -335,7 +335,7 @@ router.patch("/update/:id", verifyToken, async (req, res) => {
     if (notlp_masyarakat)
       updateData.notlp_masyarakat = encrypt(notlp_masyarakat);
     if (password_masyarakat) {
-      const salt = await bcrypt.genSalt(17);
+      const salt = await bcrypt.genSalt(13);
       updateData.password_masyarakat = await bcrypt.hash(
         password_masyarakat,
         salt
@@ -408,7 +408,7 @@ router.post("/create", createLimiter, verifyToken, async (req, res) => {
       return res.status(400).json({ message: "NIK sudah terdaftar" });
     }
 
-    const hashedPassword = await bcrypt.hash(password_masyarakat, 17);
+    const hashedPassword = await bcrypt.hash(password_masyarakat, 13);
 
     const newUser = new masyarakat({
       nama_masyarakat,
@@ -533,7 +533,7 @@ router.patch("/ubah-password", masyarakatAuthorization, async (req, res) => {
       return res.status(400).json({ message: "Password lama salah" });
     }
 
-    const salt = await bcrypt.genSalt(17);
+    const salt = await bcrypt.genSalt(13);
     const hashedPassword = await bcrypt.hash(password_baru, salt);
 
     user.password_masyarakat = hashedPassword;
