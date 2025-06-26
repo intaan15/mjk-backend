@@ -970,11 +970,11 @@ router.patch(
             $gte: startOfDay,
             $lte: endOfDay,
           },
-          status_konsul: "diterima",
+          status_konsul: { $in: ["diterima", "menunggu"] },
         },
         {
           $set: {
-            status_konsul: { $in: ["diterima", "menunggu"] },
+            status_konsul: "ditolak",
           },
         }
       );
